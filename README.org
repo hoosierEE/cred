@@ -1,6 +1,8 @@
 * Cred
+
 [[file:/img/owl-approves.png]]
-Chrome app text editor.  Spacemacs-inspired UI (key sequences instead of chords).
+
+ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
 
 ** ideas
 - RRB-tree for persistent text data structure
