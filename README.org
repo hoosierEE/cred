@@ -1,0 +1,2 @@
+* Cred
+Chrome app text editor.  Spacemacs-inspired UI (key sequences instead of chords).
