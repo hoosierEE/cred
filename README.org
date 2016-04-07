@@ -2,11 +2,23 @@
 
 [[file:/img/owl-approves.png]]
 
-ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
+ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).  Below is a wishlist of features.
 
-** ideas
-- RRB-tree for persistent text data structure
-- canvas for majority of rendering (also give webGL a try)
-- game-inspired input/update/render loop
+** game loop enforced separation of concerns
+- basically `while(true){input(),logic(),render()}`
+- service `input`s immediately
+- `logic` update on fixed time steps (better animations)
+- `render` only what's visible, possibly prerendering during scrolling
+
+** nested modal input
+- `normal`, `insert`, `visual` modes like Vim
+- `SPC y z` runs command `z` from subgroup `y`
+- incomplete commands pop-up a help menu
+
+** RRB-trees for text, markup
+- simplifies undo/redo
+- 
+** render to HTML5 canvas
+- possibly webGL
 
 
