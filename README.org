@@ -12,7 +12,7 @@ There exist [[https://github.com/showcases/text-editors][good text editors]] alr
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 - portability of Chrome apps is better than native (runs on Chrome OS, for instance)
 
-But really mostly for bragging about and because I want a copy of Spacemacs that runs in a browser.
+But really mostly because I want a copy of Spacemacs that runs "natively" on Chrome OS.
 
 * Implementation Details
 None of these exist yet.
