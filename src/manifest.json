@@ -7,5 +7,6 @@
     "manifest_version": 2,
     "name": "cred",
     "version": "0.1",
-    "description": "Spacemacs-inspired text editor"
+    "description": "Spacemacs-inspired text editor",
+    "icons": { "16": "img/cred-16.png", "128": "img/cred-128.png" }
 }
