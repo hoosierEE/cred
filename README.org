@@ -1,2 +1,10 @@
+[[file:img/owl-approves.png]]
+
 * Cred
 Chrome app text editor.  Spacemacs-inspired UI (key sequences instead of chords).
+
+** ideas
+- use RRB-tree for persistent text data structure
+- render on canvas (also give webGL a try)
+
+

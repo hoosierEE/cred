@@ -1,17 +1,11 @@
 {
-    "manifest_version": 2,
-    "version": "0.1",
-    "minimum_chrome_version": "35",
-    "name": "cred",
-    "description": "Text editor with Spacemacs-like UI",
-    "icons": {
-        "16": "img/example16.png",
-        "128": "img/example128.png"
-    },
     "app": {
         "background": {
             "scripts": ["background.js"]
         }
     },
-    "permissions": []
+    "manifest_version": 2,
+    "name": "cred",
+    "version": "0.1",
+    "description": "Spacemacs-inspired text editor"
 }
