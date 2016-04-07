@@ -5,22 +5,23 @@
 ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
 
 * Feature Wishlist
+None of these exist yet.
 
-** game loop enforced separation of concerns
-- basically `while(true){input(),logic(),render()}`
-- service `input`s immediately
-- `logic` update on fixed time steps (better animations)
-- `render` only what's visible, possibly prerendering during scrolling
+** game loop for smooth UI and separation of concerns
+- basically =while(true){input(),logic(),render()}=
+- service =input= immediately
+- =logic= update on fixed time steps (better animations)
+- =render= only what's visible, possibly prerendering during scrolling
 
 ** nested modal input
-- `normal`, `insert`, `visual` modes like Vim
-- `SPC y z` runs command `z` from subgroup `y`
+- =normal=, =insert=, =visual= modes like Vim
+- =SPC y z= runs command =z= from subgroup =y=
 - incomplete commands pop-up a help menu
 
 ** RRB-trees for text, markup
-- simplifies undo/redo
-- 
+- simple undo/redo
+
 ** render to HTML5 canvas
-- possibly webGL
+- webGL?
 
 
