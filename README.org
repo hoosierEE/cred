@@ -1,4 +1,5 @@
-[[file:img/owl-approves.png]]
+
+[[file:img/owl-approves.png][owl.png]]
 
 * Cred
 Chrome app text editor.  Spacemacs-inspired UI (key sequences instead of chords).
