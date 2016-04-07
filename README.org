@@ -2,7 +2,9 @@
 
 [[file:/img/owl-approves.png]]
 
-ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).  Below is a wishlist of features.
+ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
+
+* Feature Wishlist
 
 ** game loop enforced separation of concerns
 - basically `while(true){input(),logic(),render()}`
