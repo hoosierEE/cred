@@ -1,3 +1,3 @@
 chrome.app.runtime.onLaunched.addListener(()=>{
-    chrome.app.window.create('main_window.html',{id:'mainwin'});
+    chrome.app.window.create('main.html',{id:'main_window'});
 });
