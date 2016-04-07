@@ -10,7 +10,7 @@
     },
     "app": {
         "background": {
-            "scripts": ["go.js"]
+            "scripts": ["background.js"]
         }
     },
     "permissions": []
