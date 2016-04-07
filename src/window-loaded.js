@@ -8,11 +8,11 @@ var rsz=()=>{
 var txt='hi, peeps!';
 var draw=(txt)=>{
     var c=document.getElementById('c').getContext('2d');
-    c.fillStyle='rgba(255,255,255,0.99)';
+    c.fillStyle='rgba(200,200,200,0.5)';
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='rgba(20,100,131,0.7)';
     c.font='38px monospace';
-    c.strokeText(txt,50,50);
+    c.fillText(txt,50,50);
 };
 
 onload=()=>{
@@ -21,7 +21,7 @@ onload=()=>{
     onresize=rsz;
     onkeydown=onkeyup=(k)=>{
         keys[k.keyCode]=k.type=='keydown';
-        draw(keys.reduce((a,b)=>a+b));
+        draw(k.code+' '+k.type);
     };
     rsz();
 };

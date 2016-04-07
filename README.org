@@ -1,5 +1,5 @@
 * Cred
-[[file:/img/hello-canvas.png]]
+[[file:/img/canvas-keycodes.png]]
 
 ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
 
