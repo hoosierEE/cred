@@ -1,9 +1,5 @@
 {
-    "app": {
-        "background": {
-            "scripts": ["background.js"]
-        }
-    },
+    "app": {"background": {"scripts": ["background.js"]}},
     "manifest_version": 2,
     "name": "cred",
     "version": "0.0.1",

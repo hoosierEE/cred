@@ -2,13 +2,12 @@
 var rsz=()=>{
     document.getElementById('c').width=document.body.clientWidth;
     document.getElementById('c').height=document.body.clientHeight;
-    draw(txt);
+    draw('hi world');
 };
 
-var txt='hi, peeps!';
 var draw=(txt)=>{
     var c=document.getElementById('c').getContext('2d');
-    c.fillStyle='rgba(200,200,200,0.5)';
+    c.fillStyle='rgba(200,200,200,0.5)'; // cheap fade out effect
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='rgba(20,100,131,0.7)';
     c.font='38px monospace';
