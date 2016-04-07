@@ -7,11 +7,11 @@ ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords)
 * Feature Wishlist
 None of these exist yet.
 
-** game loop for smooth UI and separation of concerns
+** game loop: smooth UI, separated concerns
 - basically =while(true){input(),logic(),render()}=
 - service =input= immediately
-- =logic= update on fixed time steps (better animations)
-- =render= only what's visible, possibly prerendering during scrolling
+- update =logic= at fixed time steps for smoother animations
+- =render= only what is visible, potential prerender during scrolling (machine learning?)
 
 ** nested modal input
 - =normal=, =insert=, =visual= modes like Vim
