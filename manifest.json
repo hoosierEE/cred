@@ -1,0 +1,17 @@
+{
+    "manifest_version": 2,
+    "version": "0.1",
+    "minimum_chrome_version": "33",
+    "name": "cred",
+    "description": "Text editor with Spacemacs-like UI",
+    "icons": {
+        "16": "img/example16.png",
+        "128": "img/example128.png"
+    },
+    "app": {
+        "background": {
+            "scripts": ["go.js"]
+        }
+    },
+    "permissions": [],
+}
