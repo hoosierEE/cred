@@ -3,7 +3,7 @@ var rsz=()=>{
     var c=document.getElementById('c').getContext('2d');
     c.canvas.width=window.innerWidth;
     c.canvas.height=window.innerHeight;
-    draw('hi world');
+    draw('howdy fsdsdf');
 };
 
 var draw=(txt)=>{
