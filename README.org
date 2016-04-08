@@ -1,13 +1,13 @@
-* Cred
+* cred
 [[file:/img/canvas-keycodes.png]]
-
-ChRome app text EDitor.  Spacemacs-inspired UI (key sequences instead of chords).
+Canvas Rendered EDitor.
+ChRome text EDitor.  Street CRED.  
 
 * Why
-There exist [[https://github.com/showcases/text-editors][good text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
+There are [[https://github.com/showcases/text-editors][good text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
-- educational value - apply some techniques I've used in other software (and firmware) to editing text
-- experiment with technology - RRB trees, canvas rendering, webGL
+- educational value
+- explore lesser-used solutions to a familiar problem
 - build an extensible system (prolly invent a new language for this, because that sounds like a good use of time)
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 - portability of Chrome apps is better than native (runs on Chrome OS, for instance)
@@ -15,11 +15,16 @@ There exist [[https://github.com/showcases/text-editors][good text editors]] alr
 But really mostly because I want a copy of Spacemacs that runs "natively" on Chrome OS.
 
 * Implementation Details
-None of these exist yet.
+Some of these are implemented, but all are planned.
 
-** game loop: smooth UI, separated concerns
+** render to HTML5 canvas
+/here to stay, haters gonna hate/
+Possibly webGL at some point, but currently 2d.  It's true, there are [[http://stackoverflow.com/a/12437275/2037637][good reasons to avoid]] this approach.  But graphics primitives are kind of fun, and there's something about immediate-mode rendering that I like.  Besides, virtual-dom-style rendering is the new hotness these days, and it's basically immediate-mode rendering behind the scenes.  So perhaps there are style points to be had for rendering to canvas.
+
+** game loop for separated concerns; smooth UI
+/partially implemented, here to stay/
 - basically =while(true){input(),logic(),render()}=
-- service =input= immediately
+- service =inputs= immediately
 - update =logic= at fixed time steps for smoother animations
 - =render= only what is visible, potential prerender during scrolling (machine learning?)
 
@@ -31,6 +36,3 @@ None of these exist yet.
 ** RRB-trees for text, markup
 - simple undo/redo
  
-** render to HTML5 canvas
-- webGL?
-
