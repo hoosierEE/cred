@@ -16,7 +16,7 @@ But really: Spacemacs on Chrome OS.
 /Some/ of these are implemented.  All are planned.
 
 ** render to HTML5 canvas
-There may be a webGL branch at some point, but currently 2d.  It's true, there are [[http://stackoverflow.com/a/12437275/2037637][good reasons to avoid]] this approach.  But graphics primitives are kind of fun, and there's something about immediate-mode rendering that I like.  Besides, virtual-dom-style rendering is the new hotness these days, and it's basically immediate-mode rendering behind the scenes.  So perhaps there are style points to be had for rendering to canvas.
+[[http://stackoverflow.com/a/12437275/2037637][This may be crazy]].  But graphics primitives are kind of fun, and there's something about immediate-mode rendering that I like.  Besides, virtual-dom-style rendering is the new hotness these days, and it's basically immediate-mode rendering behind the scenes.  So perhaps there are style points to be had for rendering to canvas.
 
 ** game loop: separate concerns, smooth UI
 - =while(true){input(),logic(),render()}=
