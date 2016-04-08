@@ -2,18 +2,17 @@
 
 [[file:/img/canvas-keycodes.png]]
 
-/Canvas Rendered EDitor | ChRome text EDitor | Street CRED/
+/Canvas Rendered EDitor/
 
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
 - educational, experimental
-- learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
-
-But really: Spacemacs on Chrome OS.
+- learn from other implementations (Spacemacs, Ace, Sublime Text, etc.) 
+- but really: Spacemacs for the web
 
 * Features
-/Some/ of these are implemented.  All are planned.
+...in various amounts of implementation
 
 ** render to HTML5 canvas
 [[http://stackoverflow.com/a/12437275/2037637][This may be crazy]].  But graphics primitives are kind of fun, and there's something about immediate-mode rendering that I like.  Besides, virtual-dom-style rendering is the new hotness these days, and it's basically immediate-mode rendering behind the scenes.  So perhaps there are style points to be had for rendering to canvas.

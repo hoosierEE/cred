@@ -16,11 +16,15 @@ var draw=(txt)=>{
 };
 
 window.onload=()=>{
-    var keys=[];
+    var keyset=new Set();
+    //var keys=[];
     window.onresize=rsz;
     window.onkeydown=window.onkeyup=(k)=>{
-        keys[k.keyCode]=k.type=='keydown';
+        if(k.type=='keydown')keyset.add(k.code);
+        if(k.type=='keyup')keyset.delete(k.code);
+        //keys[k.keyCode]=k.type=='keydown';
         draw(k.code+' '+k.type);
+        console.log(keyset);
     };
     rsz();
 };
