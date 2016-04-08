@@ -14,11 +14,11 @@ var draw=(txt)=>{
     c.fillText(txt,50,50);
 };
 
-onload=()=>{
+window.onload=()=>{
     var keys=[];
     // initialization; event listeners
-    onresize=rsz;
-    onkeydown=onkeyup=(k)=>{
+    window.onresize=rsz;
+    window.onkeydown=window.onkeyup=(k)=>{
         keys[k.keyCode]=k.type=='keydown';
         draw(k.code+' '+k.type);
     };
