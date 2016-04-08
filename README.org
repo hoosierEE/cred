@@ -5,14 +5,14 @@
 /Canvas Rendered EDitor | ChRome text EDitor | Street CRED/
 
 * Why
-There are [[https://github.com/showcases/text-editors][good text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
+There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
 - educational, experimental
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 
-But really mostly because I want a copy of Spacemacs that runs "natively" on Chrome OS.
+But really: Spacemacs on Chrome OS.
 
-* Implementation Details
+* Features
 /Some/ of these are implemented.  All are planned.
 
 ** render to HTML5 canvas
@@ -28,7 +28,3 @@ There may be a webGL branch at some point, but currently 2d.  It's true, there a
 - =normal=, =insert=, =visual= modes like Vim
 - =SPC y z= runs command =z= from subgroup =y=
 - incomplete commands pop-up a help menu
-
-** RRB-trees for text, markup
-- simple undo/redo
- 
