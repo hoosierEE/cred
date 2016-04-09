@@ -7,23 +7,22 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
-- educational, experimental
-- learn from other implementations (Spacemacs, Ace, Sublime Text, etc.) 
+- learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
+- unique rendering mode
 - but really: Spacemacs for the web
 
 * Features
 ...in various amounts of implementation
 
 ** render to HTML5 canvas
-[[http://stackoverflow.com/a/12437275/2037637][This may be crazy]].  But graphics primitives are kind of fun, and there's something about immediate-mode rendering that I like.  Besides, virtual-dom-style rendering is the new hotness these days, and it's basically immediate-mode rendering behind the scenes.  So perhaps there are style points to be had for rendering to canvas.
+[[http://stackoverflow.com/a/12437275/2037637][This may be crazy]], but it's a key distinguishing feature.
 
 ** game loop: separate concerns, smooth UI
 - =while(true){input(),logic(),render()}=
 - service =inputs= immediately
 - update =logic= at fixed time steps for smoother animations
-- =render= only what is visible, potential prerender during scrolling (machine learning?)
+- =render= webGL possible; 2d still offers finer grained control and better response than DOM
 
-** nested modal input
+** layered modal input
 - =normal=, =insert=, =visual= modes like Vim
-- =SPC y z= runs command =z= from subgroup =y=
-- incomplete commands pop-up a help menu
+- popup mini-modes like Spacemacs
