@@ -1,6 +1,6 @@
 * cred
 
-[[file:/img/canvas-keycodes.png]]
+[[file:/img/hello.png]]
 
 /Canvas Rendered EDitor/
 
@@ -9,20 +9,21 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 - unique rendering mode
+- reinvent ALL THE WHEELS!
 - but really: Spacemacs for the web
 
 * Features
 ...in various amounts of implementation
 
 ** render to HTML5 canvas
-[[http://stackoverflow.com/a/12437275/2037637][This may be crazy]], but it's a key distinguishing feature.
+This [[http://stackoverflow.com/a/12437275/2037637][may be crazy]].  But it's part of the acronym, so it stays.
 
 ** game loop: separate concerns, smooth UI
 - =while(true){input(),logic(),render()}=
 - service =inputs= immediately
 - update =logic= at fixed time steps for smoother animations
-- =render= webGL possible; 2d still offers finer grained control and better response than DOM
+- =render= webGL possible; 2d still offers finer grained control and faster redraws than DOM
 
-** layered modal input
+** layered, modal, keyboard-driven input
 - =normal=, =insert=, =visual= modes like Vim
 - popup mini-modes like Spacemacs
