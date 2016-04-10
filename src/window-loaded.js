@@ -13,7 +13,8 @@ var reset=()=>{
 };
 
 var write=(ks)=>{
-    // update text, cursor position
+    // update text, cursor position TODO separate data from rendering
+    // draw to canvas
     if(undefined===ks){return;}
     c.fillStyle='lightGray';
     c.font='28px monospace';
@@ -23,14 +24,13 @@ var write=(ks)=>{
 };
 
 var decode=({mods:a,key:k})=>{
-    // check common keys first
-    // NOTE so far only handles Shift modifier key (a[3])
+    // TODO other modifiers (Shift is a[3])
     console.log(k);
     if(k=='Space'){return' ';}
     var ma=k[k.length-1]; // maybe alphanumeric
     switch(k.slice(0,-1)){
     case'Key':return a[3]?ma:ma.toLowerCase();
-    case'Digit':return a[3]?")!@#$%^&*("[ma]:ma;
+    case'Digit':return a[3]?")!@#$%^&*("[ma]:ma; // NOTE qwerty only
     }
     var punct=['Comma',',','<'
                ,'Quote',"'",'"'
@@ -43,15 +43,21 @@ var decode=({mods:a,key:k})=>{
                ,'Backquote','`','~'
                ,'BracketLeft','[','{'
                ,'BracketRight',']','}'
-              ]; // might be better to do all the keys like this...
+              ]; // maybe all the keys should be done this way, hmm...
     var pin=punct.indexOf(k);
     if(pin>=0){return punct[pin+(a[3]?2:1)];}
 
-    switch(k){ // different strategy?
+    // different strategy required for these
+    switch(k){
     case'Tab':return'\t'; // FIXME cursor position
     case'Enter':return'\n'; // FIXME cursor position
     case'Backspace':return; // FIXME cursor position
     case'Delete':return; // FIXME cursor position
+    case'ArrowLeft':return;
+    case'ArrowUp':return;
+    case'ArrowDown':return;
+    case'ArrowRight':return;
+    case'Escape':return;
     }
 };
 
@@ -60,7 +66,7 @@ window.onload=()=>{
     window.onresize=rsz;
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
-            k.preventDefault(); // NOTE: required for browser version, not Chrome app
+            k.preventDefault();
             pressed_codes.add(k.keyCode);
             write(decode({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],key:k.code}));
         }
