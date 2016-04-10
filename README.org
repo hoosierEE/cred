@@ -11,7 +11,7 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 - unique rendering mode
 - reinvent ALL THE WHEELS!
 - but really: Spacemacs for the web
-
+  
 * Features
 ...in various amounts of implementation
 
