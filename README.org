@@ -1,6 +1,6 @@
 * cred
 
-[[file:/img/hello.png]]
+[[file:img/hello.png]]
 
 /Canvas Rendered EDitor/
 
