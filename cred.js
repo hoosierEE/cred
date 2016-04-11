@@ -37,8 +37,8 @@ var render=()=>{
     }
 };
 
-var decode=(a,c,m,s,k)=>{//console.log(k);
-    var action={c:''};
+var decode=(a,c,m,s,k)=>{ //console.log(k);
+    var action={act:'',c:''};
     if(k=='Space'){action.c=' ';}
     var ma=k[k.length-1]; // maybe alphanumeric
     switch(k.slice(0,-1)){
