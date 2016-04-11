@@ -4,28 +4,40 @@ var c=document.getElementById('c').getContext('2d'),
     cursor={x:25,y:75}, // cursor position on grid
     mode={insert:true,normal:false,visual:false},
     txt=[],
+    prevtxtlen=0,
     pressed_codes=new Set(); // keys that are down right now
 
-var draw_to_canvas=(ks)=>{
-    // append to canvas, update cursor position TODO separate data from rendering
-    if(!ks){return;} // TODO who should handle this, really?
-    if(ks.c.length==0){return;}
-    c.fillStyle='lightGray';
-    c.font='38px monospace';
-    var tw=c.measureText(ks.c).width;
-    var newline=()=>{cursor.x=border;cursor.y+=border*1.5;}
-    if(cursor.x+tw+border>c.canvas.width){newline()}
-    if(ks.act=='Tab'){
-        if(cursor.x+tw*4+border>c.canvas.width){newline();}
-        else{cursor.x+=4*tw;}
-    }
-    else if(ks.act=='Enter'){newline();}
-    else if(cursor.x+tw+border>c.canvas.width){newline();}
-    else{cursor.x+=tw;c.fillText(ks.c,cursor.x,cursor.y);}
+var update_txt=(ks)=>{
+    if(!ks){return;}
+    if(ks.act=='Backspace'){txt.pop();}
+    else if(ks.c.length==0){return;}
+    else{txt.push(ks.c);}
 };
 
-var decode=(a,c,m,s,k)=>{
-    console.log(k);
+var render=()=>{
+    requestAnimationFrame(render);
+    //if(txt.length==prevtxtlen){return;}
+    //prevtxtlen=txt.length;
+    cursor.x=border;cursor.y=border*2.5;
+    c.fillStyle='black';
+    c.fillRect(0,0,c.canvas.width,c.canvas.height);
+    c.fillStyle='lightGray';
+    c.font='28px monospace';
+    var newline=()=>{cursor.x=border;cursor.y+=border*1.5;}
+    for(var i=0;i<txt.length;++i){
+        var tw=c.measureText(txt[i]).width;
+        if(cursor.x+tw+border>c.canvas.width){newline();}
+        if(txt[i]=='\t'){
+            if(cursor.x+tw*4+border>c.canvas.width){newline();}
+            else{cursor.x+=4*tw;}
+        }
+        else if(txt[i]=='\n'){newline();}
+        else if(cursor.x+tw+border>c.canvas.width){newline();}
+        else{cursor.x+=tw;c.fillText(txt[i],cursor.x,cursor.y);}
+    }
+};
+
+var decode=(a,c,m,s,k)=>{//console.log(k);
     var action={c:''};
     if(k=='Space'){action.c=' ';}
     var ma=k[k.length-1]; // maybe alphanumeric
@@ -71,8 +83,9 @@ window.onload=()=>{
         if(k.type=='keydown'){
             k.preventDefault();
             pressed_codes.add(k.keyCode);
-            draw_to_canvas(decode(k.altKey,k.ctrlKey,k.metaKey,k.shiftKey,k.code));
+            update_txt(decode(k.altKey,k.ctrlKey,k.metaKey,k.shiftKey,k.code))
         }
         if(k.type=='keyup'){pressed_codes.delete(k.keyCode);}
     };
+    requestAnimationFrame(render);
 };
