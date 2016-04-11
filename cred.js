@@ -3,8 +3,8 @@
 var c=document.getElementById('c').getContext('2d'),
     grid={width:25,height:50}, // monospace grid width/height
     cursor={x:25,y:75}, // cursor position on grid
+    mode={insert:true,normal:false,visual:false},
     txt=[],
-    decoded_keys=[],
     pressed_codes=new Set(); // keys that are down right now
 
 var draw_to_canvas=(ks)=>{
@@ -12,15 +12,17 @@ var draw_to_canvas=(ks)=>{
     if(!ks){return;} // TODO who should handle this, really?
     if(ks.c.length==0){return;}
     c.fillStyle='lightGray';
-    c.font='28px monospace';
+    c.font='38px monospace';
     c.fillText(ks.c,cursor.x,cursor.y);
-    cursor.x+=grid.width;
-    if(cursor.x+grid.width>c.canvas.width){cursor.y+=grid.height; cursor.x=grid.width;} // wrap
+    var width=c.measureText(ks.c).width;
+    if(ks.act=='Tab'){cursor.x+=4*width;}
+    else if(ks.act=='Enter'||cursor.x+grid.width+width>c.canvas.width){cursor.y+=grid.height;cursor.x=grid.width;}
+    else{cursor.x+=width;}
 };
 
 var decode=(a,c,m,s,k)=>{
-    var action={mods:[a,c,m,s],act:'insert',c:''};
     console.log(k);
+    var action={c:''};
     if(k=='Space'){action.c=' ';}
     var ma=k[k.length-1]; // maybe alphanumeric
     switch(k.slice(0,-1)){
@@ -44,7 +46,7 @@ var decode=(a,c,m,s,k)=>{
 
     // TODO #6 cursor movement
     switch(k){
-    case'Tab':action.c='\t';break;
+    case'Tab':action.act='Tab';action.c='\t';break;
     case'Enter':action.act='Enter';action.c='\n';break;
     default:action.act=k;break;
     }
@@ -52,7 +54,14 @@ var decode=(a,c,m,s,k)=>{
 };
 
 window.onload=()=>{
-    var rsz=()=>{c.canvas.width=window.innerWidth; c.canvas.height=window.innerHeight;};
+    var rsz=()=>{
+        c.canvas.width=c.canvas.clientWidth;
+        c.canvas.height=c.canvas.clientHeight;
+        // init canvas
+        cursor.x=grid.width; cursor.y=grid.height;
+        c.fillStyle='black';
+        c.fillRect(0,0,c.canvas.width,c.canvas.height);
+    };
     window.onresize=rsz;
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
@@ -63,8 +72,4 @@ window.onload=()=>{
         if(k.type=='keyup'){pressed_codes.delete(k.keyCode);}
     };
     rsz();
-    // init canvas
-    cursor.x=grid.width; cursor.y=grid.height;
-    c.fillStyle='black';
-    c.fillRect(0,0,c.canvas.width,c.canvas.height);
 };
