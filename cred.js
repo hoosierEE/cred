@@ -1,30 +1,33 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     grid=25, // monospace grid width/height
-    cursor={x:25,y:75}, // cursor position on grid
+    Cursor=function(){
+        return {
+            x:grid,y:grid*2.5,
+            width:function(){return c.measureText('a').width;},
+            up:function(){this.y-=grid;},
+            down:function(){this.y+=grid;},
+            right:function(){this.x+=this.width();},
+            left:function(){this.x-=this.width();}
+        };
+    },
     mode={insert:true,normal:false,visual:false},
     txt=[''],
     tw=3,
     pressed_codes=new Set(); // keys that are down right now
+var cursor=new Cursor(); // for writing text
+var point=new Cursor();
 
-var update_txt=(ks)=>{
-    if(!ks){return;}
-    if(ks.act=='Backspace'){txt.pop();}
-    else if(ks.c.length==0){return;}
-    else{txt.push(ks.c);}
-};
-
-var render=()=>{
-    requestAnimationFrame(render);
-    // text
-    cursor.x=grid;cursor.y=grid*2.5;
+var render_text=()=>{
+    requestAnimationFrame(render_text);
+    cursor.x=grid;cursor.y=grid*2.5; // FIXME this resets cursor position to home each time
     c.fillStyle='black';
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightGray';
     c.font='28px monospace';
     var newline=()=>{cursor.x=grid;cursor.y+=grid*1.5;}
     for(var i=0;i<txt.length;++i){
-        tw=c.measureText(txt[i]).width;
+        tw=cursor.width();
         if(cursor.x+tw+grid>c.canvas.width){newline();}
         if(txt[i]=='\t'){
             if(cursor.x+tw*4+grid>c.canvas.width){newline();}
@@ -32,17 +35,19 @@ var render=()=>{
         }
         else if(txt[i]=='\n'){newline();}
         else if(cursor.x+tw+grid>c.canvas.width){newline();}
-        else{cursor.x+=tw;c.fillText(txt[i],cursor.x,cursor.y);}
+        else{
+            cursor.x+=tw;
+            c.fillText(txt[i],cursor.x,cursor.y);
+        }
     }
     // cursor
     this.prev_blink_alpha=0;
     var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.007);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
-    //console.log(tw);
-    c.fillRect(cursor.x+(c.measureText('a').width),cursor.y-grid*1.25,1,grid*1.5);
+    c.fillRect(point.x+point.width(),point.y-grid*1.25,2,grid*1.5);
 };
 
-var decode=(a,c,m,s,k)=>{ //console.log(k);
+var decode=(a,c,m,s,k)=>{
     var action={act:'',c:''};
     if(k=='Space'){action.c=' ';}
     var ma=k[k.length-1]; // maybe alphanumeric
@@ -65,13 +70,25 @@ var decode=(a,c,m,s,k)=>{ //console.log(k);
     var pin=punct.indexOf(k);
     if(pin>=0){action.c=punct[pin+(s?2:1)];}
 
+    console.log(k);
     // TODO #6 cursor movers
     switch(k){
     case'Tab':action.act='Tab';action.c='\t';break;
     case'Enter':action.act='Enter';action.c='\n';break;
-    default:action.act=k;break; // everything else (escape, arrows, page up/down, etc.)
+    case'ArrowLeft':point.left();break;
+    case'ArrowRight':point.right();break;
+    case'ArrowUp':point.up();break;
+    case'ArrowDown':point.down();break;
+    default:action.act=k;break; // everything else (escape, page up/down, etc.)
     }
-    return action;
+    //return action;
+    var update_txt=(ks)=>{
+        if(!ks){return;}
+        if(ks.act=='Backspace'){txt.pop();}
+        else if(ks.c.length==0){return;}
+        else{txt.push(ks.c);}
+    };
+    update_txt(action);
 };
 
 window.onload=()=>{
@@ -88,9 +105,9 @@ window.onload=()=>{
         if(k.type=='keydown'){
             k.preventDefault();
             pressed_codes.add(k.keyCode);
-            update_txt(decode(k.altKey,k.ctrlKey,k.metaKey,k.shiftKey,k.code))
+            decode(k.altKey,k.ctrlKey,k.metaKey,k.shiftKey,k.code);
         }
         if(k.type=='keyup'){pressed_codes.delete(k.keyCode);}
     };
-    requestAnimationFrame(render);
+    requestAnimationFrame(render_text);
 };
