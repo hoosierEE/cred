@@ -5,8 +5,8 @@ var c=document.getElementById('c').getContext('2d'),
         return {
             x:grid,y:grid*2.5,
             width:function(){return c.measureText('a').width;},
-            up:function(){this.y-=grid;},
-            down:function(){this.y+=grid;},
+            up:function(){this.y-=grid*1.5;},
+            down:function(){this.y+=grid*1.5;},
             right:function(){this.x+=this.width();},
             left:function(){this.x-=this.width();}
         };
@@ -70,25 +70,35 @@ var decode=(a,c,m,s,k)=>{
     var pin=punct.indexOf(k);
     if(pin>=0){action.c=punct[pin+(s?2:1)];}
 
-    console.log(k);
+    //console.log(k);
     // TODO #6 cursor movers
     switch(k){
-    case'Tab':action.act='Tab';action.c='\t';break;
-    case'Enter':action.act='Enter';action.c='\n';break;
+    case'Tab':action.c='\t';break;
+    case'Enter':action.c='\n';break;
     case'ArrowLeft':point.left();break;
     case'ArrowRight':point.right();break;
     case'ArrowUp':point.up();break;
     case'ArrowDown':point.down();break;
-    default:action.act=k;break; // everything else (escape, page up/down, etc.)
     }
-    //return action;
     var update_txt=(ks)=>{
         if(!ks){return;}
         if(ks.act=='Backspace'){txt.pop();}
         else if(ks.c.length==0){return;}
         else{txt.push(ks.c);}
     };
+    var update_point=(ks)=>{
+        if(ks.act.slice(0,5)!='Arrow'){
+            point.x=cursor.x+point.width();
+            point.y=cursor.y;
+        }
+        if(ks.act=='Enter'){point.x=grid;point.down();}
+        //if(ks.act=='Backspace'){point.x=cursor.x-point.width();}
+        if(ks.act=='Backspace'){point.left();point.left();} // FIXME this ugly hack
+        if(ks.act=='Delete'){point.right();}
+    };
+    action.act=k; // catch-all
     update_txt(action);
+    update_point(action);
 };
 
 window.onload=()=>{
