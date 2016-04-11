@@ -14,7 +14,9 @@ var draw_to_canvas=(ks)=>{
     c.font='28px monospace';
     c.fillText(ks.c,cursor.x,cursor.y);
     cursor.x+=grid.width;
-    if(cursor.x+grid.width>c.canvas.width){cursor.y+=grid.height; cursor.x=grid.width;} // wrap
+    if(cursor.x+grid.width>c.canvas.width){
+        cursor.y+=grid.height; cursor.x=grid.width;
+    } // wrap
 };
 
 var decode=(a,c,m,s,k)=>{
