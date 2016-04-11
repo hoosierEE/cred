@@ -1,23 +1,27 @@
 'use strict';
-// globals
 var c=document.getElementById('c').getContext('2d'),
-    grid={width:25,height:50}, // monospace grid width/height
+    border=25, // monospace grid width/height
     cursor={x:25,y:75}, // cursor position on grid
     mode={insert:true,normal:false,visual:false},
     txt=[],
     pressed_codes=new Set(); // keys that are down right now
 
 var draw_to_canvas=(ks)=>{
-    // update text, cursor position TODO separate data from rendering
+    // append to canvas, update cursor position TODO separate data from rendering
     if(!ks){return;} // TODO who should handle this, really?
     if(ks.c.length==0){return;}
     c.fillStyle='lightGray';
     c.font='38px monospace';
-    c.fillText(ks.c,cursor.x,cursor.y);
-    var width=c.measureText(ks.c).width;
-    if(ks.act=='Tab'){cursor.x+=4*width;}
-    else if(ks.act=='Enter'||cursor.x+grid.width+width>c.canvas.width){cursor.y+=grid.height;cursor.x=grid.width;}
-    else{cursor.x+=width;}
+    var tw=c.measureText(ks.c).width;
+    var newline=()=>{cursor.x=border;cursor.y+=border*1.5;}
+    if(cursor.x+tw+border>c.canvas.width){newline()}
+    if(ks.act=='Tab'){
+        if(cursor.x+tw*4+border>c.canvas.width){newline();}
+        else{cursor.x+=4*tw;}
+    }
+    else if(ks.act=='Enter'){newline();}
+    else if(cursor.x+tw+border>c.canvas.width){newline();}
+    else{cursor.x+=tw;c.fillText(ks.c,cursor.x,cursor.y);}
 };
 
 var decode=(a,c,m,s,k)=>{
@@ -44,11 +48,11 @@ var decode=(a,c,m,s,k)=>{
     var pin=punct.indexOf(k);
     if(pin>=0){action.c=punct[pin+(s?2:1)];}
 
-    // TODO #6 cursor movement
+    // TODO #6 cursor movers
     switch(k){
     case'Tab':action.act='Tab';action.c='\t';break;
     case'Enter':action.act='Enter';action.c='\n';break;
-    default:action.act=k;break;
+    default:action.act=k;break; // everything else (escape, arrows, page up/down, etc.)
     }
     return action;
 };
@@ -57,11 +61,11 @@ window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
-        // init canvas
-        cursor.x=grid.width; cursor.y=grid.height;
+        cursor.x=border; cursor.y=border*2.5;
         c.fillStyle='black';
         c.fillRect(0,0,c.canvas.width,c.canvas.height);
     };
+    rsz();
     window.onresize=rsz;
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
@@ -71,5 +75,4 @@ window.onload=()=>{
         }
         if(k.type=='keyup'){pressed_codes.delete(k.keyCode);}
     };
-    rsz();
 };
