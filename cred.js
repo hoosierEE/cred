@@ -1,10 +1,10 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    border=25, // monospace grid width/height
+    grid=25, // monospace grid width/height
     cursor={x:25,y:75}, // cursor position on grid
     mode={insert:true,normal:false,visual:false},
-    txt=[],
-    prevtxtlen=0,
+    txt=[''],
+    tw=3,
     pressed_codes=new Set(); // keys that are down right now
 
 var update_txt=(ks)=>{
@@ -16,25 +16,30 @@ var update_txt=(ks)=>{
 
 var render=()=>{
     requestAnimationFrame(render);
-    //if(txt.length==prevtxtlen){return;}
-    //prevtxtlen=txt.length;
-    cursor.x=border;cursor.y=border*2.5;
+    // text
+    cursor.x=grid;cursor.y=grid*2.5;
     c.fillStyle='black';
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightGray';
     c.font='28px monospace';
-    var newline=()=>{cursor.x=border;cursor.y+=border*1.5;}
+    var newline=()=>{cursor.x=grid;cursor.y+=grid*1.5;}
     for(var i=0;i<txt.length;++i){
-        var tw=c.measureText(txt[i]).width;
-        if(cursor.x+tw+border>c.canvas.width){newline();}
+        tw=c.measureText(txt[i]).width;
+        if(cursor.x+tw+grid>c.canvas.width){newline();}
         if(txt[i]=='\t'){
-            if(cursor.x+tw*4+border>c.canvas.width){newline();}
+            if(cursor.x+tw*4+grid>c.canvas.width){newline();}
             else{cursor.x+=4*tw;}
         }
         else if(txt[i]=='\n'){newline();}
-        else if(cursor.x+tw+border>c.canvas.width){newline();}
+        else if(cursor.x+tw+grid>c.canvas.width){newline();}
         else{cursor.x+=tw;c.fillText(txt[i],cursor.x,cursor.y);}
     }
+    // cursor
+    this.prev_blink_alpha=0;
+    var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.007);
+    c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
+    //console.log(tw);
+    c.fillRect(cursor.x+(c.measureText('a').width),cursor.y-grid*1.25,1,grid*1.5);
 };
 
 var decode=(a,c,m,s,k)=>{ //console.log(k);
@@ -73,7 +78,7 @@ window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
-        cursor.x=border; cursor.y=border*2.5;
+        cursor.x=grid; cursor.y=grid*2.5;
         c.fillStyle='black';
         c.fillRect(0,0,c.canvas.width,c.canvas.height);
     };
