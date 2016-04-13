@@ -48,73 +48,36 @@ var render_text=()=>{
     c.fillRect(point.x+point.width(),point.y-grid*1.25,1,grid*1.25);
 };
 
-var decode=(alt,ctrl,meta,shft,k)=>{
-    var decoded={act:'',c:''}; // {action, printable}
-    // printable?
-    if(k=='Space'){decoded.c=' ';}
-    var ma=k[k.length-1]; // maybe alphanumeric
-    switch(k.slice(0,-1)){
-    case'Key':decoded.c=shft?ma:ma.toLowerCase();break;
-    case'Digit':decoded.c=shft?")!@#$%^&*("[ma]:ma;break;
+//  decode : [mods] -> keycode -> {type:string,code:char,mods:[bool]}
+var decode=(mods,k)=>{
+    var dec={type:'',code:'',mods:mods}; // return type
+    if(k=='Space'){dec.code=' ';}else{
+        var shft=mods[3];
+        var ma=k.slice(-1); // maybe alphanumeric
+        switch(k.slice(0,-1)){
+        case'Key':dec.code=shft?ma:ma.toLowerCase();break;
+        case'Digit':dec.code=shft?")!@#$%^&*("[ma]:ma;break; // sigh
+        }
+        switch(k){
+        case'Tab':dec.code='\t';break;
+        case'Enter':dec.code='\n';break;
+        }
+        var punct=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
+                   ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
+                   ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'];
+        var pin=punct.indexOf(k);
+        if(pin>=0){dec.code=punct[pin+(shft?2:1)];}
     }
-    // other punctuation not associated with an alphanumeric key
-    var punct=['Comma',',','<'
-               ,'Quote',"'",'"'
-               ,'Equal','=','+'
-               ,'Minus','-','_'
-               ,'Slash','/','?'
-               ,'Period','.','>'
-               ,'Semicolon',';',':'
-               ,'Backslash','\\','|'
-               ,'Backquote','`','~'
-               ,'BracketLeft','[','{'
-               ,'BracketRight',']','}'
-              ];
-    var pin=punct.indexOf(k);
-    if(pin>=0){decoded.c=punct[pin+(shft?2:1)];}
-
-    // weird-shaped characters
-    switch(k){
-    case'Tab':decoded.c='\t';break;
-    case'Enter':decoded.c='\n';break;
+    // non-printable keys
+    if(dec.code.length>0){dec.type='printable';}else{
+        if(k=='Backspace'||k=='Delete'){dec.type='edit'; dec.code=k[0].toLowerCase();} // 'b','d'
+        else if(k=='Escape'){dec.type='escape'; dec.code='e';} // 'e'
+        else if(k.slice(0,5)=='Arrow'){dec.type='arrow'; dec.code=k[5].toLowerCase();} // 'u','d','l','r'
+        else if(k.slice(0,4)=='Page'){dec.type='page'; dec.code=k[4].toLowerCase();} // 'u','d'
+        else if(k=='Home'||k=='End'){dec.type='page'; dec.code=k[0].toLowerCase();} // 'h','e'
     }
-
-    // handle whatever {Action, printable} we just decoded
-    var update_txt=(ks)=>{
-        switch(ks.act){
-        case'Backspace':
-            txt.pos=txt.pos>0?txt.pos-1:0;
-            txt.data.pop();
-            break;
-        case'Delete':txt.data.splice(txt.pos,1);
-        }
-        if(ks.c.length>0){
-            txt.pos+=1;
-            txt.data.push(ks.c);
-        }
-    };
-
-    var update_point=(ks)=>{
-
-        if(ks.c.length>0){
-            point.x=cursor.x+cursor.width();
-            point.y=cursor.y;
-        }
-        if(ks.act.slice(0,5)=='Arrow'){
-            switch(ks.act.slice(5)){
-            case'Right':point.right();break;
-            case'Left':point.left();break;
-            case'Up':point.up();break;
-            case'Down':point.down();break;
-            }
-        }
-        switch(ks.act){
-        case'Enter':point.crlf();break;
-        }
-    };
-    decoded.act=k; // catch-all
-    update_txt(decoded);
-    update_point(decoded);
+    console.log(dec);
+    return dec;
 };
 
 window.onload=()=>{
@@ -129,9 +92,8 @@ window.onload=()=>{
     window.onresize=rsz;
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
-            //if(k.defaultPrevented){return;}
             k.preventDefault();
-            decode(k.altKey,k.ctrlKey,k.metaKey,k.shiftKey,k.code);
+            decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code);
         }
     };
     requestAnimationFrame(render_text);
