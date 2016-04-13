@@ -9,17 +9,22 @@ var c=document.getElementById('c').getContext('2d'),
             init(){this.x=grid;this.y=grid*2.5;},
             up(){this.y-=grid*1.5;},
             down(){this.y+=grid*1.5;},
-            right(){this.x+=this.width();
-                    if(this.x>c.canvas.width){this.crlf();}},
+            right(){this.x+=this.width();if(this.x>c.canvas.width){this.crlf();}},
             left(){this.x-=this.width();if(this.x<grid){this.x=grid;}},
             crlf(){this.x=grid;this.y+=grid*1.5;}
         };
         crsr.init();
         return crsr;
     },
-    txt={pos:0,data:[]}; // editing position, entire contents
+    Text=()=>({
+        pos:0,data:[],
+        dec(){(this.pos>0)&&--this.pos;this.data.pop();},
+        inc(){this.pos<this.data.length&&++this.pos;},
+        append(ch){this.data.push(ch);this.inc();}
+    });
 var cursor=Cursor(); // for drawing text to the screen
 var point=Cursor(); // for the current cursor position
+var txt=Text();
 
 var render_text=()=>{
     requestAnimationFrame(render_text);
@@ -46,6 +51,17 @@ var render_text=()=>{
     var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.007);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width(),point.y-grid*1.25,1,grid*1.25);
+};
+
+//  update : {decoded key} -> state -> Action k
+var update=(d,s)=>{
+    //console.log(d);
+    switch(d.type){
+    case'print':txt.append(d.code);break; // add char to text buffer
+    case'edit':if(d.code=='b'){txt.dec();}break;
+    case'arrow':break;
+    case'page':break;
+    }
 };
 
 //  decode : [mods] -> code -> {type:string,code:char,mods:[bool]}
@@ -95,7 +111,9 @@ window.onload=()=>{
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
-            console.log(decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code));
+            var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
+            update(decoded,{});
+            console.log(txt);
         }
     };
     requestAnimationFrame(render_text);
