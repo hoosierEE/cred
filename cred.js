@@ -1,11 +1,12 @@
 'use strict';
+var test="asdf";
 var c=document.getElementById('c').getContext('2d'),
-    mode={insert:true,normal:false,visual:false},
+    //mode={insert:true,normal:false,visual:false},
     grid=25, // monospace grid width/height
     Cursor=()=>{
         var crsr={
             x:0,y:0,width:0,
-            init(){this.width=c.measureText('a').width;this.x=grid;this.y=grid*2.5;},
+            init(){this.width=c.measureText('W').width;this.x=grid;this.y=grid*2.5;},
             up(){this.y-=grid*1.5;},
             down(){this.y+=grid*1.5;},
             right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
@@ -15,6 +16,12 @@ var c=document.getElementById('c').getContext('2d'),
         crsr.init();
         return crsr;
     },
+    GapBuffer=(sz)=>({
+        // ported from https://github.com/jaz303/gapbuffer/blob/master/index.js
+        gapsize:sz,
+        buffer:new Array(sz),
+        length(){this.buffer.length-(this.gapend-this.gapstart);},
+    }),
     Text=()=>({
         pos:0,data:[],
         dec(){(this.pos>0)&&--this.pos;this.data.pop();},
@@ -24,6 +31,7 @@ var c=document.getElementById('c').getContext('2d'),
     cursor=Cursor(), // for drawing text to the screen
     point=Cursor(); // for the current cursor position
 var txt=Text();
+for(var i=0;i<test.length;++i){txt.data.push(test[i]);}
 
 var render_text=()=>{
     requestAnimationFrame(render_text);
@@ -46,23 +54,24 @@ var render_text=()=>{
             c.fillText(txt.data[i],cursor.x,cursor.y);
         }
     }
+    // blinking cursor
     var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.005);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
 };
 
-//  update : {decoded key} -> state -> Action k
-var update=(d,s)=>{
-    //console.log(d);
-    switch(d.type){
-    case'print':txt.append(d.code);break; // add char to text buffer
-    case'edit':if(d.code=='b'){txt.dec();}break;
+//  update : {decoded key} -> Keystate -> Action k
+var update=(dec_k,state)=>{
+    console.log(dec_k);
+    switch(dec_k.type){
+    case'print':txt.append(dec_k.code);break; // add char to text buffer
+    case'edit':if(dec_k.code=='b'){txt.dec();}break;
     case'arrow':break;
     case'page':break;
     }
 };
 
-//  decode : [mods] -> code -> {type:string,code:char,mods:[bool]}
+//  decode : [bool] -> string -> {type:string,code:char,mods:[bool]}
 var decode=(mods,k)=>{
     var dec={type:'',code:'',mods:mods}; // return type
     // printable
@@ -79,8 +88,8 @@ var decode=(mods,k)=>{
         case'Enter':dec.code='\n';break;
         }
         var pun=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
-                   ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
-                   ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'];
+                 ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
+                 ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'];
         var pid=pun.indexOf(k);
         if(pid>=0){dec.code=pun[pid+(shft?2:1)];}
     }
@@ -88,7 +97,7 @@ var decode=(mods,k)=>{
     if(dec.code.length>0){dec.type='print';}
     else{
         if(k=='Backspace'||k=='Delete'){dec.type='edit'; dec.code=k[0].toLowerCase();} // 'b','d'
-        else if(k=='Escape'){dec.type='escape';}
+        else if(k=='Escape'){dec.type='escape';} // '' (should still be an empty string)
         else if(k.slice(0,5)=='Arrow'){dec.type='arrow'; dec.code=k[5].toLowerCase();} // 'u','d','l','r'
         else if(k.slice(0,4)=='Page'){dec.type='page'; dec.code=k[4].toLowerCase();} // 'u','d'
         else if(k=='Home'||k=='End'){dec.type='page'; dec.code=k[0].toLowerCase();} // 'h','e'
