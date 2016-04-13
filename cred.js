@@ -48,10 +48,12 @@ var render_text=()=>{
     c.fillRect(point.x+point.width(),point.y-grid*1.25,1,grid*1.25);
 };
 
-//  decode : [mods] -> keycode -> {type:string,code:char,mods:[bool]}
+//  decode : [mods] -> code -> {type:string,code:char,mods:[bool]}
 var decode=(mods,k)=>{
     var dec={type:'',code:'',mods:mods}; // return type
-    if(k=='Space'){dec.code=' ';}else{
+    // printable
+    if(k=='Space'){dec.code=' ';}
+    else{
         var shft=mods[3];
         var ma=k.slice(-1); // maybe alphanumeric
         switch(k.slice(0,-1)){
@@ -62,21 +64,21 @@ var decode=(mods,k)=>{
         case'Tab':dec.code='\t';break;
         case'Enter':dec.code='\n';break;
         }
-        var punct=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
+        var pun=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
                    ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
                    ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'];
-        var pin=punct.indexOf(k);
-        if(pin>=0){dec.code=punct[pin+(shft?2:1)];}
+        var pid=pun.indexOf(k);
+        if(pid>=0){dec.code=pun[pid+(shft?2:1)];}
     }
-    // non-printable keys
-    if(dec.code.length>0){dec.type='printable';}else{
+    // non-printable
+    if(dec.code.length>0){dec.type='print';}
+    else{
         if(k=='Backspace'||k=='Delete'){dec.type='edit'; dec.code=k[0].toLowerCase();} // 'b','d'
-        else if(k=='Escape'){dec.type='escape'; dec.code='e';} // 'e'
+        else if(k=='Escape'){dec.type='escape';}
         else if(k.slice(0,5)=='Arrow'){dec.type='arrow'; dec.code=k[5].toLowerCase();} // 'u','d','l','r'
         else if(k.slice(0,4)=='Page'){dec.type='page'; dec.code=k[4].toLowerCase();} // 'u','d'
         else if(k=='Home'||k=='End'){dec.type='page'; dec.code=k[0].toLowerCase();} // 'h','e'
     }
-    console.log(dec);
     return dec;
 };
 
@@ -93,7 +95,7 @@ window.onload=()=>{
     window.onkeydown=window.onkeyup=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
-            decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code);
+            console.log(decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code));
         }
     };
     requestAnimationFrame(render_text);
