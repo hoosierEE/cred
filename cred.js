@@ -113,7 +113,7 @@ window.onload=()=>{
             k.preventDefault();
             var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
             update(decoded,{});
-            console.log(txt);
+            //console.log(decoded);
         }
     };
     requestAnimationFrame(render_text);
