@@ -4,13 +4,12 @@ var c=document.getElementById('c').getContext('2d'),
     grid=25, // monospace grid width/height
     Cursor=()=>{
         var crsr={
-            x:0,y:0,
-            width(){return c.measureText('a').width;},
-            init(){this.x=grid;this.y=grid*2.5;},
+            x:0,y:0,width:0,
+            init(){this.width=c.measureText('a').width;this.x=grid;this.y=grid*2.5;},
             up(){this.y-=grid*1.5;},
             down(){this.y+=grid*1.5;},
-            right(){this.x+=this.width();if(this.x>c.canvas.width){this.crlf();}},
-            left(){this.x-=this.width();if(this.x<grid){this.x=grid;}},
+            right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
+            left(){this.x-=this.width;if(this.x<grid){this.x=grid;}},
             crlf(){this.x=grid;this.y+=grid*1.5;}
         };
         crsr.init();
@@ -21,9 +20,9 @@ var c=document.getElementById('c').getContext('2d'),
         dec(){(this.pos>0)&&--this.pos;this.data.pop();},
         inc(){this.pos<this.data.length&&++this.pos;},
         append(ch){this.data.push(ch);this.inc();}
-    });
-var cursor=Cursor(); // for drawing text to the screen
-var point=Cursor(); // for the current cursor position
+    }),
+    cursor=Cursor(), // for drawing text to the screen
+    point=Cursor(); // for the current cursor position
 var txt=Text();
 
 var render_text=()=>{
@@ -33,10 +32,9 @@ var render_text=()=>{
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightGray';
     c.font='28px monospace'; // FIXME non-monospace fonts are messed up
-    var tw=cursor.width();
+    var tw=cursor.width;
     for(var i=0;i<txt.data.length;++i){
         // TODO only draw what's visible
-        if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
         if(txt.data[i]=='\t'){
             if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
             else{cursor.x+=4*tw;}
@@ -48,9 +46,9 @@ var render_text=()=>{
             c.fillText(txt.data[i],cursor.x,cursor.y);
         }
     }
-    var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.007);
+    var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.005);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
-    c.fillRect(point.x+point.width(),point.y-grid*1.25,1,grid*1.25);
+    c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
 };
 
 //  update : {decoded key} -> state -> Action k
