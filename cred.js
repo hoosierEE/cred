@@ -33,30 +33,36 @@ var c=document.getElementById('c').getContext('2d'),
 for(var i=0;i<test.length;++i){txt.data.push(test[i]);}
 
 var render_text=()=>{
-    requestAnimationFrame(render_text);
-    cursor.init();
-    c.fillStyle='black';
-    c.fillRect(0,0,c.canvas.width,c.canvas.height);
-    c.fillStyle='lightGray';
-    var tw=cursor.width;
-    for(var i=0;i<txt.data.length;++i){
-        // TODO only draw what's visible; only when necessary
-        if(txt.data[i]=='\t'){
-            if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
-            else{cursor.x+=4*tw;}
-        }
-        else if(txt.data[i]=='\n'){cursor.crlf();}
-        else if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
-        else{
-            cursor.x+=tw;
-            c.fillText(txt.data[i],cursor.x,cursor.y);
-        }
-    }
+    //requestAnimationFrame(render_text);
+    //cursor.init();
+    //c.fillStyle='black';
+    //c.fillRect(0,0,c.canvas.width,c.canvas.height);
+    //c.fillStyle='lightGray';
+    //var tw=cursor.width;
+    //for(var i=0;i<txt.data.length;++i){
+    //    // TODO only draw what's visible; only when necessary
+    //    if(txt.data[i]=='\t'){
+    //        if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
+    //        else{cursor.x+=4*tw;}
+    //    }
+    //    else if(txt.data[i]=='\n'){cursor.crlf();}
+    //    else if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
+    //    else{
+    //        cursor.x+=tw;
+    //        c.fillText(txt.data[i],cursor.x,cursor.y);
+    //    }
+    //}
+    //render_cursor();
+};
 
+var render_cursor=(now)=>{
     // blinking cursor
-    var blink_alpha=Math.cos(0.005*performance.now())/2+0.5;
+    var blink_alpha=Math.cos(0.005*now)/2+0.5;
+    c.fillStyle='black';
+    c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
+    requestAnimationFrame(render_cursor);
 };
 
 //  update : {decoded key} -> Keystate -> Action k
@@ -124,5 +130,6 @@ window.onload=()=>{
     window.onresize=rsz;
     window.onkeydown=kev;
     window.onkeyup=kev;
-    requestAnimationFrame(render_text);
+    //window.requestAnimationFrame(render_text);
+    window.requestAnimationFrame(render_cursor);
 };
