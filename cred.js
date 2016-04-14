@@ -1,8 +1,9 @@
 'use strict';
-var test="asdf";
 var c=document.getElementById('c').getContext('2d'),
     grid=25, // monospace grid width/height
     Cursor=()=>{
+        // knows how big the screen is
+        // pass a Buffer index to Cursor: it will figure out the x and y (monospace only)
         var crsr={
             x:0,y:0,width:0,
             init(){this.width=c.measureText('W').width;this.x=grid;this.y=grid*2.5;},
@@ -15,62 +16,55 @@ var c=document.getElementById('c').getContext('2d'),
         crsr.init();
         return crsr;
     },
-    GapBuffer=(sz)=>({
-        // ported from https://github.com/jaz303/gapbuffer/blob/master/index.js
-        gapsize:sz,
-        buffer:new Array(sz),
-        length(){this.buffer.length-(this.gapend-this.gapstart);},
-    }),
-    Text=()=>({
-        pos:0,data:[],
-        dec(){(this.pos>0)&&--this.pos;this.data.pop();},
+    Buffer=()=>({
+        pos:0,data:[],changed:false,
+        dec(){this.pos>0&&--this.pos;},
         inc(){this.pos<this.data.length&&++this.pos;},
-        append(ch){this.data.push(ch);this.inc();}
+        add(ch){this.data.push(ch);this.changed=true;this.inc();},
+        rem(){this.data.pop();this.changed=true;this.dec();}
     }),
     cursor=Cursor(), // for drawing text to the screen
     point=Cursor(), // for the current cursor position
-    txt=Text();
-for(var i=0;i<test.length;++i){txt.data.push(test[i]);}
+    buf=Buffer();
+for(var i=0;i<test.length;++i){buf.add(test[i]);}
+console.log(test.length);
 
-var render_text=()=>{
-    //requestAnimationFrame(render_text);
-    //cursor.init();
-    //c.fillStyle='black';
-    //c.fillRect(0,0,c.canvas.width,c.canvas.height);
-    //c.fillStyle='lightGray';
-    //var tw=cursor.width;
-    //for(var i=0;i<txt.data.length;++i){
-    //    // TODO only draw what's visible; only when necessary
-    //    if(txt.data[i]=='\t'){
-    //        if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
-    //        else{cursor.x+=4*tw;}
-    //    }
-    //    else if(txt.data[i]=='\n'){cursor.crlf();}
-    //    else if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
-    //    else{
-    //        cursor.x+=tw;
-    //        c.fillText(txt.data[i],cursor.x,cursor.y);
-    //    }
-    //}
-    //render_cursor();
+var render_text=(now)=>{
+    cursor.init();
+    c.fillStyle='black';
+    c.fillRect(0,0,c.canvas.width,c.canvas.height);
+    c.fillStyle='lightGray';
+    var tw=cursor.width;
+    for(var i=0;i<buf.data.length;++i){
+        // TODO only draw what's visible; only when necessary
+        if(buf.data[i]=='\t'){
+            if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
+            else{cursor.x+=4*tw;}
+        }
+        else if(buf.data[i]=='\n'){cursor.crlf();}
+        else if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
+        else{
+            cursor.x+=tw;
+            c.fillText(buf.data[i],cursor.x,cursor.y);
+        }
+    }
 };
 
 var render_cursor=(now)=>{
-    // blinking cursor
+    requestAnimationFrame(render_cursor);
+    if(buf.changed){buf.changed=false;render_text();}
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='black';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
-    requestAnimationFrame(render_cursor);
 };
 
 //  update : {decoded key} -> Keystate -> Action k
 var update=(dec_k,state)=>{
-    console.log(dec_k);
     switch(dec_k.type){
-    case'print':txt.append(dec_k.code);break; // add char to text buffer
-    case'edit':if(dec_k.code=='B'){txt.dec();}break;
+    case'print':buf.add(dec_k.code);break; // add char to text buffer
+    case'edit':if(dec_k.code=='B'){buf.rem();}break;
     case'arrow':break;
     case'page':break;
     }
@@ -117,6 +111,8 @@ window.onload=()=>{
         c.font='28px monospace'; // FIXME non-monospace fonts are messed up
         c.fillStyle='black';
         c.fillRect(0,0,c.canvas.width,c.canvas.height);
+        window.requestAnimationFrame(render_text);
+        window.requestAnimationFrame(render_cursor);
     };
     rsz();
     var kev=(k)=>{
@@ -124,12 +120,9 @@ window.onload=()=>{
             k.preventDefault();
             var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
             update(decoded,{});
-            //console.log(decoded);
         }
     };
     window.onresize=rsz;
     window.onkeydown=kev;
     window.onkeyup=kev;
-    //window.requestAnimationFrame(render_text);
-    window.requestAnimationFrame(render_cursor);
 };

@@ -27,3 +27,10 @@ This [[http://stackoverflow.com/a/12437275/2037637][may be crazy]].  But it's pa
 ** layered, modal, keyboard-driven input
 - =normal=, =insert=, =visual= modes like Vim
 - popup mini-modes like Spacemacs
+
+* Links
+- [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
+- [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
+- [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
+- [[https://github.com/jaz303/gapbuffer/blob/master/index.js][gap buffer in Node.js]]
+- [[https://news.ycombinator.com/item?id=11244103][yc on this subject]]
