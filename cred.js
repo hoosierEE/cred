@@ -1,7 +1,6 @@
 'use strict';
 var test="asdf";
 var c=document.getElementById('c').getContext('2d'),
-    //mode={insert:true,normal:false,visual:false},
     grid=25, // monospace grid width/height
     Cursor=()=>{
         var crsr={
@@ -29,8 +28,8 @@ var c=document.getElementById('c').getContext('2d'),
         append(ch){this.data.push(ch);this.inc();}
     }),
     cursor=Cursor(), // for drawing text to the screen
-    point=Cursor(); // for the current cursor position
-var txt=Text();
+    point=Cursor(), // for the current cursor position
+    txt=Text();
 for(var i=0;i<test.length;++i){txt.data.push(test[i]);}
 
 var render_text=()=>{
@@ -39,10 +38,9 @@ var render_text=()=>{
     c.fillStyle='black';
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightGray';
-    c.font='28px monospace'; // FIXME non-monospace fonts are messed up
     var tw=cursor.width;
     for(var i=0;i<txt.data.length;++i){
-        // TODO only draw what's visible
+        // TODO only draw what's visible; only when necessary
         if(txt.data[i]=='\t'){
             if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
             else{cursor.x+=4*tw;}
@@ -54,8 +52,9 @@ var render_text=()=>{
             c.fillText(txt.data[i],cursor.x,cursor.y);
         }
     }
+
     // blinking cursor
-    var blink_alpha=0.7+0.5*Math.cos(Date.now()*0.005);
+    var blink_alpha=Math.cos(0.005*performance.now())/2+0.5;
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
 };
@@ -110,12 +109,12 @@ window.onload=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
         cursor.x=grid; cursor.y=grid*1.5;
+        c.font='28px monospace'; // FIXME non-monospace fonts are messed up
         c.fillStyle='black';
         c.fillRect(0,0,c.canvas.width,c.canvas.height);
     };
     rsz();
-    window.onresize=rsz;
-    window.onkeydown=window.onkeyup=(k)=>{
+    var kev=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
             var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
@@ -123,5 +122,8 @@ window.onload=()=>{
             //console.log(decoded);
         }
     };
+    window.onresize=rsz;
+    window.onkeydown=kev;
+    window.onkeyup=kev;
     requestAnimationFrame(render_text);
 };
