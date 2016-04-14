@@ -36,7 +36,8 @@ var render_text=(now)=>{
     c.fillStyle='lightGray';
     var tw=cursor.width;
     for(var i=0;i<buf.data.length;++i){
-        // TODO only draw what's visible; only when necessary
+        // TODO only draw what's visible
+        // TODO only when necessary (partly done now)
         if(buf.data[i]=='\t'){
             if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
             else{cursor.x+=4*tw;}
