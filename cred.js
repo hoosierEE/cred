@@ -12,8 +12,15 @@ var c=document.getElementById('c').getContext('2d'),
     Cursor=()=>({
         // text rendering
         x:0,y:0,width:0,height:0,
-        home(){this.width=c.measureText('W').width;this.height=this.width*2;
-               this.x=this.width;this.y=this.width*2;},
+        home(){this.width=c.measureText('W').width;this.height=this.width*1.5;
+               this.x=this.width;this.y=this.width*1.5;},
+        move(dir){
+            console.log(dir);
+            if(dir=='U')this.up();
+            else if(dir=='D')this.down();
+            else if(dir=='L')this.left();
+            else if(dir=='R')this.right();
+        },
         up(){this.y-=this.height;},
         down(){this.y+=this.height;},
         right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
@@ -25,9 +32,20 @@ var c=document.getElementById('c').getContext('2d'),
     point=Cursor(), // for the current cursor position
     buf=Buffer();
 
-// testing
+// test text
 for(var i=0;i<250;++i){buf.add(img[i]);}
 console.log(buf.data.length);
+
+var service_queue=(now,override)=>{
+    requestAnimationFrame(service_queue);
+    update();
+    if(buf.changed||override){
+        buf.changed=false;
+        render_text();
+        point.to([cursor.x,cursor.y]);
+    }
+    render_cursor(now);
+};
 
 var render_text=(now)=>{
     cursor.home();
@@ -51,23 +69,12 @@ var render_text=(now)=>{
     }
 };
 
-var service_queue=(now,override)=>{
-    requestAnimationFrame(service_queue);
-    update();
-    if(buf.changed||override){
-        buf.changed=false;
-        render_text();
-        point.to([cursor.x,cursor.y]);
-    }
-    render_cursor(now);
-};
-
 var render_cursor=(now)=>{
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='blue';
-    c.fillRect(point.x, point.y-point.height, 1, point.height);
+    c.fillRect(point.x, point.y-point.height*2, 1, point.height*2);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
-    c.fillRect(point.x, point.y-point.height, 1, point.height);
+    c.fillRect(point.x, point.y-point.height*2, 1, point.height*2);
 };
 
 var update=()=>{
@@ -76,13 +83,13 @@ var update=()=>{
         switch(dec_k.type){
         case'print':buf.add(dec_k.code);break; // add char to text buffer
         case'edit':if(dec_k.code=='B'){buf.rem();}break;
-        case'arrow':
-            switch(dec_k.code){
-            case'R':point.right();break;
-            case'L':point.left();break;
-            case'U':point.up();break;
-            case'D':point.down();break;
-            }
+        case'arrow':point.move(dec_k.code);break;
+            //switch(dec_k.code){
+            //case'R':point.right();break;
+            //case'L':point.left();break;
+            //case'U':point.up();break;
+            //case'D':point.down();break;
+            //}
         case'page':break;
         }
     }
@@ -130,13 +137,11 @@ window.onload=()=>{
         c.font='24px Sans-Serif';
         window.requestAnimationFrame((now)=>service_queue(now,true));
     };rsz();
-    var kev=(k)=>{
+    window.onresize=rsz;
+    window.onkeydown=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
             KeyStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
         }
     };
-    window.onresize=rsz;
-    window.onkeydown=kev;
-    //window.onkeyup=kev; // currently unused
 };
