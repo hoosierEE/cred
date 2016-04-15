@@ -1,57 +1,52 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    grid=25, // monospace grid width/height
-    CodeStack=[], // enables making the event handler more lightweight
-    Cursor=()=>{
-        // data structure to help render text
-        var crsr={
-            x:0,y:0,width:0,height:0,
-            init(){this.width=c.measureText('W').width;this.height=this.width*2;
-                   this.x=this.width;this.y=this.width*2;},
-            up(){this.y-=this.height;},
-            down(){this.y+=this.height;},
-            right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
-            left(){this.x-=this.width;if(this.x<this.width){this.x=this.width;}},
-            crlf(){this.x=this.width;this.y+=this.height;}
-        };
-        crsr.init();
-        return crsr;
-    },
+    KeyStack=[{mods:[],k:''}], // enables making the event handler more lightweight
     Buffer=()=>({
-        // data structure for the text
+        // text data
         pos:0,data:[],changed:false,
         dec(){this.pos>0&&--this.pos;},
         inc(){this.pos<this.data.length&&++this.pos;},
         add(ch){this.data.push(ch);this.changed=true;this.inc();},
         rem(){this.data.pop();this.changed=true;this.dec();}
     }),
+    Cursor=()=>({
+        // text rendering
+        x:0,y:0,width:0,height:0,
+        home(){this.width=c.measureText('W').width;this.height=this.width*2;
+               this.x=this.width;this.y=this.width*2;},
+        up(){this.y-=this.height;},
+        down(){this.y+=this.height;},
+        right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
+        left(){this.x-=this.width;if(this.x<this.width){this.x=this.width;}},
+        crlf(){this.x=this.width;this.y+=this.height;},
+        to(p){this.x=p[0],this.y=p[1];},
+    }),
     cursor=Cursor(), // for drawing text to the screen
     point=Cursor(), // for the current cursor position
     buf=Buffer();
 
 // testing
-for(var j=0;j<200;++j){
-    for(var i=0;i<img.length;++i){buf.add(img[i]);}
-}
+for(var i=0;i<250;++i){buf.add(img[i]);}
 console.log(buf.data.length);
 
 var render_text=(now)=>{
-    cursor.init();
-    c.fillStyle='black';
+    cursor.home();
+    c.fillStyle='#000';
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
-    c.fillStyle='lightGray';
-    var tw=cursor.width;
+    c.fillStyle='lightgray';
     for(var i=0;i<buf.data.length;++i){
-        if(cursor.y-cursor.height>c.canvas.height){break;}
+        var tw=c.measureText(buf.data[i]).width; // non-monospace fix!
+        //console.log(buf.data[i]+' '+tw);
+        if(cursor.y-cursor.height>c.canvas.height){break;} // don't render beyond canvas
         if(buf.data[i]=='\t'){
-            if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
+            if(cursor.x+tw*4+cursor.width>c.canvas.width){cursor.crlf();}
             else{cursor.x+=4*tw;}
         }
         else if(buf.data[i]=='\n'){cursor.crlf();}
-        else if(cursor.x+tw+grid>c.canvas.width){cursor.crlf();}
+        else if(cursor.x+tw+cursor.width>c.canvas.width){cursor.crlf();}
         else{
-            cursor.x+=tw;
             c.fillText(buf.data[i],cursor.x,cursor.y);
+            cursor.x+=tw;
         }
     }
 };
@@ -59,32 +54,42 @@ var render_text=(now)=>{
 var service_queue=(now,override)=>{
     requestAnimationFrame(service_queue);
     update();
-    if(buf.changed||override){buf.changed=false;render_text();}
+    if(buf.changed||override){
+        buf.changed=false;
+        render_text();
+        point.to([cursor.x,cursor.y]);
+    }
     render_cursor(now);
 };
 
 var render_cursor=(now)=>{
-    point.init();
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='blue';
-    c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
+    c.fillRect(point.x, point.y-point.height, 1, point.height);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
-    c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
+    c.fillRect(point.x, point.y-point.height, 1, point.height);
 };
 
 var update=()=>{
-    while(CodeStack.length){
-        var dec_k=CodeStack.pop();
+    while(KeyStack.length){
+        var dec_k=decode(KeyStack.pop());
         switch(dec_k.type){
         case'print':buf.add(dec_k.code);break; // add char to text buffer
         case'edit':if(dec_k.code=='B'){buf.rem();}break;
-        case'arrow':break;
+        case'arrow':
+            switch(dec_k.code){
+            case'R':point.right();break;
+            case'L':point.left();break;
+            case'U':point.up();break;
+            case'D':point.down();break;
+            }
         case'page':break;
         }
     }
 };
 
-var decode=(mods,k)=>{
+var decode=(cs)=>{
+    var k=cs.k, mods=cs.mods;
     var dec={type:'',code:'',mods:mods}; // return type (modifiers pass through)
     // printable
     if(k=='Space'){dec.code=' ';}
@@ -120,17 +125,15 @@ window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
-        cursor.x=grid; cursor.y=grid*1.5;
-        c.font='14px monospace'; // FIXME non-monospace fonts are messed up
+        point.home();
+        cursor.home();
+        c.font='24px Sans-Serif';
         window.requestAnimationFrame((now)=>service_queue(now,true));
     };rsz();
     var kev=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
-            CodeStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
-            console.log(CodeStack);
-            //var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
-            //update(decoded,{});
+            KeyStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
         }
     };
     window.onresize=rsz;
