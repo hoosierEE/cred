@@ -1,23 +1,25 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     grid=25, // monospace grid width/height
-    img, // image to store previously-rendered canvas
+    CodeStack=[], // enables making the event handler more lightweight
     Cursor=()=>{
-        // knows how big the screen is
-        // pass a Buffer index to Cursor: it will figure out the x and y (monospace only)
+        // data structure to help render text
         var crsr={
-            x:0,y:0,width:0,
-            init(){this.width=c.measureText('W').width;this.x=grid;this.y=grid*2.5;},
-            up(){this.y-=grid*1.5;},
-            down(){this.y+=grid*1.5;},
+            x:0,y:0,width:0,height:0,
+            init(){this.width=c.measureText('W').width;
+                   this.height=this.width*2;
+                   this.x=this.width;this.y=this.width*2;},
+            up(){this.y-=this.height;},
+            down(){this.y+=this.height;},
             right(){this.x+=this.width;if(this.x>c.canvas.width){this.crlf();}},
-            left(){this.x-=this.width;if(this.x<grid){this.x=grid;}},
-            crlf(){this.x=grid;this.y+=grid*1.5;}
+            left(){this.x-=this.width;if(this.x<this.width){this.x=this.width;}},
+            crlf(){this.x=this.width;this.y+=this.height;}
         };
         crsr.init();
         return crsr;
     },
     Buffer=()=>({
+        // data structure for the text
         pos:0,data:[],changed:false,
         dec(){this.pos>0&&--this.pos;},
         inc(){this.pos<this.data.length&&++this.pos;},
@@ -27,8 +29,12 @@ var c=document.getElementById('c').getContext('2d'),
     cursor=Cursor(), // for drawing text to the screen
     point=Cursor(), // for the current cursor position
     buf=Buffer();
-for(var i=0;i<test.length;++i){buf.add(test[i]);}
-console.log(test.length);
+
+// testing
+for(var j=0;j<200;++j){
+    for(var i=0;i<img.length;++i){buf.add(img[i]);}
+}
+console.log(buf.data.length);
 
 var render_text=(now)=>{
     cursor.init();
@@ -37,8 +43,7 @@ var render_text=(now)=>{
     c.fillStyle='lightGray';
     var tw=cursor.width;
     for(var i=0;i<buf.data.length;++i){
-        // TODO only draw what's visible
-        // TODO only when necessary (partly done now)
+        if(cursor.y-cursor.height>c.canvas.height){break;}
         if(buf.data[i]=='\t'){
             if(cursor.x+tw*4+grid>c.canvas.width){cursor.crlf();}
             else{cursor.x+=4*tw;}
@@ -50,22 +55,20 @@ var render_text=(now)=>{
             c.fillText(buf.data[i],cursor.x,cursor.y);
         }
     }
-    //img=c.canvas.toDataURL('img/png'); // cache the canvas image
+};
+
+var service_queue=(now,override)=>{
+    requestAnimationFrame(service_queue);
+    if(buf.changed||override){buf.changed=false;render_text();}
+    render_cursor(now);
 };
 
 var render_cursor=(now)=>{
-    if(buf.changed){buf.changed=false;render_text();}
-    //else{
-    //    var im=new Image();
-    //    im.onload=()=>{c.drawImage(im,0,0);};
-    //    im.src=img;
-    //}
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
-    c.fillStyle='black';
+    c.fillStyle='blue';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
-    requestAnimationFrame(render_cursor);
 };
 
 //  update : {decoded key} -> Keystate -> Action k
@@ -78,7 +81,6 @@ var update=(dec_k,state)=>{
     }
 };
 
-//  decode : [bool] -> string -> {type:string,code:char,mods:[bool]}
 var decode=(mods,k)=>{
     var dec={type:'',code:'',mods:mods}; // return type (modifiers pass through)
     // printable
@@ -116,21 +118,19 @@ window.onload=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
         cursor.x=grid; cursor.y=grid*1.5;
-        c.font='28px monospace'; // FIXME non-monospace fonts are messed up
-        c.fillStyle='black';
-        c.fillRect(0,0,c.canvas.width,c.canvas.height);
-        window.requestAnimationFrame(render_text);
-        window.requestAnimationFrame(render_cursor);
-    };
-    rsz();
+        c.font='14px monospace'; // FIXME non-monospace fonts are messed up
+        window.requestAnimationFrame((now)=>service_queue(now,true));
+    };rsz();
     var kev=(k)=>{
         if(k.type=='keydown'){
             k.preventDefault();
+            CodeStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
+            console.log(CodeStack);
             var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
             update(decoded,{});
         }
     };
     window.onresize=rsz;
     window.onkeydown=kev;
-    window.onkeyup=kev;
+    //window.onkeyup=kev; // currently unused
 };
