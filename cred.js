@@ -6,8 +6,7 @@ var c=document.getElementById('c').getContext('2d'),
         // data structure to help render text
         var crsr={
             x:0,y:0,width:0,height:0,
-            init(){this.width=c.measureText('W').width;
-                   this.height=this.width*2;
+            init(){this.width=c.measureText('W').width;this.height=this.width*2;
                    this.x=this.width;this.y=this.width*2;},
             up(){this.y-=this.height;},
             down(){this.y+=this.height;},
@@ -59,11 +58,13 @@ var render_text=(now)=>{
 
 var service_queue=(now,override)=>{
     requestAnimationFrame(service_queue);
+    update();
     if(buf.changed||override){buf.changed=false;render_text();}
     render_cursor(now);
 };
 
 var render_cursor=(now)=>{
+    point.init();
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='blue';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
@@ -71,13 +72,15 @@ var render_cursor=(now)=>{
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
 };
 
-//  update : {decoded key} -> Keystate -> Action k
-var update=(dec_k,state)=>{
-    switch(dec_k.type){
-    case'print':buf.add(dec_k.code);break; // add char to text buffer
-    case'edit':if(dec_k.code=='B'){buf.rem();}break;
-    case'arrow':break;
-    case'page':break;
+var update=()=>{
+    while(CodeStack.length){
+        var dec_k=CodeStack.pop();
+        switch(dec_k.type){
+        case'print':buf.add(dec_k.code);break; // add char to text buffer
+        case'edit':if(dec_k.code=='B'){buf.rem();}break;
+        case'arrow':break;
+        case'page':break;
+        }
     }
 };
 
@@ -126,8 +129,8 @@ window.onload=()=>{
             k.preventDefault();
             CodeStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
             console.log(CodeStack);
-            var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
-            update(decoded,{});
+            //var decoded=decode([k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k.code)
+            //update(decoded,{});
         }
     };
     window.onresize=rsz;
