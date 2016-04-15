@@ -1,6 +1,7 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     grid=25, // monospace grid width/height
+    img, // image to store previously-rendered canvas
     Cursor=()=>{
         // knows how big the screen is
         // pass a Buffer index to Cursor: it will figure out the x and y (monospace only)
@@ -49,16 +50,22 @@ var render_text=(now)=>{
             c.fillText(buf.data[i],cursor.x,cursor.y);
         }
     }
+    //img=c.canvas.toDataURL('img/png'); // cache the canvas image
 };
 
 var render_cursor=(now)=>{
-    requestAnimationFrame(render_cursor);
     if(buf.changed){buf.changed=false;render_text();}
+    //else{
+    //    var im=new Image();
+    //    im.onload=()=>{c.drawImage(im,0,0);};
+    //    im.src=img;
+    //}
     var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='black';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
     c.fillRect(point.x+point.width,point.y-grid*1.25,1,grid*1.25);
+    requestAnimationFrame(render_cursor);
 };
 
 //  update : {decoded key} -> Keystate -> Action k
