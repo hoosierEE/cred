@@ -1,25 +1,35 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    KeyStack=[{mods:[],k:''}], // enables making the event handler more lightweight
+    KeyStack=[{mods:[],k:''}], // permits lightweight key event handler
     Buffer=()=>({
-        // text data
-        pos:0,data:[],changed:false,
+        // cursor position
+        pos:0,data:[],
         dec(){this.pos>0&&--this.pos;},
         inc(){this.pos<this.data.length&&++this.pos;},
-        add(ch){this.data.push(ch);this.changed=true;this.inc();},
-        rem(){this.data.pop();this.changed=true;this.dec();}
+        changed:false,
+        // text operations
+        add(ch){
+            this.changed=true;
+            if(this.pos==this.data.length){this.data.push(ch);}
+            else{this.data.splice(this.pos,0,ch);}
+            this.inc();
+        },
+        rem(){
+            this.changed=true;
+            this.data.pop();
+            this.dec();
+        }
     }),
     Cursor=()=>({
         // text rendering
         x:0,y:0,width:0,height:0,
         home(){this.width=c.measureText('W').width;this.height=this.width*1.5;
                this.x=this.width;this.y=this.width*1.5;},
-        move(dir){
-            console.log(dir);
-            if(dir=='U')this.up();
-            else if(dir=='D')this.down();
-            else if(dir=='L')this.left();
+        go(dir){
+            if(dir=='L')this.left();
+            else if(dir=='U')this.up();
             else if(dir=='R')this.right();
+            else if(dir=='D')this.down();
         },
         up(){this.y-=this.height;},
         down(){this.y+=this.height;},
@@ -28,8 +38,7 @@ var c=document.getElementById('c').getContext('2d'),
         crlf(){this.x=this.width;this.y+=this.height;},
         to(p){this.x=p[0],this.y=p[1];},
     }),
-    cursor=Cursor(), // for drawing text to the screen
-    point=Cursor(), // for the current cursor position
+    cur=Cursor(), // for drawing text to the screen
     buf=Buffer();
 
 // test text
@@ -37,66 +46,66 @@ for(var i=0;i<250;++i){buf.add(img[i]);}
 console.log(buf.data.length);
 
 var service_queue=(now,override)=>{
-    requestAnimationFrame(service_queue);
     update();
+    //c.globalCompositeOperation='destination-over';
+    //c.save();
+    render_cursor(now,cur); // animated blinky cursor
     if(buf.changed||override){
         buf.changed=false;
-        render_text();
-        point.to([cursor.x,cursor.y]);
+        //c.globalCompositeOperation='source-over';
+        render_text(now,cur);
+        cur.to([cur.x,cur.y]);
     }
-    render_cursor(now);
+    //c.restore();
+    requestAnimationFrame(service_queue);
 };
 
-var render_text=(now)=>{
-    cursor.home();
-    c.fillStyle='#000';
+var render_text=(now,cur)=>{
+    cur.home();
+    c.fillStyle='#222';
+    //c.clearRect(0,0,c.canvas.width,c.canvas.height);
     c.fillRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightgray';
     for(var i=0;i<buf.data.length;++i){
         var tw=c.measureText(buf.data[i]).width; // non-monospace fix!
-        //console.log(buf.data[i]+' '+tw);
-        if(cursor.y-cursor.height>c.canvas.height){break;} // don't render beyond canvas
+        if(cur.y-cur.height>c.canvas.height){break;} // don't render beyond canvas
         if(buf.data[i]=='\t'){
-            if(cursor.x+tw*4+cursor.width>c.canvas.width){cursor.crlf();}
-            else{cursor.x+=4*tw;}
+            if(cur.x+tw*4+cur.width>c.canvas.width){cur.crlf();}
+            else{cur.x+=4*tw;}
         }
-        else if(buf.data[i]=='\n'){cursor.crlf();}
-        else if(cursor.x+tw+cursor.width>c.canvas.width){cursor.crlf();}
+        else if(buf.data[i]=='\n'){cur.crlf();}
+        else if(cur.x+tw+cur.width>c.canvas.width){cur.crlf();}
         else{
-            c.fillText(buf.data[i],cursor.x,cursor.y);
-            cursor.x+=tw;
+            c.fillText(buf.data[i],cur.x,cur.y);
+            cur.x+=tw;
         }
     }
 };
 
-var render_cursor=(now)=>{
-    var blink_alpha=Math.cos(0.005*now)/2+0.5;
+var render_cursor=(now,point)=>{
     c.fillStyle='blue';
-    c.fillRect(point.x, point.y-point.height*2, 1, point.height*2);
+    //c.clearRect(0,point.y-point.height*2,c.canvas.width,point.height*3);
+    c.fillRect(point.x, point.y-point.height, 1, point.height);
+    //c.clearRect(point.x, point.y-point.height, 1, point.height);
+    var blink_alpha=Math.cos(0.005*now)/2+0.5;
     c.fillStyle='rgba(255,255,255,'+blink_alpha+')';
-    c.fillRect(point.x, point.y-point.height*2, 1, point.height*2);
+    c.fillRect(point.x, point.y-point.height, 1, point.height);
 };
 
 var update=()=>{
-    while(KeyStack.length){
-        var dec_k=decode(KeyStack.pop());
-        switch(dec_k.type){
-        case'print':buf.add(dec_k.code);break; // add char to text buffer
-        case'edit':if(dec_k.code=='B'){buf.rem();}break;
-        case'arrow':point.move(dec_k.code);break;
-            //switch(dec_k.code){
-            //case'R':point.right();break;
-            //case'L':point.left();break;
-            //case'U':point.up();break;
-            //case'D':point.down();break;
-            //}
+    while(KeyStack.length){ // consume KeyStack, dispatch event handlers
+        var dec=decode(KeyStack.pop());
+        switch(dec.type){
+        case'print':buf.add(dec.code);break; // add char to text buffer
+        case'edit':if(dec.code=='B'){buf.rem();}break;
+        case'arrow':cur.go(dec.code);break;
         case'page':break;
         }
     }
 };
 
-var decode=(cs)=>{
-    var k=cs.k, mods=cs.mods;
+var decode=(ks)=>{
+    var k=ks.k, mods=ks.mods; // get the components of the KeyStack
     var dec={type:'',code:'',mods:mods}; // return type (modifiers pass through)
     // printable
     if(k=='Space'){dec.code=' ';}
@@ -132,8 +141,7 @@ window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
-        point.home();
-        cursor.home();
+        cur.home();
         c.font='24px Sans-Serif';
         window.requestAnimationFrame((now)=>service_queue(now,true));
     };rsz();
