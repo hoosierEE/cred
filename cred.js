@@ -16,8 +16,9 @@ var c=document.getElementById('c').getContext('2d'),
         },
         rem(){
             this.changed=true;
-            this.data.pop();
             this.dec();
+            if(this.pos==this.data.length){this.data.pop();}
+            else{this.data.splice(this.pos,1);}
         }
     }),
     Cursor=()=>({
@@ -33,7 +34,8 @@ var c=document.getElementById('c').getContext('2d'),
         },
         up(){this.y-=this.height;},
         down(){this.y+=this.height;},
-        right(){this.moved=true;
+        right(){if(buf.pos==buf.data.length){return;}
+                this.moved=true;
                 this.width=c.measureText(buf.data[++buf.pos]).width;
                 this.x+=this.width;
                 if(this.x>c.canvas.width){this.crlf();}},
