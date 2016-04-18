@@ -1,6 +1,7 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     Mode='normal', // Vim modes
+    ESC_FD=[0,0], // 'fd' escape sequence
     KeyQueue=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
     Buffer=()=>({
         // cursor position
@@ -16,11 +17,16 @@ var c=document.getElementById('c').getContext('2d'),
         },
         del(n){ // delete n chars before (n<0) or after (n>0) cursor
             if(n==0){return;}
-            if(n<0){this.dec();
-                    if(this.pos==this.data.length){for(var i=0;i<n*-1;++i){this.data.pop();}}
-                    else{this.data.splice(this.pos,1);}}
-            else{if(this.pos==this.data.length){return;}
-                 else{for(var i=1;i<=n;++i){this.data.splice(this.pos,i);}}}
+            if(n<0){
+                this.dec();
+                // TODO fix n less than -1
+                if(this.pos==this.data.length){for(var i=0;i<n*-1;++i){this.data.pop();}}
+                else{this.data.splice(this.pos,1);}
+            }
+            else{
+                if(this.pos==this.data.length){return;}
+                else{for(var i=1;i<=n;++i){this.data.splice(this.pos,i);}}
+            }
             this.changed=true;
         }
     }),
@@ -54,7 +60,12 @@ var c=document.getElementById('c').getContext('2d'),
     buf=Buffer();
 var cur=Cursor(buf); // for drawing text to the screen
 
-for(var i=0;i<20;++i){buf.ins(img[i]);} // testing
+//for(var i=0;i<20;++i){buf.ins(img[i]);} // testing
+var stwrite=(str)=>{
+    for(var i=0;i<str.length;++i){buf.ins(str[i]);}
+};
+
+stwrite('Hello world!');
 
 var gameloop=(now,resiz)=>{
     update(KeyQueue);
@@ -99,7 +110,25 @@ var update=(rks)=>{
         else if(Mode=='insert'){
             switch(dec.type){
             case'escape':Mode='normal';break;
-            case'print':buf.ins(dec.code);break; // ins char to text buffer
+            case'print':
+                buf.ins(dec.code); // insert this char to text buffer
+
+                // handle 'fd' escape sequence
+                if(dec.code=='f'){
+                    ESC_FD=[1,performance.now()];
+                    console.log(ESC_FD);
+                } // push the 'f'
+                // remove previous 'f' and exit insert mode
+                if(dec.code=='d'){
+                    if(ESC_FD[0]==1){
+                        if(performance.now()-ESC_FD[1]<500){
+                            ESC_FD=[0,performance.now()];
+                            Mode='normal';
+                            buf.del(-2);
+                        }
+                    }
+                }
+                break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
                 // TODO remaining handlers
             case'page':break;}
