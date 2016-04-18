@@ -1,6 +1,6 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    KeyStack=[{mods:[false,false,false,false],k:''}], // permits lightweight key event handler
+    KeyQueue=[{mods:[false,false,false,false],k:''}], // permits lightweight key event handler
     Buffer=()=>({
         // cursor position
         pos:0,data:[],
@@ -56,7 +56,7 @@ var c=document.getElementById('c').getContext('2d'),
 for(var i=0;i<10;++i){buf.add(img[i]);} // testing
 
 var service_queue=(now,resiz)=>{
-    update(KeyStack);
+    update(KeyQueue);
     if(cur.moved||buf.changed||resiz){
         cur.moved=false;
         render_text(now,cur);
@@ -84,8 +84,8 @@ var render_text=(now,cur)=>{
 
 // udpate : [RawKey] -> BufferAction
 var update=(rks)=>{
-    while(rks.length){ // consume KeyStack, dispatch event handlers
-        var dec=decode(rks.pop()); // decode the current element
+    while(rks.length){ // consume KeyQueue, dispatch event handlers
+        var dec=decode(rks.shift()); // behead queue
         switch(dec.type){
         case'print':buf.add(dec.code);break; // add char to text buffer
         case'edit':buf.del(dec.code=='B'?-1:1);break;
@@ -111,7 +111,7 @@ window.onload=()=>{
         if(k.type=='keydown'){
             // push incoming events to a queue as they occur
             k.preventDefault();
-            KeyStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
+            KeyQueue.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
         }
     };
 };
