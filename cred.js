@@ -16,12 +16,12 @@ var c=document.getElementById('c').getContext('2d'),
         },
         rem(count){
             this.changed=true;
-            if(count<0){
+            if(count==-1){
                 this.dec();
                 if(this.pos==this.data.length){this.data.pop();}
                 else{this.data.splice(this.pos,1);}
             }
-            else{
+            if(count==1){
                 if(this.pos==this.data.length){return;}
                 else{this.data.splice(this.pos,1);}
             }
@@ -48,7 +48,7 @@ var c=document.getElementById('c').getContext('2d'),
     }),
     cur=Cursor(), // for drawing text to the screen
     buf=Buffer();
-for(var i=0;i<250;++i){buf.add(img[i]);} // testing
+for(var i=0;i<550;++i){buf.add(img[i]);} // testing
 
 var service_queue=(now,override)=>{
     update(KeyStack);
