@@ -8,61 +8,68 @@ var c=document.getElementById('c').getContext('2d'),
         inc(){++this.pos;},
         changed:false,
 
-        // text operations
-        add(ch){
+        ins(ch){ // append ch chars to position pos
             this.changed=true;
             if(this.pos==this.data.length){this.data.push(ch);}
             else{this.data.splice(this.pos,0,ch);}
             this.inc();
         },
-        del(count){
-            // currently only handles single forward and backward deletes
+        del(n){ // delete n chars before (n<0) or after (n>0) cursor
+            if(n==0){return;}
             this.changed=true;
-            if(count==-1){
-                this.dec();
-                if(this.pos==this.data.length){this.data.pop();}
-                else{this.data.splice(this.pos,1);}
-            }
-            if(count==1){
-                if(this.pos==this.data.length){return;}
-                else{this.data.splice(this.pos,1);}
-            }
+            if(n<0){this.dec();
+                    if(this.pos==this.data.length){for(var i=0;i<n*-1;++i){this.data.pop();}}
+                    else{this.data.splice(this.pos,1);}}
+            else{if(this.pos==this.data.length){return;}
+                 else{for(var i=1;i<=n;++i){this.data.splice(this.pos,i);}}}
         }
     }),
 
-    Cursor=()=>({
-        // text rendering
+    Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,moved:false,
-        home(){this.width=c.measureText('W').width;this.height=this.width*1.5;
-               this.x=this.width;this.y=this.width*1.5;},
-        up(){this.y-=this.height;},
-        down(){this.y+=this.height;},
-        right(){if(buf.pos==buf.data.length){return;}
+        home(){this.width=c.measureText('W').width;this.height=this.width*1.5;this.x=this.width;this.y=this.width*1.5;},
+        up(){
+            var there=buf.data.lastIndexOf('\n',buf.pos-1);
+            this.left(buf.pos-(there<0?0:there));
+        },
+        down(){
+            var there=buf.data.indexOf('\n',buf.pos+1);
+            this.right(there<0?buf.data.length-buf.pos:there-buf.pos);
+        },
+        right(n=1){
+            for(var i=0;i<n;++i){
+                if(buf.pos==buf.data.length){return;}
                 this.moved=true;
                 this.width=c.measureText(buf.data[++buf.pos]).width;
                 this.x+=this.width;
-                if(this.x>c.canvas.width){this.crlf();}},
-        left(){if(buf.pos==0){return;}
-               this.moved=true;
-               this.width=c.measureText(buf.data[--buf.pos]).width;
-               this.x-=this.width;
-               if(this.x<this.width){this.x=this.width;}},
+                if(this.x>c.canvas.width){this.crlf();}
+            }
+        },
+        left(n=1){
+            for(var i=0;i<n;++i){
+                if(buf.pos==0){return;}
+                this.moved=true;
+                this.width=c.measureText(buf.data[--buf.pos]).width;
+                this.x-=this.width;
+                if(this.x<this.width){this.x=this.width;}
+            }
+        },
         crlf(){this.x=this.width;this.y+=this.height;},
         to(p){this.x=p[0],this.y=p[1];},
     }),
-    cur=Cursor(), // for drawing text to the screen
     buf=Buffer();
+var cur=Cursor(buf); // for drawing text to the screen
 
-for(var i=0;i<10;++i){buf.add(img[i]);} // testing
+for(var i=0;i<100;++i){buf.ins(img[i]);} // testing
 
-var service_queue=(now,resiz)=>{
+var gameloop=(now,resiz)=>{
     update(KeyQueue);
     if(cur.moved||buf.changed||resiz){
         cur.moved=false;
         render_text(now,cur);
         buf.changed=false;
     }
-    requestAnimationFrame(service_queue);
+    requestAnimationFrame(gameloop);
 };
 
 var render_text=(now,cur)=>{
@@ -87,7 +94,7 @@ var update=(rks)=>{
     while(rks.length){ // consume KeyQueue, dispatch event handlers
         var dec=decode(rks.shift()); // behead queue
         switch(dec.type){
-        case'print':buf.add(dec.code);break; // add char to text buffer
+        case'print':buf.ins(dec.code);break; // ins char to text buffer
         case'edit':buf.del(dec.code=='B'?-1:1);break;
         case'arrow':switch(dec.code){case'R':cur.right();break;
                                      case'U':cur.up();break;
@@ -102,9 +109,8 @@ window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
-        cur.home();
         c.font='24px Sans-Serif';
-        window.requestAnimationFrame((now)=>service_queue(now,true));
+        window.requestAnimationFrame((now)=>gameloop(now,true));
     };rsz();
     window.onresize=rsz;
     window.onkeydown=(k)=>{
