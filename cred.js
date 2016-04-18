@@ -7,6 +7,7 @@ var c=document.getElementById('c').getContext('2d'),
         dec(){this.pos>0&&--this.pos;},
         inc(){++this.pos;},
         changed:false,
+
         // text operations
         add(ch){
             this.changed=true;
@@ -14,7 +15,8 @@ var c=document.getElementById('c').getContext('2d'),
             else{this.data.splice(this.pos,0,ch);}
             this.inc();
         },
-        rem(count){
+        del(count){
+            // currently only handles single forward and backward deletes
             this.changed=true;
             if(count==-1){
                 this.dec();
@@ -27,6 +29,7 @@ var c=document.getElementById('c').getContext('2d'),
             }
         }
     }),
+
     Cursor=()=>({
         // text rendering
         x:0,y:0,width:0,height:0,moved:false,
@@ -39,7 +42,8 @@ var c=document.getElementById('c').getContext('2d'),
                 this.width=c.measureText(buf.data[++buf.pos]).width;
                 this.x+=this.width;
                 if(this.x>c.canvas.width){this.crlf();}},
-        left(){this.moved=true;
+        left(){if(buf.pos==0){return;}
+               this.moved=true;
                this.width=c.measureText(buf.data[--buf.pos]).width;
                this.x-=this.width;
                if(this.x<this.width){this.x=this.width;}},
@@ -48,11 +52,12 @@ var c=document.getElementById('c').getContext('2d'),
     }),
     cur=Cursor(), // for drawing text to the screen
     buf=Buffer();
-for(var i=0;i<550;++i){buf.add(img[i]);} // testing
 
-var service_queue=(now,override)=>{
+for(var i=0;i<10;++i){buf.add(img[i]);} // testing
+
+var service_queue=(now,resiz)=>{
     update(KeyStack);
-    if(cur.moved||buf.changed||override){
+    if(cur.moved||buf.changed||resiz){
         cur.moved=false;
         render_text(now,cur);
         buf.changed=false;
@@ -80,10 +85,10 @@ var render_text=(now,cur)=>{
 // udpate : [RawKey] -> BufferAction
 var update=(rks)=>{
     while(rks.length){ // consume KeyStack, dispatch event handlers
-        var dec=decode(rks.pop());
+        var dec=decode(rks.pop()); // decode the current element
         switch(dec.type){
         case'print':buf.add(dec.code);break; // add char to text buffer
-        case'edit':buf.rem(dec.code=='B'?-1:1);break;
+        case'edit':buf.del(dec.code=='B'?-1:1);break;
         case'arrow':switch(dec.code){case'R':cur.right();break;
                                      case'U':cur.up();break;
                                      case'L':cur.left();break;
@@ -104,6 +109,7 @@ window.onload=()=>{
     window.onresize=rsz;
     window.onkeydown=(k)=>{
         if(k.type=='keydown'){
+            // push incoming events to a queue as they occur
             k.preventDefault();
             KeyStack.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});
         }
