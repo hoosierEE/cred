@@ -1,13 +1,13 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    KeyQueue=[{mods:[false,false,false,false],k:''}], // permits lightweight key event handler
+    Mode='normal', // Vim modes
+    KeyQueue=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
     Buffer=()=>({
         // cursor position
-        pos:0,data:[],
+        pos:0,data:[], // currently a simple Array
         dec(){this.pos>0&&--this.pos;},
         inc(){++this.pos;},
         changed:false,
-
         ins(ch){ // append ch chars to position pos
             this.changed=true;
             if(this.pos==this.data.length){this.data.push(ch);}
@@ -16,28 +16,22 @@ var c=document.getElementById('c').getContext('2d'),
         },
         del(n){ // delete n chars before (n<0) or after (n>0) cursor
             if(n==0){return;}
-            this.changed=true;
             if(n<0){this.dec();
                     if(this.pos==this.data.length){for(var i=0;i<n*-1;++i){this.data.pop();}}
                     else{this.data.splice(this.pos,1);}}
             else{if(this.pos==this.data.length){return;}
                  else{for(var i=1;i<=n;++i){this.data.splice(this.pos,i);}}}
+            this.changed=true;
         }
     }),
 
     Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,moved:false,
-        home(){this.width=c.measureText('W').width;this.height=this.width*1.5;this.x=this.width;this.y=this.width*1.5;},
-        up(){
-            var there=buf.data.lastIndexOf('\n',buf.pos-1);
-            this.left(buf.pos-(there<0?0:there));
-        },
-        down(){
-            var there=buf.data.indexOf('\n',buf.pos+1);
-            this.right(there<0?buf.data.length-buf.pos:there-buf.pos);
-        },
+        home(){this.width=c.measureText('W').width;this.height=this.width*1.5; this.x=this.width;this.y=this.width*1.5;},
+        up(){var there=buf.data.lastIndexOf('\n',buf.pos-1); this.left(buf.pos-(there<0?0:there));},
+        down(){var there=buf.data.indexOf('\n',buf.pos+1); this.right(there<0?buf.data.length-buf.pos:there-buf.pos);},
         right(n=1){
-            for(var i=0;i<n;++i){
+            while(n-->0){
                 if(buf.pos==buf.data.length){return;}
                 this.moved=true;
                 this.width=c.measureText(buf.data[++buf.pos]).width;
@@ -46,7 +40,7 @@ var c=document.getElementById('c').getContext('2d'),
             }
         },
         left(n=1){
-            for(var i=0;i<n;++i){
+            while(n-->0){
                 if(buf.pos==0){return;}
                 this.moved=true;
                 this.width=c.measureText(buf.data[--buf.pos]).width;
@@ -60,7 +54,7 @@ var c=document.getElementById('c').getContext('2d'),
     buf=Buffer();
 var cur=Cursor(buf); // for drawing text to the screen
 
-for(var i=0;i<100;++i){buf.ins(img[i]);} // testing
+for(var i=0;i<20;++i){buf.ins(img[i]);} // testing
 
 var gameloop=(now,resiz)=>{
     update(KeyQueue);
@@ -93,14 +87,29 @@ var render_text=(now,cur)=>{
 var update=(rks)=>{
     while(rks.length){ // consume KeyQueue, dispatch event handlers
         var dec=decode(rks.shift()); // behead queue
-        switch(dec.type){
-        case'print':buf.ins(dec.code);break; // ins char to text buffer
-        case'edit':buf.del(dec.code=='B'?-1:1);break;
-        case'arrow':switch(dec.code){case'R':cur.right();break;
-                                     case'U':cur.up();break;
-                                     case'L':cur.left();break;
-                                     case'D':cur.down();break;}
-        case'page':break; // TODO remaining handlers
+        if(Mode=='normal'){
+            switch(dec.code){
+            case'i':Mode='insert';break;
+            case'h':cur.left();break;
+            case'j':cur.down();break;
+            case'k':cur.up();break;
+            case'l':cur.right();break;
+            }
+        }
+        else if(Mode=='insert'){
+            switch(dec.type){
+            case'escape':Mode='normal';break;
+            case'print':buf.ins(dec.code);break; // ins char to text buffer
+            case'edit':buf.del(dec.code=='B'?-1:1);break;
+                // TODO remaining handlers
+            case'page':break;}
+        }
+        if(dec.type=='arrow'){
+            switch(dec.code){
+            case'D':cur.down();break;
+            case'U':cur.up();break;
+            case'R':cur.right();break;
+            case'L':cur.left();break;}
         }
     }
 };
