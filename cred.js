@@ -29,16 +29,25 @@ var c=document.getElementById('c').getContext('2d'),
     Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,moved:false,
         home(){this.width=c.measureText('W').width;this.height=this.width*1.5;this.x=this.width;this.y=this.width*1.5;},
+        // TODO replace up(char) and dn(char) with prev(char) and next(char),
+        // each of which returns an int showing how far char is from the current insert position
         up(ch='\n'){var d=buf.a.lastIndexOf(ch,buf.p-1), dd=buf.a.lastIndexOf('\n',buf.p-1);
-                    console.log('d: '+d+', dd:'+dd);
-
                     if(ch==' '){d=dd<0?d:dd;}
                     this.left(buf.p-(d<0?0:d));},
-        dn(ch='\n'){var d=buf.a.indexOf(ch,buf.p+1), dd=buf.a.indexOf('\n',buf.p+1);
-                    console.log('pos: '+buf.p+', d: '+d+', dd:'+dd);
 
-                    if(ch==' '){d=Math.min(d,(dd<0?d:dd));}//dd<0?d:dd;}
+        next(ch){
+            var d=buf.a.indexOf(ch,buf.p+1)-(buf.p+0);
+            return d<0?0:d;
+        },
+        prev(ch){
+            var d=buf.p-buf.a.lastIndexOf(ch,buf.p-1);
+            return d<0?0:d;
+        },
+
+        dn(ch='\n'){var d=buf.a.indexOf(ch,buf.p+1), dd=buf.a.indexOf('\n',buf.p+1);
+                    if(ch==' '){d=Math.min(d,(dd<0?d:dd));}
                     this.right(d<0?buf.a.length-buf.p:d-buf.p);},
+
         right(n=1){
             while(n-->0){
                 if(buf.p==buf.a.length){return;}
@@ -53,6 +62,7 @@ var c=document.getElementById('c').getContext('2d'),
                 this.width=c.measureText(buf.a[--buf.p]).width;
                 this.x-=this.width;
                 if(this.x<this.width){this.x=this.width;}}},
+
         crlf(){this.x=this.width;this.y+=this.height;},
     }),
     buf=Buffer();
@@ -60,7 +70,8 @@ var cur=Cursor(buf); // for drawing text to the screen
 
 var stwrite=(str)=>{for(var i=0;i<str.length;++i){buf.ins(str[i]);}};
 //stwrite(img); // test a
-stwrite('Hello world!');
+stwrite('here are some words for you');
+console.log(buf.a.join(''));
 
 var gameloop=(now,resiz)=>{
     update(KEYQUEUE);
@@ -96,8 +107,14 @@ var update=(rks)=>{
             case'A':MODE='insert';if(buf.a[buf.p]!=='\n'){cur.dn();}break;
             case'o':MODE='insert';if(buf.a[buf.p]!=='\n'){cur.dn();}buf.ins('\n');break;
             case'O':MODE='insert';cur.up();buf.ins('\n');if(buf.p==1){cur.left();}break;
-            case'b':cur.up(' ');break;
-            case'e':cur.dn(' ');break;
+            case'b':cur.left([cur.prev(' '),cur.prev('\n')].filter(x=>x>0)[0]);break;
+            case'e':
+                var sp=cur.next(' ');
+                var nl=cur.next('\n');
+                var amt=[sp,nl].filter(x=>x>0).sort()[0];
+                //console.log([sp,nl]);
+                console.log(amt);
+                cur.right(amt=0?0:amt);break;
             case'h':cur.left();break;
             case'j':cur.dn();break;
             case'k':cur.up();break;

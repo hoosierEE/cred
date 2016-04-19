@@ -37,7 +37,7 @@ License is [[http://unlicense.org/][the unlicense]], which is about as permissiv
 ** Style
 The over-arching *goal* of my coding style is to keep this project /small/.  I avoid premature abstractions and will happily write 2 almost-the-same functions if factoring out the common parts would produce a longer source file.
 
-Targeting one browser (Google Chrome 49+) avoids boilerplate, and the Chrome JavaScript runtime supports some features that I use a lot, particularly this "lightweight" function syntax:
+Targeting one browser (Google Chrome 49+) eliminates the need for polyfills and the verbosity they bring, and the Chrome JavaScript runtime supports some features that I use a lot, particularly this "lightweight" function syntax:
 
 #+BEGIN_SRC C++
 // instead of this:
@@ -63,6 +63,12 @@ Some inspiration for this style comes from this [[http://nsl.com/papers/style.pd
 
 - keep whole "thoughts" localized so they're easier to read
 - use short names for commonly-used things (with a comment next to the definition, in lieu of a longer descriptive variable name)
+
+Other style conventions:
+
+- CONSTANTS are in all uppercase
+- Classes are in CamelCase
+- instances of variables and functions are in lowercase
 
 All that aside, I'm not zealous about style and will consider arguments against them.
 
