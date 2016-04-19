@@ -23,7 +23,4 @@ var decode=(rk)=>{
         else if(k.slice(0,5)=='Arrow'){dec.type='arrow';dec.code=k[5];} // 'u','d','l','r'
         else if(k.slice(0,4)=='Page'){dec.type='page';dec.code=k[4];} // 'u','d'
         else if(k=='Home'||k=='End'){dec.type='page';dec.code=k[0];}} // 'h','e'
-    return dec;
-};
-
-
+    return dec;};
