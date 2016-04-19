@@ -28,9 +28,48 @@ This [[http://stackoverflow.com/a/12437275/2037637][may be crazy]].  But it's pa
 - =normal=, =insert=, =visual= modes like Vim
 - popup mini-modes like Spacemacs
 
+* Contributing
+Fork/pull if you want to contribute.
+
+** License
+License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
+
+** Style
+The over-arching *goal* of my coding style is to keep this project /small/.  I avoid premature abstractions and will happily write 2 almost-the-same functions if factoring out the common parts would produce a longer source file.
+
+Targeting one browser (Google Chrome 49+) avoids boilerplate, and the Chrome JavaScript runtime supports some features that I use a lot, particularly this "lightweight" function syntax:
+
+#+BEGIN_SRC C++
+// instead of this:
+var foo=function(param){return explicit_return_value;};
+
+// I use this wherever possible:
+var foo=(param)=>{implicit_return_value;};
+#+END_SRC
+
+And this syntax for defining a function within an object literal (used with an arrow function returning an object literal):
+
+#+BEGIN_SRC C++
+var Thing=()=>({
+    method_one(p){p+1;},
+    method_two(q){q*q;}, // trailing comma is fine
+});
+var a=Thing();
+a.method_one(2); // returns 3
+a.method_two(9); // returns 81
+#+END_SRC
+
+Some inspiration for this style comes from this [[http://nsl.com/papers/style.pdf][K style guide]], especially:
+
+- keep whole "thoughts" localized so they're easier to read
+- use short names for commonly-used things (with a comment next to the definition, in lieu of a longer descriptive variable name)
+
+All that aside, I'm not zealous about style and will consider arguments against them.
+
 * Links
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
 - [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
 - [[https://github.com/jaz303/gapbuffer/blob/master/index.js][gap buffer in Node.js]]
 - [[https://news.ycombinator.com/item?id=11244103][yc on this subject]]
+- [[http://www.isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing][robust game loops]]
