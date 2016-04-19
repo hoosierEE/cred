@@ -1,8 +1,8 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    Mode='normal', // Vim modes
+    MODE='normal', // Vim modes
     ESC_FD=[0,0], // 'fd' escape sequence
-    KeyQueue=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
+    KEYQUEUE=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
     Buffer=()=>({
         // cursor position
         pos:0,data:[],changed:false,
@@ -23,7 +23,7 @@ var c=document.getElementById('c').getContext('2d'),
             else{
                 if(this.pos==this.data.length){return;}
                 else{for(var i=1;i<=n;++i){this.data.splice(this.pos,i);}}}
-            this.changed=true;}
+            this.changed=true;},
     }),
 
     Cursor=(buf)=>({
@@ -37,20 +37,15 @@ var c=document.getElementById('c').getContext('2d'),
                 this.moved=true;
                 this.width=c.measureText(buf.data[++buf.pos]).width;
                 this.x+=this.width;
-                if(this.x>c.canvas.width){this.crlf();}
-            }
-        },
+                if(this.x>c.canvas.width){this.crlf();}}},
         left(n=1){
             while(n-->0){
                 if(buf.pos==0){return;}
                 this.moved=true;
                 this.width=c.measureText(buf.data[--buf.pos]).width;
                 this.x-=this.width;
-                if(this.x<this.width){this.x=this.width;}
-            }
-        },
+                if(this.x<this.width){this.x=this.width;}}},
         crlf(){this.x=this.width;this.y+=this.height;},
-        to(p){this.x=p[0],this.y=p[1];},
     }),
     buf=Buffer();
 var cur=Cursor(buf); // for drawing text to the screen
@@ -60,7 +55,7 @@ var stwrite=(str)=>{for(var i=0;i<str.length;++i){buf.ins(str[i]);}};
 stwrite('Hello world!');
 
 var gameloop=(now,resiz)=>{
-    update(KeyQueue);
+    update(KEYQUEUE);
     if(cur.moved||buf.changed||resiz){
         cur.moved=false;
         render_text(now,cur);
@@ -84,27 +79,30 @@ var render_text=(now,cur)=>{
 
 // udpate : [RawKey] -> BufferAction
 var update=(rks)=>{
-    while(rks.length){ // consume KeyQueue, dispatch event handlers
+    while(rks.length){ // consume KEYQUEUE, dispatch event handlers
         var dec=decode(rks.shift()); // behead queue
-        if(Mode=='normal'){
+        if(MODE=='normal'){
             switch(dec.code){
-            case'i':Mode='insert';break;
-            case'a':Mode='insert';cur.right();break;
+            case'i':MODE='insert';break;
+            case'a':MODE='insert';cur.right();break;
+            case'A':MODE='insert';if(buf.data[buf.pos]!=='\n'){cur.dn();}break;
+            case'o':MODE='insert';if(buf.data[buf.pos]!=='\n'){cur.dn();}buf.ins('\n');break;
+            case'O':MODE='insert';cur.up();buf.ins('\n');if(buf.pos==1){cur.left();}break;
             case'b':cur.up(' ');break;
             case'e':cur.dn(' ');break;
             case'h':cur.left();break;
             case'j':cur.dn();break;
             case'k':cur.up();break;
             case'l':cur.right();break;}}
-        else if(Mode=='insert'){
+        else if(MODE=='insert'){
             switch(dec.type){
-            case'escape':Mode='normal';break;
+            case'escape':MODE='normal';break;
             case'print':
                 buf.ins(dec.code); // insert this char to text buffer
                 // 'fd' escape sequence
                 if(dec.code=='f'){ESC_FD=[1,performance.now()];}
                 if(dec.code=='d'&&ESC_FD[0]&&performance.now()-ESC_FD[1]<500){
-                    ESC_FD=[0,performance.now()];Mode='normal'; buf.del(-2);} break;
+                    ESC_FD=[0,performance.now()];MODE='normal'; buf.del(-2);} break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
                 // TODO remaining handlers
             case'page':break;}}
@@ -127,4 +125,4 @@ window.onload=()=>{
         if(k.type=='keydown'){
             // push incoming events to a queue as they occur
             k.preventDefault();
-            KeyQueue.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});}};};
+            KEYQUEUE.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],k:k.code});}};};
