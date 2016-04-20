@@ -29,25 +29,15 @@ var c=document.getElementById('c').getContext('2d'),
     Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,moved:false,
         home(){this.width=c.measureText('W').width;this.height=this.width*1.5;this.x=this.width;this.y=this.width*1.5;},
-        // TODO replace up(char) and dn(char) with prev(char) and next(char),
-        // each of which returns an int showing how far char is from the current insert position
         up(ch='\n'){var d=buf.a.lastIndexOf(ch,buf.p-1), dd=buf.a.lastIndexOf('\n',buf.p-1);
                     if(ch==' '){d=dd<0?d:dd;}
                     this.left(buf.p-(d<0?0:d));},
-
-        next(ch){
-            var d=buf.a.indexOf(ch,buf.p+1)-(buf.p+0);
-            return d<0?0:d;
-        },
-        prev(ch){
-            var d=buf.p-buf.a.lastIndexOf(ch,buf.p-1);
-            return d<0?0:d;
-        },
-
+        // TODO next() and prev() don't handle edge cases yet
+        next(ch){var d=buf.a.indexOf(ch,buf.p+1);return d<0?d:d-(buf.p);},
+        prev(ch){return buf.p-buf.a.lastIndexOf(ch,buf.p-1);},
         dn(ch='\n'){var d=buf.a.indexOf(ch,buf.p+1), dd=buf.a.indexOf('\n',buf.p+1);
                     if(ch==' '){d=Math.min(d,(dd<0?d:dd));}
                     this.right(d<0?buf.a.length-buf.p:d-buf.p);},
-
         right(n=1){
             while(n-->0){
                 if(buf.p==buf.a.length){return;}
@@ -102,19 +92,14 @@ var update=(rks)=>{
         var dec=decode(rks.shift()); // behead queue
         if(MODE=='normal'){
             switch(dec.code){
-            case'i':MODE='insert';break;
-            case'a':MODE='insert';cur.right();break;
-            case'A':MODE='insert';if(buf.a[buf.p]!=='\n'){cur.dn();}break;
-            case'o':MODE='insert';if(buf.a[buf.p]!=='\n'){cur.dn();}buf.ins('\n');break;
-            case'O':MODE='insert';cur.up();buf.ins('\n');if(buf.p==1){cur.left();}break;
-            case'b':cur.left([cur.prev(' '),cur.prev('\n')].filter(x=>x>0)[0]);break;
-            case'e':
-                var sp=cur.next(' ');
-                var nl=cur.next('\n');
-                var amt=[sp,nl].filter(x=>x>0).sort()[0];
-                //console.log([sp,nl]);
-                console.log(amt);
-                cur.right(amt=0?0:amt);break;
+            case'i':MODE='insert';break;// insert before cursor
+            case'a':MODE='insert';cur.right();break;// insert after cursor
+            case'A':MODE='insert';if(buf.a[buf.p]!='\n'){cur.dn();}break;// insert at end of line
+            case'I':MODE='insert';if(buf.a[buf.p-1]!='\n'){cur.up();}break;// insert at start of line
+            case'o':MODE='insert';if(buf.a[buf.p]!='\n'){cur.dn();}buf.ins('\n');break;// insert below
+            case'O':MODE='insert';cur.up();buf.ins('\n');if(buf.p==1){cur.left();}break;// insert above
+            case'b':cur.left([cur.prev(' '),cur.prev('\n')].filter(x=>x>0)[0]);break;// beginning of word
+            case'e':cur.right([cur.next(' '),cur.next('\n')].filter(x=>x>0)[0]);break;// end of word
             case'h':cur.left();break;
             case'j':cur.dn();break;
             case'k':cur.up();break;
