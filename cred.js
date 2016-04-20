@@ -15,22 +15,18 @@ var c=document.getElementById('c').getContext('2d'),
             this.changed=true;
             if(this.p==this.a.length){this.a=this.a+ch;}
             else{this.a=this.a.substr(0,this.p)+ch+this.a.substr(this.p);}
-            this.inc();
-        },
+            this.inc();},
         del(n){ // delete n chars before (n<0) or after (n>0) cursor
             if(n==0){return;}
             if(n<0){
                 this.a=this.a.substr(0,this.a.length+n);
-                //if(this.p==this.a.length){this.a=this.a.substr(0,this.a.length+n);}// remove from end
-                //else{this.a=this.a.substr(0,this.p+n)+this.a.substr(this.p+n,this.a.length);}// remove from middle
                 this.dec(-n);
             }
             else{
                 if(this.p==this.a.length){return;}
-                else{this.a=this.a.substr(0,this.p)+this.a.substr(-this.p);}
+                else{this.a=this.a.substr(0,this.p)+this.a.substr(this.p+n);}
             }
-            this.changed=true;},
-    }),
+            this.changed=true;},}),
 
     // navigation, editing
     Cursor=(buf)=>({
