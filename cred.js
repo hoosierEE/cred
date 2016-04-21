@@ -7,6 +7,8 @@ var c=document.getElementById('c').getContext('2d'),
     KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
     Buffer=()=>({// a string with a cursor
         p:0,a:'',changed:false,
+        searchf(r){},
+        searchb(r){},
         ins(ch){// insert ch chars to right of p
             this.changed=true;
             if(this.p==this.a.length){this.a=this.a+ch;}
