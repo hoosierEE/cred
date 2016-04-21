@@ -38,7 +38,7 @@ var update=(rks)=>{
             case'a':MODE='insert';buf.mov(1);break;
             case'h':buf.mov(-1);break;
             case'l':buf.mov(1);break;
-            case' ':console.log('SPC-...');break;
+            case' ':console.log('SPC-');break;// hmm...
             }
         }else if(MODE=='insert'){
             switch(dec.type){
