@@ -12,31 +12,29 @@ var c=document.getElementById('c').getContext('2d'),
         mov(n=1){// move the cursor (default: 1 to the right)
             this.p=this.p+n;
             if(this.p<0){this.p=0;}
-        },
-        ins(ch){// insert ch at this.p
+            if(this.p>=this.a.length){this.p=this.a.length-1;}
+            return this.p;},
+        ins(ch){// insert ch at p
             this.changed=true;
-            if(this.p==this.a.length){this.a=this.a+ch;}
+            if(this.p==this.a.length-1){this.a=this.a+ch;}
             else{this.a=this.a.substr(0,this.p)+ch+this.a.substr(this.p);}
             this.mov(ch.length);},
-        del(n){// delete n chars before (n<0) or after (n>0) cursor
+        del(n){
             if(n==0){return;}
-            if(n<0){
+            if(n<0){// left
                 if(!this.p){return;}
                 this.a=this.a.substr(0,this.p+n)+this.a.substr(this.p);
-                this.mov(n);
-            }
-            else{
+                this.mov(n);}
+            else{// right
                 if(this.p==this.a.length){return;}
-                else{this.a=this.a.substr(0,this.p)+this.a.substr(this.p+n);}
-            }
-            this.changed=true;
-        },
+                else{this.a=this.a.substr(0,this.p)+this.a.substr(this.p+n);}}
+            this.changed=true;},
     }),
 
     // navigation, editing
     Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,
-        home(){this.width=p.measureText('W').width; this.height=this.width*1.5;
+        home(){this.width=c.measureText(buf[0]).width; this.height=this.width*1.5;
                this.x=this.width; this.y=this.width*1.5;},
 
         up(){
@@ -54,26 +52,29 @@ var c=document.getElementById('c').getContext('2d'),
         // TODO next() and prev() don't handle edge cases yet
         next(ch){
             var d=buf.a.indexOf(ch,buf.p+1);
-            return d<0?d:d-(buf.p);
+            if(d<0){return buf.a.length-buf.p;}// to end
+            else{return d-buf.p;}// to left of next ch
         },
 
         prev(ch){
-            return buf.p-buf.a.lastIndexOf(ch,buf.p-1);
+            var d=buf.p-buf.a.lastIndexOf(ch,buf.p-1);
+            if(d<0){return buf.p;}// buffer start
+            else{return buf.p-d;}// to left of next ch
         },
 
         // left() and right() mutate cursor position logically (buf.p) and graphically (x,y)
         right(n=1){
             while(n-->0){
-                if(buf.p==buf.a.length){return;}
-                this.width=c.measureText(buf.a[++buf.p]).width;
+                buf.mov(1);
+                this.width=c.measureText(buf.a[buf.p]).width;
                 this.x+=this.width;
                 if(this.x>c.canvas.width){this.crlf();}
             }
         },
         left(n=1){
             while(n-->0){
-                if(buf.p==0){return;}
-                this.width=c.measureText(buf.a[--buf.p]).width;
+                buf.mov(-1);
+                this.width=c.measureText(buf.a[buf.p]).width;
                 this.x-=this.width;
                 if(this.x<this.width){this.x=this.width;}
             }
@@ -94,12 +95,6 @@ var update=(rks)=>{
             switch(dec.code){// regex?
             case'i':MODE='insert';break;// insert before cursor
             case'a':MODE='insert';cur.right();break;// insert after cursor
-            case'A':MODE='insert';if(buf.a[buf.p]!='\n'){cur.dn();}break;// insert at end of line
-            case'I':MODE='insert';if(buf.a[buf.p-1]!='\n'){cur.up();}break;// insert at start of line
-            case'o':MODE='insert';if(buf.a[buf.p]!='\n'){cur.dn();}buf.ins('\n');break;// insert below
-            case'O':MODE='insert';cur.up();buf.ins('\n');if(buf.p==1){cur.left();}break;// insert above
-            case'b':cur.left([cur.prev(' '),cur.prev('\n')].filter(x=>x>0)[0]);break;// beginning of word
-            case'e':cur.right([cur.next(' '),cur.next('\n')].filter(x=>x>0)[0]);break;// end of word
             case'h':cur.left();break;
             case'j':cur.dn();break;
             case'k':cur.up();break;
@@ -114,52 +109,53 @@ var update=(rks)=>{
                 if(dec.code=='d'&&ESC_FD[0]&&performance.now()-ESC_FD[1]<500){
                     ESC_FD=[0,performance.now()];MODE='normal'; buf.del(-2);} break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
-                // TODO remaining handlers
-            case'page':break;}}
+            case'page':break;}}// TODO remaining handlers
         if(dec.type=='arrow'){
             switch(dec.code){
+            case'L':cur.left();break;
             case'D':cur.dn();break;
             case'U':cur.up();break;
-            case'R':cur.right();break;
-            case'L':cur.left();break;}}}};
+            case'R':cur.right();break;}}}};
 
 var render_cursor=(t,cursor)=>{
-    p.clearRect(10,10,p.canvas.width,p.canvas.height);
+    p.clearRect(0,0,p.canvas.width,p.canvas.height);
     var cursorcolor=1-Math.abs(Math.cos(t/500)/2);// linear-looking sweep
     p.fillStyle='rgba(50,255,255,'+cursorcolor+')';
-    p.fillRect(cursor.x, cursor.y-cursor.height, 1, cursor.height);
-};
+    p.fillRect(cursor.x, cursor.y-cursor.height, 1, cursor.height);};
 
 var render_text=(now)=>{
     cur.home();
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='lightgray';
     for(var i=0;i<buf.a.length;++i){
+        render_cursor(now,cur);
+        //if(i==buf.p){render_cursor(now,cur);}
         if(cur.y-cur.height>c.canvas.height){break;} // don't render beyond canvas
         var tw=c.measureText(buf.a[i]).width; // non-monospace fix!
         if(buf.a[i]=='\t'){if(cur.x+tw*4+cur.width>c.canvas.width){cur.crlf();}else{cur.x+=4*tw;}}
         else if(buf.a[i]=='\n'){cur.crlf();}
         else{c.fillText(buf.a[i],cur.x,cur.y); cur.x+=tw;}
-        if(cur.x+tw+cur.width>c.canvas.width){cur.crlf();}}};
+        if(cur.x+tw+cur.width>c.canvas.width){cur.crlf();}}
+    //render_cursor(now,cur);
+};
 
 var gameloop=(now,resiz)=>{
     update(KEYQ);
+    //requestAnimationFrame(gameloop);
     if(buf.changed||resiz){
         render_text(now);
         buf.changed=false;}
-    if(cur.changed){
-        render_cursor(now,cur);
-    }
-    //requestAnimationFrame(gameloop);
-};
+    render_cursor(now,cur);};
 
 window.onload=()=>{
     var rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
+        c.font='24px Sans-Serif';
         p.canvas.width=p.canvas.clientWidth;
         p.canvas.height=p.canvas.clientHeight;
-        p.font=c.font='24px Sans-Serif';
+        p.font='24px Sans-Serif';
+        cur.home();
         window.requestAnimationFrame((now)=>gameloop(now,true));};
     rsz();
     window.onresize=rsz;
