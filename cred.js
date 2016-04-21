@@ -1,3 +1,4 @@
+// TODO: scrolling, file i/o
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     p=document.getElementById('p').getContext('2d'),
@@ -14,10 +15,10 @@ var c=document.getElementById('c').getContext('2d'),
         },
         del(n){// delete n chars to right of p (or left if n<0)
             if(n==0||n+this.p<0){return;}
-            var bs=n<0?n:0, fw=n<0?0:n;
+            var bz=n<0?n:0, fz=n<0?0:n;
             this.changed=true;
-            this.a=this.a.slice(0,this.p+bs)+this.a.slice(this.p+fw);
-            this.mov(bs);
+            this.a=this.a.slice(0,this.p+bz)+this.a.slice(this.p+fz);
+            this.mov(bz);
         },
         mov(n=1){// move the cursor
             this.p=this.p+n;
@@ -37,11 +38,16 @@ var update=(rks)=>{
             case'a':MODE='insert';buf.mov(1);break;
             case'h':buf.mov(-1);break;
             case'l':buf.mov(1);break;
+            case' ':console.log('SPC-...');break;
             }
         }else if(MODE=='insert'){
             switch(dec.type){
             case'escape':MODE='normal';break;
-            case'print':buf.ins(dec.code);break;
+            case'print':
+                buf.ins(dec.code);
+                if(dec.code=='f'){ESC_FD=-performance.now();}
+                if(dec.code=='d'&&ESC_FD<0&&performance.now()+ESC_FD<500){
+                    MODE='normal'; buf.del(-2);}break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             }
         }
@@ -95,18 +101,12 @@ var rsz=()=>{
     p.font='24px Sans-Serif';
 };
 
-window.onload=()=>{
-    rsz();
-};
-
+window.onload=rsz;
 window.onresize=rsz;
 window.onkeydown=(k)=>{
     if(k.type=='keydown'){// push incoming events to a queue as they occur
         k.preventDefault();
-        KEYQ.push({
-            mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey],
-            k:k.code
-        });
+        KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
     }
 };
 
