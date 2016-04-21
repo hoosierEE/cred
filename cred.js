@@ -4,45 +4,26 @@ var c=document.getElementById('c').getContext('2d'),
     MODE='normal', // Vim modes: normal, insert, visual[-block, -line]
     ESC_FD=0, // 'fd' escape sequence
     KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
-
-    // a string with a cursor
-    Buffer=()=>({
-        // cursor position
+    Buffer=()=>({// a string with a cursor
         p:0,a:'',changed:false,
-        ins(ch){// insert ch at p then move p ch spaces to right
+        ins(ch){// insert ch chars to right of p
             this.changed=true;
             if(this.p==this.a.length){this.a=this.a+ch;}
-            else{
-                var fst=this.a.slice(0,this.p);// upto p, exclusive
-                var snd=this.a.slice(this.p);// from p to end
-                this.a=fst+ch+snd; // this.a.substr(0,this.p)+ch+this.a.substr(this.p);
-            }
+            else{this.a=this.a.slice(0,this.p)+ch+this.a.slice(this.p);}
             this.mov(ch.length);
         },
-
-        del(n){// starting at point, remove n chars to its right
-            if(n==0){return;}
+        del(n){// delete n chars to right of p (or left if n<0)
+            if(n==0||n+this.p<0){return;}
+            var bs=n<0?n:0, fw=n<0?0:n;
             this.changed=true;
-            var fst,snd;
-            if(n<0){//delete left
-                if(this.p<1){return;}
-                fst=this.a.slice(0,this.p+n);
-                snd=this.a.slice(this.p);
-            }
-            else{//delete right
-                fst=this.a.slice(0,this.p);
-                snd=this.a.slice(this.p+n);
-            }
-            this.a=fst+snd;
-            this.mov(n<0?n:0);
+            this.a=this.a.slice(0,this.p+bs)+this.a.slice(this.p+fw);
+            this.mov(bs);
         },
-
         mov(n=1){// move the cursor
             this.p=this.p+n;
             if(this.p<0){this.p=0;}
-            if(this.p>this.a.length){this.p=this.a.length;}
+            else if(this.p>this.a.length){this.p=this.a.length;}
         },
-
     }),
     buf=Buffer();
 
@@ -77,7 +58,7 @@ var spot={x:0,y:0};
 
 var render_cursor=(t)=>{
     p.clearRect(0,0,p.canvas.width,p.canvas.height);
-    var clr=1-Math.abs(Math.cos(t/300))/2;
+    var clr=Math.abs(Math.cos(t/500));
     p.fillStyle='rgba(20,255,255,'+clr+')';
     var ht=p.measureText('W').width;// cursor height
     var wd=p.measureText(buf.a.slice(0,buf.p)).width;// string width upto cursor
