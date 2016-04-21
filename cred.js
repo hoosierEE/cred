@@ -1,7 +1,7 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     p=document.getElementById('p').getContext('2d'),
-    MODE='normal', // Vim modes include
+    MODE='normal', // Vim modes: normal, insert, visual[-block, -line]
     ESC_FD=0, // 'fd' escape sequence
     KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
 
@@ -25,8 +25,9 @@ var c=document.getElementById('c').getContext('2d'),
             this.changed=true;
             var fst,snd;
             if(n<0){//delete left
-                fst=this.a.slice(0,this.p-1);
-                snd=this.a.slice(this.p-n-1);
+                if(this.p<1){return;}
+                fst=this.a.slice(0,this.p+n);
+                snd=this.a.slice(this.p);
             }
             else{//delete right
                 fst=this.a.slice(0,this.p);
@@ -37,11 +38,9 @@ var c=document.getElementById('c').getContext('2d'),
         },
 
         mov(n=1){// move the cursor
-            //console.log('before mov: '+this.p);
             this.p=this.p+n;
             if(this.p<0){this.p=0;}
             if(this.p>this.a.length){this.p=this.a.length;}
-            //console.log('after mov: '+this.p);
         },
 
     }),
@@ -130,5 +129,5 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.ins('cred: canvas rendered editor');
+buf.ins('a test');
 
