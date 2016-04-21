@@ -35,42 +35,38 @@ Fork/pull if you want to contribute.
 License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
 
 ** Style
-The over-arching *goal* of my coding style is to keep this project /small/.  I avoid premature abstractions and will happily write 2 almost-the-same functions if factoring out the common parts would produce a longer source file.
-
-Targeting one browser (Google Chrome 49+) eliminates the need for polyfills and the verbosity they bring, and the Chrome JavaScript runtime supports some features that I use a lot, particularly this "lightweight" function syntax:
+Google Chrome 49 is the target browser, which eliminates the need for verbose polyfills.  The Chrome JavaScript runtime also supports some features that I use a lot, particularly this "lightweight" function syntax:
 
 #+BEGIN_SRC C++
 // instead of this:
 var foo=function(param){return explicit_return_value;};
 
-// I use this wherever possible:
+// use this when possible:
 var foo=(param)=>{implicit_return_value;};
 #+END_SRC
 
-And this syntax for defining a function within an object literal (used with an arrow function returning an object literal):
+As well as this alternative syntax for defining a function within an object literal (in this example, also used with an arrow function returning an object literal):
 
 #+BEGIN_SRC C++
 var Thing=()=>({
-    method_one(p){p+1;},
-    method_two(q){q*q;}, // trailing comma is fine
+    m_one(p){p+1;},
+    m_two(q){q*q;}, // trailing comma is fine
 });
 var a=Thing();
-a.method_one(2); // returns 3
-a.method_two(9); // returns 81
+a.m_one(2); // returns 3
+a.m_two(9); // returns 81
 #+END_SRC
 
-Some inspiration for this style comes from this [[http://nsl.com/papers/style.pdf][K style guide]], especially:
+Some inspiration for this style comes from this [[http://nsl.com/papers/style.pdf][K style guide]].
 
-- keep whole "thoughts" localized so they're easier to read
-- use short names for commonly-used things (with a comment next to the definition, in lieu of a longer descriptive variable name)
+Other conventions:
 
-Other style conventions:
+- ALL_CAPS_CONSTANTS
+- ProperCamelCaseClasses
+- rarely_used_name_snake_case
+- cu // commonly used name style
 
-- CONSTANTS are in all uppercase
-- Classes are in CamelCase
-- instances of variables and functions are in lowercase
-
-All that aside, I'm not zealous about style and will consider arguments against them.
+Having said all that, I'll also make the claim that I'm not zealous about style and am open to change.
 
 * Links
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
