@@ -2,7 +2,7 @@
 var c=document.getElementById('c').getContext('2d'),
     p=document.getElementById('p').getContext('2d'),
     MODE='normal', // Vim modes
-    ESC_FD=[0,0], // 'fd' escape sequence
+    ESC_FD=0, // 'fd' escape sequence
     KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
 
     // a string
@@ -22,19 +22,33 @@ var c=document.getElementById('c').getContext('2d'),
         del(n){
             if(n==0){return;}
             if(n<0){// left
-                if(!this.p){return;}
-                this.a=this.a.substr(0,this.p+n)+this.a.substr(this.p);
-                this.mov(n);}
+                if(this.p==0){return;}
+                var fst=this.a.slice(0,n);
+                var snd=this.a.slice(this.p,n);
+                //console.log('p:'+this.p+' l:'+this.a.length);
+                console.log('fst: '+fst);
+                console.log('snd: '+snd);
+                this.a=fst+snd;//this.a.substr(0,this.p+n)+this.a.substr(this.p);
+                this.mov(n);
+            }
             else{// right
-                if(this.p==this.a.length){return;}
-                else{this.a=this.a.substr(0,this.p)+this.a.substr(this.p+n);}}
+                //console.log('p:'+this.p+' len:'+this.a.length+' n:'+n);
+                if(this.p==this.a.length-1){return;}
+                else{
+                    var fst=this.a.substr(0,this.p);
+                    var snd=this.a.substr(this.p+n);
+                    console.log('fst: '+fst);
+                    console.log('snd: '+snd);
+                    this.a=fst+snd;
+                }
+            }
             this.changed=true;},
     }),
 
     // navigation, editing
     Cursor=(buf)=>({
         x:0,y:0,width:0,height:0,
-        home(){this.width=c.measureText(buf[0]).width; this.height=this.width*1.5;
+        home(){this.width=c.measureText('W').width; this.height=this.width*1.5;
                this.x=this.width; this.y=this.width*1.5;},
 
         up(){
@@ -47,19 +61,6 @@ var c=document.getElementById('c').getContext('2d'),
             var d=buf.a.indexOf('\n',buf.p+1);// newline to right of cursor?
             if(d<0){this.right(buf.a.length-buf.p);}//no newline found, move to end of buffer
             else{this.right(d-buf.p);}// goto left of next newline
-        },
-
-        // TODO next() and prev() don't handle edge cases yet
-        next(ch){
-            var d=buf.a.indexOf(ch,buf.p+1);
-            if(d<0){return buf.a.length-buf.p;}// to end
-            else{return d-buf.p;}// to left of next ch
-        },
-
-        prev(ch){
-            var d=buf.p-buf.a.lastIndexOf(ch,buf.p-1);
-            if(d<0){return buf.p;}// buffer start
-            else{return buf.p-d;}// to left of next ch
         },
 
         // left() and right() mutate cursor position logically (buf.p) and graphically (x,y)
@@ -84,8 +85,9 @@ var c=document.getElementById('c').getContext('2d'),
     buf=Buffer();
 var cur=Cursor(buf);
 
-buf.a='cred - an html5 canvas rendered editor';
+buf.ins('cred - an html5 canvas rendered editor');
 console.log(buf.a);
+cur.home();
 
 // udpate : [RawKey] -> BufferAction
 var update=(rks)=>{
@@ -105,9 +107,9 @@ var update=(rks)=>{
             case'print':
                 buf.ins(dec.code); // insert this char to text buffer
                 // 'fd' escape sequence
-                if(dec.code=='f'){ESC_FD=[1,performance.now()];}
-                if(dec.code=='d'&&ESC_FD[0]&&performance.now()-ESC_FD[1]<500){
-                    ESC_FD=[0,performance.now()];MODE='normal'; buf.del(-2);} break;
+                if(dec.code=='f'){ESC_FD=-performance.now();}
+                if(dec.code=='d'&&ESC_FD<0&&performance.now()+ESC_FD<500){
+                    MODE='normal';buf.del(-2);ESC_FD=0;}break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             case'page':break;}}// TODO remaining handlers
         if(dec.type=='arrow'){
