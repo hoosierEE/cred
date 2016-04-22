@@ -1,31 +1,21 @@
 // TODO: scrolling, file i/o
 'use strict';
-var c=document.getElementById('c').getContext('2d'),
-    p=document.getElementById('p').getContext('2d'),
-    MODE='normal', // Vim modes: normal, insert, visual[-block, -line]
-    ESC_FD=0, // 'fd' escape sequence
-    KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
+var c=document.getElementById('c').getContext('2d'),// rarely changing bottom canvas (for text)
+    p=document.getElementById('p').getContext('2d'),// animation canvas (cursor etc.)
+    MODE='normal',// Vim modes: normal, insert, visual[-block, -line], etc.
+    ESC_FD=0,// 'fd' escape sequence
+    KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
     Buffer=()=>({// a string with a cursor
-        p:0,a:'',changed:false,
-        nl:[0],//newline indexes, prepopulated with 1 at start
-        load(txt){// load and initialize a buffer
-            this.ins(txt);
-            for(var i=0;i<txt.length;++i){
-                if(txt[i]=='\n'){
-                    this.nl.push(i);//get newlines
-                }
-            }
-        },
+        p:0,a:'',changed:false,oldp:0,
+        change:[0,0],//start,end of last modification
+        load(txt){this.ins(txt);},
+        lines(){return this.a.split(/\n/g);},// array of all the buffer's lines
+        words(){return this.a.split(/\s/g).reduce((a,b)=>a.concat(b),[]);},
         ins(ch){// insert ch chars to right of p
             this.changed=true;
-            if(this.p==this.a.length){
-                for(var i=0;i<ch.length;++i){if(ch[i]=='\n'){this.nl.push[this.p+i];}}
-                this.a=this.a+ch;
-            }
-            else{
-                for(var i=0;i<ch.length;++i){if(ch[i]=='\n'){this.nl.push[this.p+i];nl.sort();}}
-                this.a=this.a.slice(0,this.p)+ch+this.a.slice(this.p);
-            }
+            if(this.p==this.a.length){this.a=this.a+ch;}
+            else{this.a=this.a.slice(0,this.p)+ch+this.a.slice(this.p);}
+            this.change=[this.p,this.p+ch.length];
             this.mov(ch.length);
         },
         del(n){// delete n chars to right of p (or left if n<0)
@@ -34,8 +24,10 @@ var c=document.getElementById('c').getContext('2d'),
             this.changed=true;
             this.a=this.a.slice(0,this.p+bz)+this.a.slice(this.p+fz);
             this.mov(bz);
+            this.change=[this.p,this.p+n];
         },
         mov(n=1){// move the cursor
+            this.oldp=this.p;//previous cursor position
             this.p=this.p+n;
             if(this.p<0){this.p=0;}
             else if(this.p>this.a.length){this.p=this.a.length;}
@@ -45,8 +37,8 @@ var c=document.getElementById('c').getContext('2d'),
 
 // udpate : [RawKey] -> BufferAction
 var update=(rks)=>{
-    while(rks.length){ // consume KEYQ, dispatch event handlers
-        var dec=decode(rks.shift()); // behead queue
+    while(rks.length){// consume KEYQ, dispatch event handlers
+        var dec=decode(rks.shift());// behead queue
         if(MODE=='normal'){
             switch(dec.code){
             case'i':MODE='insert';break;
@@ -66,7 +58,7 @@ var update=(rks)=>{
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             }
         }
-        if(dec.type=='arrow'){
+        if(dec.type=='arrow'){//all modes support arrows in the same way
             switch(dec.code){
             case'L':buf.mov(-1);break;
             case'R':buf.mov(1);break;
@@ -75,33 +67,38 @@ var update=(rks)=>{
     }
 };
 
-var spot={x:20,y:0};
+var spot={x:20,y:0,h:0};
+spot.y=spot.h+spot.x;
 
 var render_cursor=(t)=>{
-    p.clearRect(0,0,p.canvas.width,p.canvas.height);
+    // where is the cursor on the screen?
     var clr=Math.abs(Math.cos(t/500));
+    var h=p.measureText('W').width;
+    var w=p.measureText(buf.a.slice(0,buf.p)).width;//ideally slice(buf.current_line_p,buf.p)
+    //p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
+    //var oldw=p.measureText(buf.a.slice(buf.oldp,Math.abs(buf.p+buf.oldp))).width;
+    var pdiff=buf.p-buf.oldp;// left==negative
+    var oldw=(p.measureText(buf.a.slice(0,buf.oldp).width))-(p.measureText(buf.a.slice(0,buf.p)).width);
+    p.fillStyle='rgba(150,150,150,0.1)';
+    p.fillRect(spot.x+oldw-10,spot.y-spot.h,12,spot.h);
     p.fillStyle='rgba(20,255,255,'+clr+')';
-    var h=p.measureText('W').width;//cursor as tall as a W is wide
-    var w=p.measureText(buf.a.slice(0,buf.p)).width;//string width upto cursor
-    p.fillRect(w+spot.x,spot.y-h,1,h);
+    p.fillRect(spot.x+w,spot.y-spot.h,1,spot.h);
 };
 
 var render_text=()=>{
+    // in response to a change in screen size or text
+    // the portion of text drawn should be a function of:
+    // 1. cursor position (n lines above, m below)
+    // 2. screen area, font size, word wrapping
+    spot.h=c.measureText('W').width;
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    var h=c.measureText('W').width;
-    spot.y=h+20;
-    var lines=buf.a.split('\n');
-    for(var i=0;i<lines.length;++i){
-        c.fillText(lines[i],spot.x,spot.y);
-        spot.y+=h;// cursor uses this value, oops
-    }
-    //spot.x=(c.canvas.width-w)/2;//center horizontally
-    //spot.y=c.canvas.height/2;//center vertically
-    //c.fillText(buf.a,spot.x,spot.y);
+    spot.y=spot.h+20;// border-top
+    var lines=buf.lines();
+    lines.forEach((l,i)=>c.fillText(l,spot.x,spot.y+(i*spot.h)));
 };
 
 var gameloop=(now,resiz)=>{
-    requestAnimationFrame((now)=>gameloop(now,true));
+    requestAnimationFrame((now)=>gameloop(now,false));
     render_cursor(now);
     update(KEYQ);
     if(buf.changed||resiz){
@@ -119,6 +116,7 @@ var rsz=()=>{
     p.canvas.width=p.canvas.clientWidth;
     p.canvas.height=p.canvas.clientHeight;
     p.font='24px Sans-Serif';
+    requestAnimationFrame((now)=>gameloop(now,true));
 };
 
 window.onload=rsz;
@@ -130,5 +128,5 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.load('a test\nwith a newline');
+buf.load('a test without a newline');
 
