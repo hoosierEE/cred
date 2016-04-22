@@ -86,15 +86,14 @@ var render_cursor=(t)=>{
     p.fillRect(w+spot.x,spot.y-h,1,h);
 };
 
-var render_text=(t)=>{
+var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    c.fillStyle='#cadaba';
     var h=c.measureText('W').width;
     spot.y=h+20;
     var lines=buf.a.split('\n');
     for(var i=0;i<lines.length;++i){
         c.fillText(lines[i],spot.x,spot.y);
-        spot.y+=h;
+        spot.y+=h;// cursor uses this value, oops
     }
     //spot.x=(c.canvas.width-w)/2;//center horizontally
     //spot.y=c.canvas.height/2;//center vertically
@@ -106,7 +105,7 @@ var gameloop=(now,resiz)=>{
     render_cursor(now);
     update(KEYQ);
     if(buf.changed||resiz){
-        render_text(now);
+        render_text();
         buf.changed=false;
     }
 };
@@ -115,6 +114,7 @@ requestAnimationFrame((now)=>gameloop(now,true));
 var rsz=()=>{
     c.canvas.width=c.canvas.clientWidth;
     c.canvas.height=c.canvas.clientHeight;
+    c.fillStyle='#cacada';
     c.font='24px Sans-Serif';
     p.canvas.width=p.canvas.clientWidth;
     p.canvas.height=p.canvas.clientHeight;
