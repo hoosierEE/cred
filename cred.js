@@ -7,12 +7,25 @@ var c=document.getElementById('c').getContext('2d'),
     KEYQ=[{mods:[false,false,false,false],k:''}], // lightens duties for key event handler
     Buffer=()=>({// a string with a cursor
         p:0,a:'',changed:false,
-        searchf(r){},
-        searchb(r){},
+        nl:[0],//newline indexes, prepopulated with 1 at start
+        load(txt){// load and initialize a buffer
+            this.ins(txt);
+            for(var i=0;i<txt.length;++i){
+                if(txt[i]=='\n'){
+                    this.nl.push(i);//get newlines
+                }
+            }
+        },
         ins(ch){// insert ch chars to right of p
             this.changed=true;
-            if(this.p==this.a.length){this.a=this.a+ch;}
-            else{this.a=this.a.slice(0,this.p)+ch+this.a.slice(this.p);}
+            if(this.p==this.a.length){
+                for(var i=0;i<ch.length;++i){if(ch[i]=='\n'){this.nl.push[this.p+i];}}
+                this.a=this.a+ch;
+            }
+            else{
+                for(var i=0;i<ch.length;++i){if(ch[i]=='\n'){this.nl.push[this.p+i];nl.sort();}}
+                this.a=this.a.slice(0,this.p)+ch+this.a.slice(this.p);
+            }
             this.mov(ch.length);
         },
         del(n){// delete n chars to right of p (or left if n<0)
@@ -62,25 +75,30 @@ var update=(rks)=>{
     }
 };
 
-var spot={x:0,y:0};
+var spot={x:20,y:0};
 
 var render_cursor=(t)=>{
     p.clearRect(0,0,p.canvas.width,p.canvas.height);
     var clr=Math.abs(Math.cos(t/500));
     p.fillStyle='rgba(20,255,255,'+clr+')';
-    var ht=p.measureText('W').width;// cursor height
-    var wd=p.measureText(buf.a.slice(0,buf.p)).width;// string width upto cursor
-    var xt=p.measureText(buf.a[buf.p]).width;
-    p.fillRect(wd+spot.x,spot.y-ht,1,ht);
+    var h=p.measureText('W').width;//cursor as tall as a W is wide
+    var w=p.measureText(buf.a.slice(0,buf.p)).width;//string width upto cursor
+    p.fillRect(w+spot.x,spot.y-h,1,h);
 };
 
 var render_text=(t)=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
     c.fillStyle='#cadaba';
-    var w=c.measureText(buf.a).width;
-    spot.x=(c.canvas.width-w)/2;
-    spot.y=c.canvas.height/2;
-    c.fillText(buf.a,spot.x,spot.y);
+    var h=c.measureText('W').width;
+    spot.y=h+20;
+    var lines=buf.a.split('\n');
+    for(var i=0;i<lines.length;++i){
+        c.fillText(lines[i],spot.x,spot.y);
+        spot.y+=h;
+    }
+    //spot.x=(c.canvas.width-w)/2;//center horizontally
+    //spot.y=c.canvas.height/2;//center vertically
+    //c.fillText(buf.a,spot.x,spot.y);
 };
 
 var gameloop=(now,resiz)=>{
@@ -112,5 +130,5 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.ins('a test');
+buf.load('a test\nwith a newline');
 
