@@ -98,7 +98,7 @@ var render_text=()=>{
 };
 
 var gameloop=(now,resiz)=>{
-    requestAnimationFrame((now)=>gameloop(now,false));
+    //requestAnimationFrame((now)=>gameloop(now,false));
     render_cursor(now);
     update(KEYQ);
     if(buf.changed||resiz){
@@ -106,7 +106,7 @@ var gameloop=(now,resiz)=>{
         buf.changed=false;
     }
 };
-requestAnimationFrame((now)=>gameloop(now,true));
+//requestAnimationFrame((now)=>gameloop(now,true));
 
 var rsz=()=>{
     c.canvas.width=c.canvas.clientWidth;
