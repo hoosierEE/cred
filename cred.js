@@ -10,30 +10,52 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         lin:0,// line containing pt
         col:0,// column containing pt
         a:'',// text buffer
-        changed:false,
+        txt_changed:false,
         change:[0,0],//start,end of last modification
         load(txt){this.a='';this.change=[0,0];this.pt=0;this.ins(txt);},
         lines(){return this.a.split(/\n/g);},// array of all the buffer's lines
         words(){return this.a.split(/\s/g).reduce((a,b)=>a.concat(b),[]);},
         ins(ch){// insert ch chars to right of p
-            this.changed=true;
+            this.change[0]=this.pt;// starting point
             if(this.pt==this.a.length){this.a=this.a+ch;}
             else{this.a=this.a.slice(0,this.pt)+ch+this.a.slice(this.pt);}
-            this.change=[this.pt,this.pt+ch.length];
             this.mov(ch.length);
+            this.change[1]=this.pt;// ending point
+            this.txt_changed=true;
         },
         del(n){// delete n chars to right of p (or left if n<0)
             if(n==0||n+this.pt<0){return;}
-            var bz=n<0?n:0, fz=n<0?0:n;
-            this.changed=true;
-            this.a=this.a.slice(0,this.pt+bz)+this.a.slice(this.pt+fz);
-            this.mov(bz);
-            this.change=[this.pt,this.pt+n];
+            this.change[0]=this.pt;// starting point
+            var del_left=n<0?n:0, del_right=n<0?0:n;
+            // if cursor left deleted N newlines, lin-=N
+            if(del_left){
+                var nls=this.a.slice(this.pt+del_left,this.pt).match(/\n/g)
+                if(nls!==null){this.lin-=nls.length;console.log(this.lin);}
+            }
+            this.a=this.a.slice(0,this.pt+del_left)+this.a.slice(this.pt+del_right);
+            this.mov(del_left);// only move cursor for left deletes
+            this.change[1]=this.pt;// ending point
+            this.txt_changed=true;
         },
         mov(n=1){// move the cursor
             this.pt=this.pt+n;
-            if(this.pt<0){this.pt=0;}
-            else if(this.pt>this.a.length){this.pt=this.a.length;}
+            if(this.pt<0){this.pt=0;console.log('begin');}
+            else if(this.pt>this.a.length){this.pt=this.a.length;console.log('end');}
+            if(this.pt==this.change[1]){this.change[0]=this.pt;}
+            // this.pt now equals the "destination".
+            // the "source" is still cached in this.change[0]
+
+            // update line number
+            if(n<0){
+                // if we moved left over a N newlines, lin -= N
+                var lines_left=this.a.slice(this.pt,this.change[0]).match(/\n/g);
+                if(lines_left!==null){this.lin-=lines_left.length;if(this.lin<0){this.lin=0;}}
+            }
+            else{
+                // likewise if we move right over N, lin += N
+                var lines_right=this.a.slice(this.change[0],this.pt).match(/\n/g);
+                if(lines_right!==null){this.lin+=lines_right.length;}
+            }
         },
     }),
     buf=Buffer();
@@ -70,32 +92,24 @@ var update=(rks,t)=>{
     }
 };
 
-var spot={x:20,y:0,h:0,lh:undefined};// screen border, cached offsets
-spot.y=spot.h+spot.x;
+var spot={x:20,y:20,h:0,lh:undefined};// screen border, cached offsets
 
 var render_cursor=()=>{
     var w=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pt)+1,buf.pt)).width;
     p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
     spot.lh=spot.lh||p.measureText('W').width;
     p.fillStyle='rgba(20,255,255,'+Math.abs(Math.cos(performance.now()/500))+')';
-    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.lines().length-1)-spot.h,1,spot.h);
+    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.lin-0)-spot.h,1,spot.h);
 };
 
 var render_text=()=>{
     spot.h=c.measureText('W').width;
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
     spot.y=spot.h+20;// border-top
-    var lines=buf.lines();
-    lines.forEach((l,i)=>c.fillText(l,spot.x,spot.y+(i*spot.h)));
+    buf.lines().forEach((l,i)=>c.fillText(l,spot.x,spot.y+(i*spot.h)));
 };
 
-var gameloop=(now,resiz)=>{
-    update(KEYQ,now);
-    if(buf.changed||resiz){
-        render_text();
-        buf.changed=false;
-    }
-};
+var gameloop=(now,resiz)=>{update(KEYQ,now); render_text();};
 
 var rsz=()=>{
     p.canvas.width=c.canvas.width=c.canvas.clientWidth;
@@ -115,4 +129,4 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.load('a test without a newline');
+buf.load('a test with\na newline');
