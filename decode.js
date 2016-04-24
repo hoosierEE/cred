@@ -24,3 +24,36 @@ var decode=(rk)=>{
         else if(k.slice(0,4)=='Page'){dec.type='page';dec.code=k[4];} // 'u','d'
         else if(k=='Home'||k=='End'){dec.type='page';dec.code=k[0];}} // 'h','e'
     return dec;};
+
+// udpate : [RawKey] -> BufferAction
+var update=(rks,t)=>{
+    while(rks.length){// consume KEYQ, dispatch event handlers
+        var dec=decode(rks.shift());// behead queue
+        if(MODE=='normal'){
+            switch(dec.code){
+            case'i':MODE='insert';break;
+            case'a':MODE='insert';buf.mov(0);break;
+            case'b':buf.mov(-2);break;
+            case'e':buf.mov(2);break;
+            case'h':buf.mov(-1);break;
+            case'l':buf.mov(1);break;
+            case' ':console.log('SPC-');break;// hmm...
+            }
+        }else if(MODE=='insert'){
+            switch(dec.type){
+            case'escape':MODE='normal';break;
+            case'print':
+                buf.ins(dec.code);
+                if(dec.code=='f'){ESC_FD=-t;}
+                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.del(-2);}break;
+            case'edit':buf.del(dec.code=='B'?-1:1);break;
+            }
+        }
+        if(dec.type=='arrow'){//all modes support arrows in the same way
+            switch(dec.code){
+            case'L':buf.mov(-1);break;
+            case'R':buf.mov(1);break;
+            }
+        }
+    }
+};
