@@ -39,7 +39,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     buf=Buffer();
 
 // udpate : [RawKey] -> BufferAction
-var update=(rks)=>{
+var update=(rks,t)=>{
     while(rks.length){// consume KEYQ, dispatch event handlers
         var dec=decode(rks.shift());// behead queue
         if(MODE=='normal'){
@@ -55,8 +55,8 @@ var update=(rks)=>{
             case'escape':MODE='normal';break;
             case'print':
                 buf.ins(dec.code);
-                if(dec.code=='f'){ESC_FD=-performance.now();}
-                if(dec.code=='d'&&ESC_FD<0&&performance.now()+ESC_FD<500){
+                if(dec.code=='f'){ESC_FD=-t;}
+                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){
                     MODE='normal'; buf.del(-2);}break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             }
@@ -70,18 +70,15 @@ var update=(rks)=>{
     }
 };
 
-var spot={x:20,y:0,h:0,cached:false};// screen border, cached offsets
+var spot={x:20,y:0,h:0,lh:undefined};// screen border, cached offsets
 spot.y=spot.h+spot.x;
 
 var render_cursor=()=>{
-    var h=p.measureText('W').width,
-        curln=buf.lines().length-1,
-        lastnl=buf.a.lastIndexOf('\n',buf.pt)+1,//+1 handles 'no newlines' special case
-        w=p.measureText(buf.a.slice(lastnl,buf.pt)).width,
-        clr=Math.abs(Math.cos(performance.now()/500));
+    var w=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pt)+1,buf.pt)).width;
     p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
-    p.fillStyle='rgba(20,255,255,'+clr+')';
-    p.fillRect(spot.x+w,spot.y+h*curln-spot.h,1,spot.h);
+    spot.lh=spot.lh||p.measureText('W').width;
+    p.fillStyle='rgba(20,255,255,'+Math.abs(Math.cos(performance.now()/500))+')';
+    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.lines().length-1)-spot.h,1,spot.h);
 };
 
 var render_text=()=>{
@@ -93,7 +90,7 @@ var render_text=()=>{
 };
 
 var gameloop=(now,resiz)=>{
-    update(KEYQ);
+    update(KEYQ,now);
     if(buf.changed||resiz){
         render_text();
         buf.changed=false;
@@ -105,19 +102,16 @@ var rsz=()=>{
     p.canvas.height=c.canvas.height=c.canvas.clientHeight;
     p.font=c.font='24px Sans-Serif';
     c.fillStyle='#cacada';
-    requestAnimationFrame((now)=>gameloop(now,true));
+    requestAnimationFrame(now=>gameloop(now,true));
 };
 
-window.onload=()=>{
-    rsz();
-    setInterval(render_cursor,1000/20);
-}
+window.onload=()=>{rsz(); setInterval(render_cursor,1000/30);}
 window.onresize=rsz;
 window.onkeydown=(k)=>{
     if(k.type=='keydown'){// push incoming events to a queue as they occur
         k.preventDefault();
         KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
-        requestAnimationFrame((now)=>gameloop(now,true));
+        requestAnimationFrame(now=>gameloop(now,true));
     }
 };
 
