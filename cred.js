@@ -15,6 +15,9 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         load(txt){this.a='';this.change=[0,0];this.pt=0;this.ins(txt);this.mov(0);},
         lines(){return this.a.split(/\n/g);},// array of all the buffer's lines
         words(){return this.a.split(/\s/g).reduce((a,b)=>a.concat(b),[]);},
+        append_mode(){if(this.a[this.pt]=='\n'){this.insert_mode();}
+                      else{this.insert_mode();this.mov(1);}},
+        insert_mode(){},
         ins(ch){// insert ch chars to right of p
             if(this.pt==this.a.length){this.a=this.a+ch;}
             else{this.a=this.a.slice(0,this.pt)+ch+this.a.slice(this.pt);}
@@ -51,11 +54,22 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 var spot={x:20,y:20,h:0,lh:undefined};// screen border, cached offsets
 
 var render_cursor=()=>{
-    var w=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pt-1)+1,buf.pt)).width;
+    var w=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pt-1)+1,buf.pt)).width,
+        next_char=buf.a[buf.pt], next_char_width=0;
     p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
     spot.lh=spot.lh||p.measureText('W').width;
-    p.fillStyle='rgba(20,255,255,'+Math.abs(Math.cos(performance.now()/500))+')';
-    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.ln-0)-spot.h,1,spot.h);
+    if(MODE=='normal'){
+        if(next_char=='\n'||next_char==undefined){next_char_width=10;}
+        else{
+            p.fillStyle='black';
+            p.fillText(buf.a[buf.pt],spot.x+w,(spot.y+spot.lh*buf.ln));
+            next_char_width=p.measureText(next_char).width;
+        }
+    }else{next_char_width=2;}
+    //p.fillStyle='rgba(20,255,255,'+0.5*(1-0.5*Math.cos(performance.now()/250))+')';
+    p.fillStyle='rgba(255,255,255,0.5)';
+    p.globalCompositeOperation='multiply';
+    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.ln)-spot.h,next_char_width,spot.h*1.1);
 };
 
 var render_text=()=>{

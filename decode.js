@@ -31,8 +31,8 @@ var update=(rks,t)=>{
         var dec=decode(rks.shift());// behead queue
         if(MODE=='normal'){
             switch(dec.code){
-            case'i':MODE='insert';break;
-            case'a':MODE='insert';buf.mov(0);break;
+            case'i':MODE='insert';buf.insert_mode();break;
+            case'a':MODE='insert';buf.append_mode();;break;
             case'b':buf.mov(-2);break;
             case'e':buf.mov(2);break;
             case'h':buf.mov(-1);break;
