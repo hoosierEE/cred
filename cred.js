@@ -11,17 +11,19 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         co:0,// column containing pt
         a:'',// text buffer
         txt_changed:false,
-        change:[0,0],//start,end of last modification
+        change:[0,0],// [previous_pt, current_pt]
         load(txt){this.a='';this.change=[0,0];this.pt=0;this.ins(txt);this.mov(0);},
         lines(){return this.a.split(/\n/g);},// array of all the buffer's lines
         words(){return this.a.split(/\s/g).reduce((a,b)=>a.concat(b),[]);},
+        // modes
         append_mode(){if(this.a[this.pt]!=='\n'){this.mov(1);}},
-        insert_mode(){if(this.a[this.pt]==undefined){this.mov(-1);}},
-        normal_mode(){if(this.a[this.pt-1]=='\n'){this.del(-2);this.mov(1);}
-                      else{this.del(-2);}},
+        insert_mode(){/* a no-op, to make the API feel more natural */},
+        esc_fd(){
+            this.del(-2);
+        },
         ins(ch){// insert ch chars to right of p
             if(this.pt==this.a.length){this.a=this.a+ch;}
-            else{this.a=this.a.slice(0,this.pt)+ch+this.a.slice(this.pt);}
+            else{var fst=this.a.slice(0,this.pt),snd=this.a.slice(this.pt);this.a=fst+ch+snd;}
             this.mov(ch.length);
             this.txt_changed=true;
         },
@@ -31,74 +33,96 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             var fst=this.a.slice(0,this.pt+del_left),
                 snd=this.a.slice(this.pt+del_right);
             if(del_left){this.mov(del_left);}// move cursor for left deletes
-            this.a=fst+snd;// change text
+            this.a=fst+snd;
             this.txt_changed=true;
         },
-        mov(n=1){// move the cursor
-            this.change[0]=this.pt;// starting point
-            this.pt=this.pt+n;
-            if(this.pt<0){this.pt=0;}
-            else if(this.pt>this.a.length){this.pt=this.a.length-1;}
-            this.change[1]=this.pt;// ending point
-
-            // what line is the cursor on now?
+        mov(n=1){// move cursor
+            this.change[0]=this.pt;// location before move
+            //this.pt=this.pt+n;
+            if(this.pt+n<0){this.pt=0;}
+            else if(this.pt+n>this.a.length){this.pt=this.a.length;}
+            else{this.pt+=n;}
+            this.change[1]=this.pt;// location after move
+            // update line number
             for(var i=this.change[n<0?1:0];i<this.change[n<0?0:1];++i){
-                if(this.a[i]&&this.a[i]=='\n'){
-                    this.ln+=(n<0?-1:1);
-                    if(this.ln<0){this.ln=0;}
-                }
+                if(this.a[i]&&this.a[i]=='\n'){this.ln+=(n<0?-1:1);if(this.ln<0){this.ln=0;}}
             }
         },
     }),
-    buf=Buffer();
-
-var spot={x:20,y:20,h:0,lh:undefined};// screen border, cached offsets
+    ScreenOffsets=()=>({
+        x:20,y:20,h:0,lh:undefined,
+        init(ctx){this.lh=ctx.measureText('W').width;}
+    }),
+    buf=Buffer(),
+    offs=ScreenOffsets();
 
 var render_cursor=()=>{
-    var w=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pt-1)+1,buf.pt)).width,
-        next_char=buf.a[buf.pt],
-        next_char_width=0;
+
+    // left edge of cursor, currently
+    var cur_l=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.change[1]-1)+1,buf.change[1])).width;
+    // right edge of cursor, currently
+    var cur_r,wid;
+
+    // left edge of cursor, previously
+    var prev_l=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.change[0]-1)+1,buf.change[0])).width;
+    // right edge of cursor, previously
+    var prev_r,pwid;
+
     p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
-    spot.lh=spot.lh||p.measureText('W').width;
     if(MODE=='normal'){
+        cur_r=buf.a[buf.change[1]];
+        prev_r=buf.a[buf.change[0]];
         p.fillStyle='orange';
-        if(next_char=='\n'||next_char==undefined){next_char_width=10;}
+        console.log(cur_r+' '+prev_r);
+        if(cur_r=='\n'||cur_r==undefined){wid=10;}
         else{
             p.save();
+            // draw the character under the cursor
             p.fillStyle='black';
-            p.fillText(buf.a[buf.pt],spot.x+w,(spot.y+spot.lh*buf.ln));
+            p.fillText(buf.a[buf.change[1]],offs.x+cur_l,(offs.y+offs.lh*buf.ln));
+            // draw the character at the previous position
+            p.fillStyle='magenta';
+            p.fillText(buf.a[buf.change[0]],offs.x+prev_l,(offs.y+offs.lh*buf.ln));
             p.restore();
-            next_char_width=p.measureText(next_char).width;
+            wid=p.measureText(cur_r).width;
         }
-    }else{next_char_width=1;p.fillStyle='lime';}
-    p.fillRect(spot.x+w,spot.y+spot.lh*(buf.ln)-spot.h,next_char_width,spot.h*1.1);
+    }else{
+        wid=1;// thin cursor during insert operation
+        p.fillStyle='lime';
+    }
+    var ofx=offs.x+cur_l;
+    var ofy=offs.y+offs.lh*(buf.ln)-offs.h;
+    var cwd=wid;
+    var cwh=offs.h*1.1;
+    p.fillRect(ofx,ofy,cwd,cwh);
 };
 
 var render_text=()=>{
-    spot.h=c.measureText('W').width;
+    offs.h=c.measureText('W').width;
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    spot.y=spot.h+20;// border-top
-    buf.lines().forEach((l,i)=>c.fillText(l,spot.x,spot.y+(i*spot.h)));
+    offs.y=offs.h+20;// border-top
+    buf.lines().forEach((l,i)=>c.fillText(l,offs.x,offs.y+(i*offs.h)));
 };
 
 var gameloop=(now,resiz)=>{update(KEYQ,now); render_text(); render_cursor();};
 
 var rsz=()=>{
+    requestAnimationFrame(now=>gameloop(now,true));
     p.canvas.width=c.canvas.width=c.canvas.clientWidth;
     p.canvas.height=c.canvas.height=c.canvas.clientHeight;
     p.font=c.font='24px Sans-Serif';
-    c.fillStyle='#cacada';
     p.globalCompositeOperation='multiply';
-    requestAnimationFrame(now=>gameloop(now,true));
+    offs.init(p);
+    c.fillStyle='#dacaba';
 };
 
 window.onload=rsz;
 window.onresize=rsz;
 window.onkeydown=(k)=>{
+    requestAnimationFrame(now=>gameloop(now,true));
     if(k.type=='keydown'){// push incoming events to a queue as they occur
-        k.preventDefault();
+        if(!k.metaKey){k.preventDefault();}
         KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
-        requestAnimationFrame(now=>gameloop(now,true));
     }
 };
 

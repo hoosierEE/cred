@@ -45,7 +45,7 @@ var update=(rks,t)=>{
             case'print':
                 buf.ins(dec.code);
                 if(dec.code=='f'){ESC_FD=-t;}
-                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.normal_mode();}break;
+                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.esc_fd();}break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             }
         }
