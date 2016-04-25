@@ -32,7 +32,7 @@ var update=(rks,t)=>{
         if(MODE=='normal'){
             switch(dec.code){
             case'i':MODE='insert';buf.insert_mode();break;
-            case'a':MODE='insert';buf.append_mode();;break;
+            case'a':MODE='insert';buf.append_mode();break;
             case'b':buf.mov(-2);break;
             case'e':buf.mov(2);break;
             case'h':buf.mov(-1);break;
@@ -45,7 +45,7 @@ var update=(rks,t)=>{
             case'print':
                 buf.ins(dec.code);
                 if(dec.code=='f'){ESC_FD=-t;}
-                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.del(-2);}break;
+                if(dec.code=='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.normal_mode();}break;
             case'edit':buf.del(dec.code=='B'?-1:1);break;
             }
         }
