@@ -37,7 +37,7 @@ License is [[http://unlicense.org/][the unlicense]], which is about as permissiv
 ** Style
 Google Chrome 49 is the target browser, which eliminates the need for verbose polyfills.  The Chrome JavaScript runtime also supports some features that I use a lot, particularly this "lightweight" function syntax:
 
-#+BEGIN_SRC C++
+#+BEGIN_SRC js
 // instead of this:
 var foo=function(param){return explicit_return_value;};
 
@@ -47,7 +47,7 @@ var foo=(param)=>{implicit_return_value;};
 
 As well as this alternative syntax for defining a function within an object literal (in this example, also used with an arrow function returning an object literal):
 
-#+BEGIN_SRC C++
+#+BEGIN_SRC js
 var Thing=()=>({
     m_one(p){p+1;},
     m_two(q){q*q;}, // trailing comma is fine
