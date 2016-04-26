@@ -64,7 +64,7 @@ Other conventions:
 - ALL_CAPS_CONSTANTS
 - ProperCamelCaseClasses
 - rarely_used_name_snake_case
-- cu // commonly used name style
+- cu // commonly used name
 
 Having said all that, I'll also make the claim that I'm not zealous about style and am open to change.
 

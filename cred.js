@@ -7,49 +7,97 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
 
     Buffer=()=>({// a string with a cursor
-        pt:0,// number of chars between start of file and cursor position
-        ln:[0,0],// [previous line, current line]
-        co:0,// column containing pt
+        p:[0,0],// [previous point, current point]
+        l:[0,0],// [previous line, current line]
+        c:[0,0,0],// [previous column, current column, previous max column]
+        linecache:[],
+        wordcache:[],
         a:'',// text buffer
         txt_changed:false,
-        pos:[0,0],// [previous, current_pt]
-        load(txt){this.a='';this.pos=[0,0];this.pt=0;this.ins(txt);this.mov(0);},
-        lines(){return this.a.split(/\n/g);},// array of all the buffer's lines
-        words(){return this.a.split(/\s/g).reduce((a,b)=>a.concat(b),[]);},
-        // modes
-        append_mode(){if(this.a[this.pt]!=='\n'){this.mov(1);}},
-        insert_mode(){/* a no-op, to make append_mode less lonely */},
-        esc_fd(){
-            this.del(-2);
+        load(txt=''){// load text, or empty string
+            this.a='';
+            this.p=[0,0];
+            this.l=[0,0];
+            this.c=[0,0,0];
+            this.linecache=[];
+            this.wordcache=[];
+            this.ins(txt);
+            this.mov(0);
         },
+        lines(){
+            // array of all the buffer's lines, or a cached version if the buffer hasn't changed
+            if(this.txt_changed||this.linecache.length===0){
+                this.txt_changed=false;
+                this.linecache=this.a.split(/\n/g);
+            }
+            return this.linecache;
+        },
+        words(){
+            if(this.txt_changed||this.wordcache.length===0){
+                this.txt_changed=false;
+                this.wordcache=this.a.split(/\s/g);
+            }
+            return this.wordcache;
+        },
+
+        append_mode(){if(this.a[this.p[1]]!=='\n'){this.mov(1,false);}},
+        insert_mode(){/* a no-op, to make append_mode less lonely */},
+        esc_fd(){this.del(-2);},
         ins(ch){// insert ch chars to right of p
-            if(this.pt==this.a.length){this.a=this.a+ch;}
-            else{var fst=this.a.slice(0,this.pt),snd=this.a.slice(this.pt);this.a=fst+ch+snd;}
-            this.mov(ch.length);
             this.txt_changed=true;
+            if(this.p[1]===this.a.length){this.a=this.a+ch;}
+            else{var fst=this.a.slice(0,this.p[1]),snd=this.a.slice(this.p[1]);this.a=fst+ch+snd;}
+            this.mov(ch.length,false);
         },
         del(n){// delete n chars to right of p (or left if n<0)
-            if(n==0||n+this.pt<0){return;}
-            var del_left=n<0?n:0, del_right=n<0?0:n;
-            var fst=this.a.slice(0,this.pt+del_left),
-                snd=this.a.slice(this.pt+del_right);
-            if(del_left){this.mov(del_left);}// move cursor for left deletes
-            this.a=fst+snd;
+            if(n===0||n+this.p[1]<0){return;}
             this.txt_changed=true;
+            var del_left=n<0?n:0, del_right=n<0?0:n;
+            var fst=this.a.slice(0,this.p[1]+del_left),
+                snd=this.a.slice(this.p[1]+del_right);
+            if(del_left){this.mov(del_left,false);}// move cursor for left deletes
+            this.a=fst+snd;
         },
-        mov(n=1){// move cursor
-            this.pos[0]=this.pt;// location before move
-            //this.pt=this.pt+n;
-            if(this.pt+n<0){this.pt=0;}
-            else if(this.pt+n>this.a.length){this.pt=this.a.length;}
-            else{this.pt+=n;}
-            this.pos[1]=this.pt;// location after move
-            // update line number
-            for(var i=this.pos[n<0?1:0];i<this.pos[n<0?0:1];++i){
-                if(this.a[i]&&this.a[i]=='\n'){
-                    this.ln[0]=this.ln[1];// save previous line
-                    this.ln[1]+=(n<0?-1:1);// update current line
-                    if(this.ln[1]<0){this.ln[1]=0;}
+
+        // up/down motion
+        updn(n){
+            this.l[0]=this.l[1];// previous line
+            if(!n){return;}// no move
+
+            // limits
+            if(this.l[1]+n<0){this.l[1]=0;}
+            else if(this.l[1]+n>this.linecache.length-1){this.l[1]=this.linecache.length-1;}
+            else{this.l[1]+=n;}// current line
+            this.p[0]=this.p[1];// prev position
+        },
+
+        // left/right motion
+        mov(n=1,justmoving=true){// move cursor, update line and column
+            this.p[0]=this.p[1];// previous position
+            if(!n){return;}// no move
+
+            // limits
+            if(this.p[1]+n<0){this.p[1]=0;}
+            else if(this.p[1]+n>this.a.length){this.p[1]=this.a.length;}
+            else{this.p[1]+=n;}// current position
+
+            // don't move beyond newlines unless ins/del or up/dn
+            if(justmoving){// if n is 0 then we're not really moving
+                if(this.p[1]>this.p[0]){
+                    for(var i=this.p[0];i<this.p[1];++i){if(this.a[i]==='\n'){this.p[1]=i-1;break;}}
+                }
+                else{//else if(this.p[1]<this.p[0]){
+                    for(var i=this.p[0];i>this.p[1];--i){if(this.a[i-1]==='\n'){this.p[1]=i;break;}}
+                }
+            }
+            else{
+                // update line number
+                for(var i=this.p[n<0?1:0];i<this.p[n<0?0:1];++i){
+                    if(this.a[i]==='\n'){
+                        this.l[0]=this.l[1];// previous line
+                        this.l[1]+=(n<0?-1:1);// current line
+                        if(this.l[1]<0){this.l[1]=0;}
+                    }
                 }
             }
         },
@@ -71,45 +119,43 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     offs=ScreenOffsets();
 
 var render_cursor=()=>{
-    // re-render the text between where the cursor is now, and where it was last,
+    // clear and redraw text between previous and current cursor positions
     // then render the cursor itself
 
     // current cursor info (x offset, char underneath it, width of char)
-    var cur_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pos[1]-1)+1,buf.pos[1])).width;
-    var cur_char=buf.a[buf.pos[1]]||'';// char under the cursor, now
+    var cur_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.p[1]-1)+1,buf.p[1])).width;
+    var cur_char=buf.a[buf.p[1]]||'';// char under the cursor, now
     var cur_wid; // right edge of cursor, now
 
-    // left edge of cursor, previously
-    var prev_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.pos[0]-1)+1,buf.pos[0])).width;
-    var prev_char=buf.a[buf.pos[0]]||'';// char under the cursor, previously
+    // previous cursor info
+    var prev_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.p[0]-1)+1,buf.p[0])).width;
+    var prev_char=buf.a[buf.p[0]]||'';// char under the cursor, previously
     var prev_wid; // right edge of cursor, previously
 
     // x and y offsets (width and height of cursor)
     var ofx=offs.x+cur_x;
-    var ofy=offs.lmul(buf.ln[1]);
+    var ofy=offs.lmul(buf.l[1]);
     var prev_ofx=offs.x+prev_x;
-    var prev_ofy=offs.lmul(buf.ln[0]);
+    var prev_ofy=offs.lmul(buf.l[0]);
 
-    var sortedpos=buf.pos.sort();
-    var text_between=buf.a.slice(sortedpos[0],sortedpos[1]+1);// from old pos to current
-    console.log(text_between);
+    var sortedpos=[Math.min(buf.p),Math.max(buf.p)];//buf.p.concat().sort();
+    var text_between=buf.a.slice(sortedpos[0],sortedpos[1]+1);// from old p to current
+    //console.log(text_between);
 
     p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
-    if(MODE=='insert'){
+    if(MODE==='insert'){
         cur_wid=1;// thin cursor during insert operation
         p.fillStyle='lime';
     }else{
         p.fillStyle='orange';
-        if(cur_char=='\n'||cur_char==''){cur_wid=10;}
+        if(cur_char==='\n'||cur_char===''){cur_wid=10;}
         else{
             cur_wid=p.measureText(cur_char).width;
-            var curln=offs.y+offs.lh*buf.ln[1];
+            var curln=offs.y+offs.lh*buf.l[1];
 
             p.save();
             p.fillStyle='gray';
             p.fillText(cur_char,offs.x+cur_x,curln); // draw the character under the cursor
-            p.fillStyle='magenta';
-            p.fillText(prev_char,offs.x+prev_x,curln); // draw the character at the previous position
             p.restore();
         }
     }
@@ -138,10 +184,11 @@ window.onload=rsz;
 window.onresize=rsz;
 window.onkeydown=(k)=>{
     requestAnimationFrame(now=>gameloop(now,true));
-    if(k.type=='keydown'){// push incoming events to a queue as they occur
+    if(k.type==='keydown'){// push incoming events to a queue as they occur
         if(!k.metaKey){k.preventDefault();}
         KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
     }
 };
 
 buf.load('a test with\na newline');
+//buf.load();// test empty buffer
