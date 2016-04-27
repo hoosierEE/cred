@@ -6,90 +6,76 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     ESC_FD=0,// 'fd' escape sequence
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
     Buffer=()=>({// a string with a cursor
-        p:[0,0],// [previous point, current point]
-        l:[0,0],// [previous line, current line]
-        c:[0,0,0],// [previous column, current column, previous max column]
-        lines:[],
-        a:'',// text buffer
-        txt_changed:false,
-        load(txt=''){// load text, or empty string
-            this.a='';
-            this.p=[0,0];
-            this.l=[0,0];
-            this.c=[0,0,0];
+        init(){
+            this.s='';// string
+            this.pt=0;// cursor index
+            this.lin=[0,0];// line [previous, current]
+            this.col=[0,0,0];// column [previous, current, previous_maximum]
             this.lines=[];
-            this.ins(txt);
-            this.mov(0);
+            this.linearray();// indexes of s where lines begin
         },
-        get_lines(){
+
+        linearray(){
             if(this.txt_changed||this.lines.length===0){
-                this.txt_changed=false;
-                this.lines=this.a.split('\n').map(a=>a.length);
+                this.lines=[0];
+                for(var i=0;i<this.s.length;++i){
+                    if(this.s[i]==='\n'){this.lines.push(i);}
+                }
             }
             return this.lines;
         },
+        getline(n){
+            var l=this.linearray(),len=l.length;
+            if(n>0&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// typical case
+            else if(n===0){return this.s.slice(0,l[1]);}// first (0th) line
+            else if(n<0){return this.getline(Math.max(0,len+n));}// last-nth line, down to 0th line
+            else{return this.s.slice(1+l[len-1]);}// get last line easily with getline(hugenumber)
+        },
 
-        append_mode(){if(this.a[this.p[1]]!=='\n'){this.mov(1,false);}},
+        append_mode(){if(this.s[this.pt]!=='\n'){
+            //this.mov(1,false);
+        }},
         insert_mode(){/* a no-op, to make append_mode less lonely */},
         esc_fd(){this.del(-2);},
+
+        updn(n){// try to move up or down, stopping at BOF/EOF
+        },
+        mov(n,writing=false){
+            this.col[0]=this.col[1];// save column
+            if(!writing){// try to move left or right, stopping at newline
+                var lastnl=this.s.lastIndexOf('\n');
+                if(lastnl<0){lastnl=0;}
+                if(this.pt+n<lastnl){
+                    // trying to move left over a newline, stop
+                }
+            }
+            else{// when writing (ins or del), mov wherever the text takes you
+                // just move the cursor by n
+                this.pt+=n;
+                if(this.pt<0){this.pt=0;}
+                else if(this.pt>this.s.length){this.pt=this.s.length;}
+                // update current column
+                var lastnl=this.s.lastIndexOf('\n',this.pt);
+                this.col[1]=(lastnl<0)?0:lastnl;
+            }
+            console.log(this.pt);
+        },
         ins(ch){// insert ch chars to right of p
             this.txt_changed=true;
-            if(this.p[1]===this.a.length){this.a=this.a+ch;}
-            else{var fst=this.a.slice(0,this.p[1]),snd=this.a.slice(this.p[1]);this.a=fst+ch+snd;}
-            this.mov(ch.length,false);
+            if(this.pt===this.s.length){this.s=this.s+ch;}
+            else{var fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
+            this.mov(ch.length,true);
         },
         del(n){// delete n chars to right of p (or left if n<0)
-            if(n===0||n+this.p[1]<0){return;}
+            if(n===0||n+this.pt<0){return;}
             this.txt_changed=true;
-            var del_left=n<0?n:0, del_right=n<0?0:n;
-            var fst=this.a.slice(0,this.p[1]+del_left),
-                snd=this.a.slice(this.p[1]+del_right);
-            if(del_left){this.mov(del_left,false);}// move cursor for left deletes
-            this.a=fst+snd;
+            var leftd=n<0?n:0, rightd=n<0?0:n;
+            var fst=this.s.slice(0,this.pt+leftd),
+                snd=this.s.slice(this.pt+rightd);
+            if(leftd){this.mov(leftd,true);}
+            this.s=fst+snd;
         },
 
-        // up/down motion
-        updn(n){
-            this.l[0]=this.l[1];// previous line
-            if(!n){return;}// no move
-
-            // limits
-            if(this.l[1]+n<0){this.l[1]=0;}
-            else if(this.l[1]+n>this.lines.length-1){this.l[1]=this.lines.length-1;}
-            else{this.l[1]+=n;}// current line
-            this.p[0]=this.p[1];// prev position
-        },
-
-        // left/right motion
-        mov(n=1,justmoving=true){// move cursor, update line and column
-            this.p[0]=this.p[1];// previous position
-            if(!n){return;}// no move
-
-            // limits
-            if(this.p[1]+n<0){this.p[1]=0;}
-            else if(this.p[1]+n>this.a.length){this.p[1]=this.a.length;}
-            else{this.p[1]+=n;}// current position
-
-            // don't move beyond newlines unless ins/del or up/dn
-            if(justmoving){// if n is 0 then we're not really moving
-                if(this.p[1]>this.p[0]){
-                    for(var i=this.p[0];i<this.p[1];++i){if(this.a[i]==='\n'){this.p[1]=i-1;break;}}
-                }
-                else{//else if(this.p[1]<this.p[0]){
-                    for(var i=this.p[0];i>this.p[1];--i){if(this.a[i-1]==='\n'){this.p[1]=i;break;}}
-                }
-            }
-            else{
-                // update line number
-                for(var i=this.p[n<0?1:0];i<this.p[n<0?0:1];++i){
-                    if(this.a[i]==='\n'){
-                        this.l[0]=this.l[1];// previous line
-                        this.l[1]+=(n<0?-1:1);// current line
-                        if(this.l[1]<0){this.l[1]=0;}
-                    }
-                }
-            }
-        },
     }),
 
     ScreenOffsets=()=>({
@@ -111,8 +97,9 @@ var render_cursor=()=>{
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    //offs.y=offs.h+20;// border-top
-    buf.get_lines().forEach((l,i)=>c.fillText(l,offs.x,offs.y+(i*offs.h)));
+    offs.y=offs.h+20;// border-top
+    // render all the lines TODO: only render visible lines
+    buf.linearray().forEach((ln,i)=>c.fillText(buf.getline(i),offs.x,offs.y+(i*offs.h)));
 };
 
 var gameloop=(now,resiz)=>{update(KEYQ,now); render_text(); render_cursor();};
@@ -137,5 +124,6 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.load('a test with\na newline\n\nand a pair of newlines\n\n\nand three at the end');
+buf.init();
+buf.ins('a test with\na newline\n\nand a pair of newlines\n\n\nand three at the end');
 //buf.load();// test empty buffer

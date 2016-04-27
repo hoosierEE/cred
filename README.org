@@ -66,10 +66,11 @@ Other conventions:
 - rarely_used_name_snake_case
 - cu // commonly used name
 
-Having said all that, I'll also make the claim that I'm not zealous about style and am open to change.
+That said, I think that I'm not zealous about style, and am open to change.
 
 * Links
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
+- [[http://cryto.net/~joepie91/blog/2015/05/04/functional-programming-in-javascript-map-filter-reduce/][functional javascript]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
 - [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
 - [[https://github.com/jaz303/gapbuffer/blob/master/index.js][gap buffer in Node.js]]
