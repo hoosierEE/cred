@@ -25,7 +25,6 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             if(this.txt_changed||this.lines.length===0){
                 this.txt_changed=false;
                 this.lines=this.a.split('\n').map(a=>a.length);
-                //this.lines=this.a.split(/\n/g);
             }
             return this.lines;
         },
@@ -95,14 +94,11 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
     ScreenOffsets=()=>({
         x:20,y:20,// border width
-        h:0,
-        lmul(lnum){
-            return this.y+this.lh*lnum-this.h;
-        },
-        lh:0,
+        h:0, lh:0,// height, line height
+        lmul(lnum){return this.y+this.lh*lnum-this.h;},
         init(ctx){
-            this.h=c.measureText('W').width;
-            this.lh=ctx.measureText('W').width;
+            this.lh=this.h=ctx.measureText('W').width;
+            this.y=this.h+this.x;
         }
     }),
     buf=Buffer(),
@@ -111,50 +107,11 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 var render_cursor=()=>{
     // clear and redraw text between previous and current cursor positions
     // then render the cursor itself
-
-    // current cursor info (x offset, char underneath it, width of char)
-    var cur_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.p[1]-1)+1,buf.p[1])).width;
-    var cur_char=buf.a[buf.p[1]]||'';// char under the cursor, now
-    var cur_wid; // right edge of cursor, now
-
-    // previous cursor info
-    var prev_x=p.measureText(buf.a.slice(buf.a.lastIndexOf('\n',buf.p[0]-1)+1,buf.p[0])).width;
-    var prev_char=buf.a[buf.p[0]]||'';// char under the cursor, previously
-    var prev_wid; // right edge of cursor, previously
-
-    // x and y offsets (width and height of cursor)
-    var ofx=offs.x+cur_x;
-    var ofy=offs.lmul(buf.l[1]);
-    var prev_ofx=offs.x+prev_x;
-    var prev_ofy=offs.lmul(buf.l[0]);
-
-    var sortedpos=[Math.min(buf.p),Math.max(buf.p)];//buf.p.concat().sort();
-    var text_between=buf.a.slice(sortedpos[0],sortedpos[1]+1);// from old p to current
-    //console.log(text_between);
-
-    p.clearRect(0,0,p.canvas.width,p.canvas.height);//whole canvas?!
-    if(MODE==='insert'){
-        cur_wid=1;// thin cursor during insert operation
-        p.fillStyle='lime';
-    }else{
-        p.fillStyle='orange';
-        if(cur_char==='\n'||cur_char===''){cur_wid=10;}
-        else{
-            cur_wid=p.measureText(cur_char).width;
-            var curln=offs.y+offs.lh*buf.l[1];
-
-            p.save();
-            p.fillStyle='gray';
-            p.fillText(cur_char,offs.x+cur_x,curln); // draw the character under the cursor
-            p.restore();
-        }
-    }
-    p.fillRect(ofx,ofy,cur_wid,offs.h);
 };
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    offs.y=offs.h+20;// border-top
+    //offs.y=offs.h+20;// border-top
     buf.get_lines().forEach((l,i)=>c.fillText(l,offs.x,offs.y+(i*offs.h)));
 };
 
