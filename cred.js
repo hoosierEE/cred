@@ -5,13 +5,11 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     MODE='normal',// Vim modes: normal, insert, visual[-block, -line], etc.
     ESC_FD=0,// 'fd' escape sequence
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
-
     Buffer=()=>({// a string with a cursor
         p:[0,0],// [previous point, current point]
         l:[0,0],// [previous line, current line]
         c:[0,0,0],// [previous column, current column, previous max column]
-        linecache:[],
-        wordcache:[],
+        lines:[],
         a:'',// text buffer
         txt_changed:false,
         load(txt=''){// load text, or empty string
@@ -19,25 +17,17 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             this.p=[0,0];
             this.l=[0,0];
             this.c=[0,0,0];
-            this.linecache=[];
-            this.wordcache=[];
+            this.lines=[];
             this.ins(txt);
             this.mov(0);
         },
-        lines(){
-            // array of all the buffer's lines, or a cached version if the buffer hasn't changed
-            if(this.txt_changed||this.linecache.length===0){
+        get_lines(){
+            if(this.txt_changed||this.lines.length===0){
                 this.txt_changed=false;
-                this.linecache=this.a.split(/\n/g);
+                this.lines=this.a.split('\n').map(a=>a.length);
+                //this.lines=this.a.split(/\n/g);
             }
-            return this.linecache;
-        },
-        words(){
-            if(this.txt_changed||this.wordcache.length===0){
-                this.txt_changed=false;
-                this.wordcache=this.a.split(/\s/g);
-            }
-            return this.wordcache;
+            return this.lines;
         },
 
         append_mode(){if(this.a[this.p[1]]!=='\n'){this.mov(1,false);}},
@@ -66,7 +56,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
             // limits
             if(this.l[1]+n<0){this.l[1]=0;}
-            else if(this.l[1]+n>this.linecache.length-1){this.l[1]=this.linecache.length-1;}
+            else if(this.l[1]+n>this.lines.length-1){this.l[1]=this.lines.length-1;}
             else{this.l[1]+=n;}// current line
             this.p[0]=this.p[1];// prev position
         },
@@ -165,7 +155,7 @@ var render_cursor=()=>{
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
     offs.y=offs.h+20;// border-top
-    buf.lines().forEach((l,i)=>c.fillText(l,offs.x,offs.y+(i*offs.h)));
+    buf.get_lines().forEach((l,i)=>c.fillText(l,offs.x,offs.y+(i*offs.h)));
 };
 
 var gameloop=(now,resiz)=>{update(KEYQ,now); render_text(); render_cursor();};
@@ -190,5 +180,5 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.load('a test with\na newline');
+buf.load('a test with\na newline\n\nand a pair of newlines\n\n\nand three at the end');
 //buf.load();// test empty buffer
