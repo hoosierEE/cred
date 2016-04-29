@@ -1,4 +1,11 @@
 // TODO: scrolling, file i/o
+/* TODO: cursor history requires more thought.
+   Perhaps use a "cursor object" which contains data relevant to rendering,
+   such as the text that was under the cursor and it's x/y coordinates.
+   Also consider supporting two kinds of multiple-char selections:
+   1. 'linear' like most WYSIWYG editors support (line wraps too)
+   2. 'block' like Vim, which support rectangular selections (works best with monospace font)
+*/
 'use strict';
 var c=document.getElementById('c').getContext('2d'),// rarely changing bottom canvas (for text)
     //p=document.getElementById('p').getContext('2d'),// animation canvas (cursor etc.)
@@ -43,7 +50,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 console.log('AFTER pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
             },
 
-            update_lin_col(){
+            update_lin_col(n,writing){
                 // TODO line and column adjustments should be their own function, because
                 // we should always have a "previous" that tracks both line and column.
                 var line_start=this.lines[this.lin[1]];// start index of this line
@@ -155,7 +162,6 @@ var render_cursor=()=>{
     var bcolm1=(buf.col[1]-1)<0?0:buf.col[1];
     var pt_left=l.slice(0,bcolm1);// text upto cursor's left edge
     var pt_right=l.slice(0,buf.col[1]);
-    var oldpt_left=
     var cur_left_edge=c.measureText(pt_left).width;
     var cur_right_edge=c.measureText(pt_right).width;
     var wid=cur_right_edge-cur_left_edge;
