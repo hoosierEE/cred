@@ -36,29 +36,22 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 else{this.lin[1]+=n;}
 
                 // update column number
-                var currentline=this.getline(this.lin[1]);// used to calculate column
-                this.col[1]=Math.max(currentline.length-1,this.col[1]);// current (not max) column adjustment
+                var curln=this.getline(this.lin[1]);// used to calculate column
+                var maxcurln=(curln.length-1)<0?0:(curln.length-1);
+                if(maxcurln<this.col[1]){this.col[1]=maxcurln;}// update current (not max!) column
                 this.pt=this.lines[this.lin[1]]+this.col[1];// update point
                 console.log('AFTER pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
             },
 
-            mov(n,writing=false){// Int -> [Bool] -> () // moves cursor
-                console.log('BEFORE pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
-                if(n===0){return;}// no movement: no column/line update
-                // 1. save previous column
-                this.col[0]=this.col[1];
-                // 2. try to move the point
-                if(this.pt+n<0){this.pt=0;}
-                else if(this.pt+n>this.s.length){this.pt=this.s.length;}
-                else{this.pt+=n;}
-                // afterward, check to see if moving the point changes line and/or column
-
-                // 3. update column and line number
+            update_lin_col(){
+                // TODO line and column adjustments should be their own function, because
+                // we should always have a "previous" that tracks both line and column.
                 var line_start=this.lines[this.lin[1]];// start index of this line
                 if(writing){
                     this.col[1]=this.col[2]=this.pt-line_start;
                 }// columns follow point
                 else{
+                    if(n<0){this.col[2]+=n;}// moving left always updates max column
                     // jumping newline requires |n|>1
                     if(Math.abs(n)===1){
                         if(this.s[this.pt+((n>0)?1:0)]==='\n'){
@@ -72,12 +65,32 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                         for(var i=this.pt[n<0?1:0];i<this.pt[n<0?0:1];++i){
                             if(this.s[i]==='\n'){nl_pass+=n_signum;}
                         }
-                        if(nl_pass!==0){this.updn(nl_pass);}// updn updates point (and possibly column)
+                        if(nl_pass!==0){
+                            // updn updates point (and possibly column)
+                            this.updn(nl_pass);
+                        }
                         else{// update column
                             this.col[1]=this.pt-line_start;
                             this.col[2]=Math.max(this.col[1],this.col[2]);
                         }
                     }
+                }
+
+            },
+
+            mov(n,writing=false){// Int -> [Bool] -> () // moves cursor
+                console.log('BEFORE pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
+                if(n===0){
+                    // mov affects history, but recomputing lin/col not required
+                    this.col[0]=this.col[1];
+                    this.lin[0]=this.lin[1];
+                }
+                else{
+                    if(this.pt+n<0){this.pt=0;}
+                    else if(this.pt+n>this.s.length){this.pt=this.s.length;}
+                    else{this.pt+=n;}
+                    // TODO: afterward, check to see if moving the point changes line and/or column
+                    this.update_lin_col(n,writing);
                 }
                 console.log('AFTER pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
             },
@@ -125,22 +138,32 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    // render all the lines TODO: only render visible lines
+    // render all the lines
+    // TODO: only render /visible/ lines.
+    // use the "screen always shows cursor" constriant to do this?
     buf.linearray().forEach((ln,i)=>c.fillText(buf.getline(i),offs.x,offs.y+(i*offs.h)));
 };
 
 var render_cursor=()=>{
-    var l=buf.getline(buf.lin[1]),// current line
-        pt_left=l.slice(0,buf.col[1]-1),// text upto cursor's left edge
-        pt_right=l.slice(0,buf.col[1]),
-        cur_left_edge=c.measureText(pt_left).width,
-        cur_right_edge=c.measureText(pt_right).width,
-        wid=cur_right_edge-cur_left_edge,
-        linew=c.measureText(l).width,
-        liney=offs.lmul(buf.lin[1]);
-    c.clearRect(offs.x,liney,linew,offs.lh);
-    c.fillText(l,offs.x,liney+offs.lh);
+    // clearing whole line of text with a rectangle leaves artifacts (esp. for p,g,q,y,j)
+    // 1. clear where cursor was previously
+    // 2. rewrite text at old cursor position
+    // 3. draw the cursor at the new position
+    // NOTE: requires monotonic previous/current operations (must update both col and lin)
+    var l=buf.getline(buf.lin[1]);// current line
+    var oldl=buf.getline(buf.lin[0]);// previous line
+    var bcolm1=(buf.col[1]-1)<0?0:buf.col[1];
+    var pt_left=l.slice(0,bcolm1);// text upto cursor's left edge
+    var pt_right=l.slice(0,buf.col[1]);
+    var oldpt_left=
+    var cur_left_edge=c.measureText(pt_left).width;
+    var cur_right_edge=c.measureText(pt_right).width;
+    var wid=cur_right_edge-cur_left_edge;
+    var liney=offs.lmul(buf.lin[1]);
+    c.clearRect(offs.x+oldpt_left,oldpt_y,oldpt_wid,offs.lh);// clear old cursor position
+    c.fillText(l,offs.x,liney+offs.lh);// draw old cursor position's text
     c.save();
+    c.globalCompositeOperation='difference';
     c.fillStyle='orange';
     c.fillRect(offs.x+cur_left_edge,liney,wid,offs.lh);
     c.restore();
@@ -160,7 +183,6 @@ var rsz=()=>{
     c.canvas.width=c.canvas.clientWidth;
     c.canvas.height=c.canvas.clientHeight;
     c.font='24px Sans-Serif';
-    c.globalCompositeOperation='difference';
     offs.init(c);
     c.fillStyle='#dacaba';
 };
