@@ -24,64 +24,78 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             append_mode(){if(this.s[this.pt]!=='\n'){this.mov(1);}},
             insert_mode(){/* a no-op, to make append_mode less lonely */},
             esc_fd(){this.del(-2);},
-            updn(n){// try to move up or down, stopping at BOF/EOF
-                console.log(n);
-                //this.lin[0]=this.lin[1];// save old line
-                //this.col[0]=this.col[1];// save old column
-                //var l=this.linearray(),len=l.length;
-                //// update line number
-                //if(this.lin[1]+n<0){this.lin[1]=0;}// first line
-                //else if(this.lin[1]+n>len){this.lin[1]=len;}// last line
-                //else{this.lin[1]+=n;}// some line in the middle
-                //// update column number
-                //var currentline=this.getline(this.lin[1]);// used to calculate column
-                //if(this.col[1]>currentline.length){this.col[1]=currentline.length;}// move column if necessary
-                //this.pt=this.lines[this.lin[1]]-this.col[1];// update point
-                //console.log('pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
+            updn(n){// try to move up or down, stopping at 0 or lines.length
+                console.log('BEFORE pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
+                this.lin[0]=this.lin[1];// save old line
+                //this.col[0]=this.col[1];// save old column if changed
+
+                // update line number
+                var l=this.linearray(),len=l.length;
+                if(this.lin[1]+n<0){this.lin[1]=0;}
+                else if(this.lin[1]+n>=len){this.lin[1]=len-1;}
+                else{this.lin[1]+=n;}
+
+                // update column number
+                var currentline=this.getline(this.lin[1]);// used to calculate column
+                this.col[1]=Math.max(currentline.length-1,this.col[1]);// current (not max) column adjustment
+                this.pt=this.lines[this.lin[1]]+this.col[1];// update point
+                console.log('AFTER pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
             },
 
-            mov(n,writing=false){
-                //console.log('pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
+            mov(n,writing=false){// Int -> [Bool] -> () // moves cursor
+                console.log('BEFORE pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
                 if(n===0){return;}// no movement: no column/line update
-
                 // 1. save previous column
                 this.col[0]=this.col[1];
-
-                // 2. move point
+                // 2. try to move the point
                 if(this.pt+n<0){this.pt=0;}
                 else if(this.pt+n>this.s.length){this.pt=this.s.length;}
                 else{this.pt+=n;}
-                // afterward, we check to see if moving the point requires other changes
+                // afterward, check to see if moving the point changes line and/or column
 
+                // 3. update column and line number
                 var line_start=this.lines[this.lin[1]];// start index of this line
-                if(writing){this.col[1]=this.col[2]=this.pt-line_start;}// columns follow point
+                if(writing){
+                    this.col[1]=this.col[2]=this.pt-line_start;
+                }// columns follow point
                 else{
-                    if(Math.abs(n)===1&&this.s[this.pt]==='\n'){
-                        // movements of |1| bounce off of newlines
-                        this.pt-=n;
+                    // jumping newline requires |n|>1
+                    if(Math.abs(n)===1){
+                        if(this.s[this.pt+((n>0)?1:0)]==='\n'){
+                            this.pt-=n;
+                        }
                         this.col[1]=this.pt-line_start;// update columns
                         this.col[2]=Math.max(this.col[1],this.col[2]);
                     }
-                    else{// moved, possibly over a newline, so we have to check and update the current line
-                        var newlines_passed=0;// how many?
-                        var n_signum=n<0?-1:1;
-                        for(var i=this.lin[1];i<this.lin[1]+this.col[1];++i){
-                            if(this.s[i]==='\n'){newlines_passed+=n_signum;}
+                    else{// moved, possibly over a newline, so we check the current line
+                        var nl_pass=0, n_signum=n<0?-1:1;// how many \n's, which direction?
+                        for(var i=this.pt[n<0?1:0];i<this.pt[n<0?0:1];++i){
+                            if(this.s[i]==='\n'){nl_pass+=n_signum;}
                         }
-                        this.updn(newlines_passed);// add that many to line number
+                        if(nl_pass!==0){this.updn(nl_pass);}// updn updates point (and possibly column)
+                        else{// update column
+                            this.col[1]=this.pt-line_start;
+                            this.col[2]=Math.max(this.col[1],this.col[2]);
+                        }
                     }
-                    this.col[1]=this.pt-line_start;// current column
-                    this.col[2]=Math.max(this.col[1],this.col[2]);// save max column
                 }
+                console.log('AFTER pt:'+this.pt+',col:'+this.col+',lin:'+this.lin);
             },
 
             ins(ch){// insert ch chars to right of p
                 this.txt_changed=true;
                 if(this.pt===this.s.length){this.s=this.s+ch;}
                 else{var fst=this.s.slice(0,this.pt), snd=this.s.slice(this.pt); this.s=fst+ch+snd;}
-                if(ch.search(/\n/)>=0){this.linearray();}
+                for(var i=0;i<ch.length;++i){
+                    if(ch[i]==='\n'){
+                        this.lin[0]=this.lin[1];
+                        this.lin[1]+=1;
+                    }
+                }
+                this.linearray();
                 this.mov(ch.length,true);
             },
+
             del(n){// delete n chars to right of p (or left if n<0)
                 if(n===0||n+this.pt<0){return;}
                 this.txt_changed=true;
@@ -92,12 +106,12 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 this.s=fst+snd;
             },
         };
-        bc.s='';// string
+        bc.s='';// plain old string
         bc.pt=0;// cursor index
         bc.lin=[0,0];// line [previous, current]
-        bc.col=[0,0,0];// column [previous, current, previous_maximum]
-        bc.lines=[];
-        bc.linearray();// indexes of s where lines begin
+        bc.col=[0,0,0];// column [previous, current, previous_maximum] == n chars to right of BOL
+        bc.lines=[];// BOL indexes
+        bc.linearray();// populate lines
         return bc;
     },
 
@@ -111,19 +125,35 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    offs.y=offs.h+20;// border-top
     // render all the lines TODO: only render visible lines
     buf.linearray().forEach((ln,i)=>c.fillText(buf.getline(i),offs.x,offs.y+(i*offs.h)));
-    c.save();
-    c.fillStyle='orange';
-    var this_slice=buf.s.slice(buf.lines[buf.lin[1]],buf.col[1]);
-    var mt2cur=c.measureText(this_slice).width;
-    //console.log(this_slice);
-    c.fillRect(offs.x+mt2cur,offs.lmul(buf.lin[1]),20,40);
-    c.restore();
 };
 
-var gameloop=now=>{update(KEYQ,now); render_text();};
+var render_cursor=()=>{
+    var l=buf.getline(buf.lin[1]),// current line
+        pt_left=l.slice(0,buf.col[1]-1),// text upto cursor's left edge
+        pt_right=l.slice(0,buf.col[1]),
+        cur_left_edge=c.measureText(pt_left).width,
+        cur_right_edge=c.measureText(pt_right).width,
+        wid=cur_right_edge-cur_left_edge,
+        linew=c.measureText(l).width,
+        liney=offs.lmul(buf.lin[1]);
+    c.clearRect(offs.x,liney,linew,offs.lh);
+    c.fillText(l,offs.x,liney+offs.lh);
+    c.save();
+    c.fillStyle='orange';
+    c.fillRect(offs.x+cur_left_edge,liney,wid,offs.lh);
+    c.restore();
+}
+
+var gameloop=now=>{
+    update(KEYQ,now);
+    if(buf.txt_changed){
+        render_text();
+        buf.txt_changed=false;
+    }
+    render_cursor();
+};
 
 var rsz=()=>{
     requestAnimationFrame(gameloop);
