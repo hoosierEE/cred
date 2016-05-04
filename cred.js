@@ -15,12 +15,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             cx:0,// maximum column
             selection_start:0,// indexs from left edge of first selected char
             selection_end:0,// index at left edge of last selected char
-            log(){
-                console.log('cl: '+this.cl+', co:'+this.co+', cx:'+this.cx);
-            },
+            log(){console.log(this);},
             left(n){
                 if(b.pt-n<0){b.pt=0;this.co=0;}
-                else if(n===-1&&b.s[b.pt-1]==='\n'){return;}// h doesn't cross '\n'
+                else if(n===1&&'\n'===b.s[b.pt]){return;}// h doesn't cross '\n'
                 else{
                     b.pt-=n;
                     this.cl=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);
@@ -90,8 +88,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 //    if(ch[i]==='\n'){
                 //        this.lin[0]=this.lin[1];
                 //        this.lin[1]+=1;
+                //        this.lines.push(this.pt+i);
                 //    }
                 //}
+                //this.lines.sort();
                 this.linearray();
                 this.pt+=ch.length;
                 //this.mov(ch.length,true);

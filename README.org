@@ -9,7 +9,7 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 - unique rendering mode
-- reinvent ~ALL~ some of the wheels!
+- reinvent +ALL+ Some of the wheels!
 - but really: Spacemacs for the web
   
 * Features
@@ -34,7 +34,7 @@ Fork/pull if you want to contribute.
 ** License
 License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
 
-** Style
+** Coding Style
 Google Chrome 49 is the target browser, which eliminates the need for verbose polyfills.  The Chrome JavaScript runtime also supports some features that I use a lot, particularly this "lightweight" function syntax:
 
 #+BEGIN_SRC js
@@ -42,7 +42,7 @@ Google Chrome 49 is the target browser, which eliminates the need for verbose po
 var foo=function(param){return explicit_return_value;};
 
 // use this when possible:
-var foo=(param)=>{implicit_return_value;};
+var foo=param=>{implicit_return_value;};
 #+END_SRC
 
 As well as this alternative syntax for defining a function within an object literal (in this example, also used with an arrow function returning an object literal):
@@ -64,7 +64,7 @@ Other conventions:
 - ALL_CAPS_CONSTANTS
 - ProperCamelCaseClasses
 - rarely_used_name_snake_case
-- cu // commonly used name
+- cu // commonly used name with a comment
 
 That said, I think that I'm not zealous about style, and am open to change.
 
