@@ -9,7 +9,7 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 
 - learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
 - unique rendering mode
-- reinvent ALL THE WHEELS!
+- reinvent ~ALL~ some of the wheels!
 - but really: Spacemacs for the web
   
 * Features
