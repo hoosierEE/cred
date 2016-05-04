@@ -37,8 +37,15 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 this.log();
             },
             up(n){
+                // conceptually:
+                // move the point backward to the start of the line above, then forward to maxco
+                // actually: use math
                 this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
-                this.curco=b.pt-b.linearray()[this.curln];
+                var target_line=curln-n;
+                if(target_line<0){target_line=0;}
+                else{
+                    this.curco=b.pt-b.linearray()[this.curln];
+                }
                 this.log();
             },
             down(n){
@@ -54,8 +61,8 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         // initialize this instance
         return cc;
     },
-    Buffer=()=>{// () -> Buffer
-        // A Buffer is a String with line metadata. Handles insert/delete at a given point
+    Buffer=()=>{// ()->Buffer // Buffer is a String with line and point metadata.
+        // Handles insert/delete at the given point
         var bb={
             linearray(){// ()->[Int] // index of each line's start
                 if(this.txt_changed||this.lines.length===0){
