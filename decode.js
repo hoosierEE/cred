@@ -31,14 +31,14 @@ var update=(rks,t)=>{
         var dec=decode(rks.shift());// behead queue
         if(MODE==='normal'){
             switch(dec.code){
-            case'i':MODE='insert';buf.insert_mode();break;
-            case'a':MODE='insert';buf.append_mode();break;
-            case'b':buf.mov(-2);break;
-            case'e':buf.mov(2);break;
-            case'h':buf.mov(-1);break;
-            case'j':buf.updn(1);break;
-            case'k':buf.updn(-1);break;
-            case'l':buf.mov(1);break;
+            case'i':MODE='insert';cur.insert_mode();break;
+            case'a':MODE='insert';cur.append_mode();break;
+            case'b':cur.left(2);break;
+            case'e':cur.right(2);break;
+            case'h':cur.left(1);break;
+            case'j':cur.down(1);break;
+            case'k':cur.up(1);break;
+            case'l':cur.right(1);break;
             case' ':console.log('SPC-');break;// hmm...
             }
         }else if(MODE==='insert'){
@@ -47,14 +47,19 @@ var update=(rks,t)=>{
             case'print':
                 buf.ins(dec.code);
                 if(dec.code==='f'){ESC_FD=-t;}
-                if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';buf.esc_fd();}break;
-            case'edit':buf.del(dec.code==='B'?-1:1);break;
+                if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';cur.esc_fd();}break;
+            case'edit':
+                if(dec.code==='B'){buf.del(-1);cur.left(1);}
+                else if(dec.code==='D'){buf.del(1);}
+                break;
             }
         }
         if(dec.type==='arrow'){//all modes support arrows in the same way
             switch(dec.code){
-            case'L':buf.mov(-1);break;
-            case'R':buf.mov(1);break;
+            case'L':cur.left(1);break;
+            case'D':cur.down(1);break;
+            case'U':cur.up(1);break;
+            case'R':cur.right(1);break;
             }
         }
     }
