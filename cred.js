@@ -10,48 +10,66 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         // lines and columns, the point should be after a move.
         // Cursor also handles selection, as in selection-start and selection-end, block selection, ...?
         var cc={
+            curln:0,curco:0,maxco:0,selection_start:0,selection_end:0,
+            log(){
+                console.log('curln: '+this.curln+', curco:'+this.curco+', maxco:'+this.maxco);
+            },
             left(n){
-                // subtract n from Buffer's point
-                if(b.pt-n<0){b.pt=0;}
-                else if(n==-1&&b.s[b.pt-1]==='\n'){return;}// h doesn't cross '\n'
-                else{b.pt-=n;}
+                if(b.pt-n<0){b.pt=0;this.curco=0;}
+                else if(n===-1&&b.s[b.pt-1]==='\n'){return;}// h doesn't cross '\n'
+                else{
+                    b.pt-=n;
+                    this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);
+                    this.curco=b.pt-b.lines[this.curln];
+                }
+                this.maxco=this.curco;
+                this.log();
             },
             right(n){
-                // add n to Buffer's point
                 if(b.pt+n>b.s.length){b.pt=b.s.length;}
-                else if(n===1&&b.s[b.pt+1]==='\n'){return;}// l doesn't cross '\n'
-                else{b.pt+=n;}
+                else if(n===1&&'\n'===b.s[b.pt+1]){return;}// l doesn't cross '\n'
+                else{
+                    b.pt+=n;
+                    this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
+                    this.curco=b.pt-b.lines[this.curln];
+                }
+                this.maxco=this.curco;
+                this.log();
             },
-            up(n){},
-            down(n){},
+            up(n){
+                this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
+                this.curco=b.pt-b.linearray()[this.curln];
+                this.log();
+            },
+            down(n){
+                this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
+                this.curco=b.pt-b.linearray()[this.curln];
+                this.log();
+            },
             append_mode(){if(b.s[b.pt]!=='\n'){this.right(1);}},
             insert_mode(){},// intentionally left blank
             esc_fd(){b.del(-2);this.left(2);},
             select(sel_mode){},
-            update(){
-                // update line and column if necessary
-                var curln=b.linearray().map(_=>_<=b.pt).lastIndexOf(true);
-                //var curco=
-            },
         };
         // initialize this instance
         return cc;
     },
     Buffer=()=>{// () -> Buffer
         // A Buffer is a String with line metadata. Handles insert/delete at a given point
-        var bc={
-            linearray(){// ()->[Int] // [Int] is the index of each line's start
+        var bb={
+            linearray(){// ()->[Int] // index of each line's start
                 if(this.txt_changed||this.lines.length===0){
-                    this.lines=this.s.split('').reduce((x,y,i)=>{
-                        y==='\n'&&x.push(i);return x;},[0]);
-                }return this.lines;// otherwise return cached array
+                    this.lines=this.s.split('').reduce((prev,next,i)=>{
+                        next==='\n'&&prev.push(i);return prev;
+                    },[0]);
+                } return this.lines;// cached array if text is unchanged
             },
 
-            getline(n){// Int->String // String is the entire line
+            getline(n){// Int->String // the entire line
                 var l=this.linearray(),len=l.length;
-                if(n>0&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
+                if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
                 else if(n===0){return this.s.slice(0,l[1]);}// first
-                else if(n>=len){return this.s.slice(1+l[len-1]);}// last
+                else if(len<=n){return this.s.slice(1+l[len-1]);}// last
                 else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
             },
 
@@ -60,15 +78,24 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 if(this.pt===this.s.length){this.s=this.s+ch;}
                 else{var fst=this.s.slice(0,this.pt), snd=this.s.slice(this.pt); this.s=fst+ch+snd;}
                 var cur_line=this.lines.filter(a=>a<=this.pt)[0]|0;
-                for(var i=0;i<ch.length;++i){
-                    if(ch[i]==='\n'){
-                        this.lin[0]=this.lin[1];
-                        this.lin[1]+=1;
-                    }
-                }
+                //for(var i=0;i<ch.length;++i){
+                //    if(ch[i]==='\n'){
+                //        this.lin[0]=this.lin[1];
+                //        this.lin[1]+=1;
+                //    }
+                //}
                 this.linearray();
                 this.pt+=ch.length;
                 //this.mov(ch.length,true);
+            },
+
+            left_delete(n){
+                if(n===0){return;}
+                if(n+this.pt0<0){//delete from pt to beginning of buffer
+                }
+            },
+
+            right_delete(n){
             },
 
             del(n){// delete n chars to right of p (or left if n<0)
@@ -77,17 +104,16 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 var leftd=n<0?n:0, rightd=n<0?0:n;
                 var fst=this.s.slice(0,this.pt+leftd),
                     snd=this.s.slice(this.pt+rightd);
-                //if(leftd){this.mov(leftd,true);}
                 this.s=fst+snd;
             },
         };
-        bc.s='';// plain old string
-        bc.pt=0;// cursor index
-        bc.lin=[0,0];// line [previous, current]
-        bc.col=[0,0,0];// column [previous, current, previous_maximum] == n chars to right of BOL
-        bc.lines=[];// BOL indexes
-        bc.linearray();// populate lines
-        return bc;
+        bb.s='';// plain old string
+        bb.pt=0;// cursor index
+        bb.lin=[0,0];// line [previous, current]
+        bb.col=[0,0,0];// column [previous, current, previous_maximum] == n chars to right of BOL
+        bb.lines=[];// BOL indexes
+        bb.linearray();// populate lines
+        return bb;
     },
     ScreenOffsets=()=>({
         x:20,// border width
@@ -101,8 +127,8 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
     // render all the lines
-    // TODO: only render /visible/ lines.
-    // use the "screen always shows cursor" constriant to do this?
+    // TODO: only render visible lines.
+    // use the "cursor visible" constriant to do this?
     buf.linearray().forEach((ln,i)=>c.fillText(buf.getline(i),offs.x,offs.y+(i*offs.h)));
 };
 
@@ -113,7 +139,6 @@ var render_cursor=()=>{
     // 3. draw the cursor at the new position
     // NOTE: requires monotonic previous/current operations (must update both col and lin)
     var l=buf.getline(buf.lin[1]);// current line
-    var oldl=buf.getline(buf.lin[0]);// previous line
     var bcolm1=Math.max(0,buf.col[1]-1);// current column - 1
     var pt_left=l.slice(0,bcolm1);// text upto cursor's left edge
     var pt_right=l.slice(0,buf.col[1]);
@@ -126,16 +151,19 @@ var render_cursor=()=>{
     c.save();
     c.globalCompositeOperation='difference';
     c.fillStyle='orange';
+    //console.log(pt_left+','+pt_right);
     c.fillRect(offs.x+cur_left_edge,liney,wid,offs.lh);
     c.restore();
 }
 
 var gameloop=now=>{
     update(KEYQ,now);
-    if(buf.txt_changed){
-        render_text();
-        buf.txt_changed=false;
-    }
+    // TODO: render only what's changed (both text and cursor)
+    //if(buf.txt_changed){
+    //    render_text();
+    //    buf.txt_changed=false;
+    //}
+    render_text();
     render_cursor();
 };
 
@@ -158,5 +186,5 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.ins('a test with\na newline\n\nand a pair of newlines\n\n\nand three at the end');
+buf.ins('a test with\na newline\n\nand a pair of newlines\n\n\nand a very long line after three at the end');
 //buf.load();// test empty buffer
