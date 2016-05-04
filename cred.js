@@ -10,47 +10,48 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         // lines and columns, the point should be after a move.
         // Cursor also handles selection, as in selection-start and selection-end, block selection, ...?
         var cc={
-            curln:0,curco:0,maxco:0,selection_start:0,selection_end:0,
+            cl:0,// current line
+            co:0,// current column
+            cx:0,// maximum column
+            selection_start:0,// indexs from left edge of first selected char
+            selection_end:0,// index at left edge of last selected char
             log(){
-                console.log('curln: '+this.curln+', curco:'+this.curco+', maxco:'+this.maxco);
+                console.log('cl: '+this.cl+', co:'+this.co+', cx:'+this.cx);
             },
             left(n){
-                if(b.pt-n<0){b.pt=0;this.curco=0;}
+                if(b.pt-n<0){b.pt=0;this.co=0;}
                 else if(n===-1&&b.s[b.pt-1]==='\n'){return;}// h doesn't cross '\n'
                 else{
                     b.pt-=n;
-                    this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);
-                    this.curco=b.pt-b.lines[this.curln];
+                    this.cl=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);
+                    this.co=b.pt-b.lines[this.cl];
                 }
-                this.maxco=this.curco;
+                this.cx=this.co;// left or right movement overrides maximum column
                 this.log();
             },
             right(n){
-                if(b.pt+n>b.s.length){b.pt=b.s.length;}
+                if(b.pt+n>b.s.length){b.pt=b.s.length;}// b.s[b.s.length-1] is last char, so this puts pt past it
                 else if(n===1&&'\n'===b.s[b.pt+1]){return;}// l doesn't cross '\n'
                 else{
                     b.pt+=n;
-                    this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
-                    this.curco=b.pt-b.lines[this.curln];
+                    this.cl=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
+                    this.co=b.pt-b.lines[this.cl];
                 }
-                this.maxco=this.curco;
+                this.cx=this.co;
                 this.log();
             },
             up(n){
-                // conceptually:
-                // move the point backward to the start of the line above, then forward to maxco
-                // actually: use math
-                this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
-                var target_line=curln-n;
-                if(target_line<0){target_line=0;}
-                else{
-                    this.curco=b.pt-b.linearray()[this.curln];
-                }
+                // concept: move the point backward to the start of the line above,
+                // then forward to cx, stopping at max of EOL or cx
+                this.cl=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);
+                this.co=b.pt-b.linearray()[this.cl];
+                var target_line=Math.min(0,this.cl-n);
+                var target_column=Math.max(b.pt-b.linearray()[target_line],this.cx)
                 this.log();
             },
             down(n){
-                this.curln=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
-                this.curco=b.pt-b.linearray()[this.curln];
+                this.cl=b.linearray().map(x=>b.pt>=x).lastIndexOf(true);// line containing point
+                this.co=b.pt-b.linearray()[this.cl];
                 this.log();
             },
             append_mode(){if(b.s[b.pt]!=='\n'){this.right(1);}},
