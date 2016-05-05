@@ -7,21 +7,25 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     Cursor=(b)=>({
         // STATE
         cl:0,// current line
+        //pl:0,// previous line
         co:0,// current column
+        //po:0,// previous column
         cx:0,// maximum column
-        msg:'constructed',
+        msg:'init',
 
         // METHODS
-        get_current_line(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
-        eol(){return b.s[b.pt+1]==='\n';},// End of line
-        bol(){return b.s[b.pt-1]==='\n';},// Beginning of line
+        curln(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
+        eol(){return b.s[b.pt+1]==='\n';},// end of line
+        bol(){return b.s[b.pt-0]==='\n';},// beginning of line
+        bob(){return b.s[b.pt-1]===undefined;},// beginning of buffer
+        eob(){return b.pt+1>=b.s.length;},// end of buffer
 
         // FIXME - left and right move 2 spaces when changing direction
         left(n){
             if(n===1&&this.bol()){
                 this.msg='BOL';
                 return;
-            }// h doesn't cross '\n'
+            }
             else if(b.pt-n<0){
                 this.msg='BOF';
                 b.pt=0;
@@ -29,10 +33,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             else{
                 this.msg='...';
                 b.pt-=n;
+                this.cl=this.curln();
             }
             // update line and column
-            this.cl=this.get_current_line();
-            this.co=b.pt-b.lines[this.cl]-1;
+            this.co=b.pt-(b.lines[this.cl]);
             this.cx=this.co;
         },
 
@@ -41,24 +45,23 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                 this.msg='EOL';
                 return;
             }// l doesn't cross '\n'
-            else if(b.pt+n>b.s.length-1){
+            else if(b.pt+n>=b.s.length-1){
                 this.msg='EOF';
-                b.pt=b.s.length-(write_override?0:1);
+                b.pt=Math.min(b.pt+n,b.s.length-1);//b.s.length-(write_override?0:1);
             }
             else{
                 this.msg='...';
                 b.pt+=n;
             }
-            this.cl=this.get_current_line();
+            this.cl=this.curln();
             this.co=b.pt-b.lines[this.cl];
             this.cx=this.co;
         },
 
         up(n){
-            console.log(this.co+','+this.cx+','+this.cl);
             // find target line
-            var target_line=this.cl-n;
-            if(target_line<0){target_line=0;}
+            var target_line=this.cl-n<0?0:this.cl-n;
+            //if(target_line<0){target_line=0;}
             var t_line=b.getline(target_line);// the string
 
             // find target column
@@ -69,14 +72,14 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             // move point
             b.pt=b.lines[target_line]+target_column;
             this.cl=target_line;
-
-            console.log(this.co+','+this.cx+','+this.cl);
         },
 
         down(n){
-            var target_line=this.cl+n;
-            if(target_line>b.lines.length-1){target_line=b.lines.length-1;}
-            this.cl=this.get_current_line();// line containing point
+            // find target line
+            var target_line=Math.min(this.cl+n,b.lines.length-1);
+
+            // find target column
+            this.cl=this.curln();// line containing point
             this.co=b.pt-b.lines[this.cl];
         },
 
@@ -125,39 +128,54 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         },
     }),
     ScreenOffsets=()=>({
-        x:20,// border width
+        bw:20,// border width
+        h:0,y:0,b:0,
         lmul(lnum){return this.y+this.h*lnum;},// lower edge of line
-        init(ctx){this.h=1.25*ctx.measureText('W').width;this.y=this.h+this.x;}
+        init(ctx){
+            var fm=FontMetric(settings.font_name,settings.font_size);
+            this.h=fm[1];// total line height
+            this.b=fm[2];// lower bound of text such as: jgpq|
+            this.y=this.h+this.bw;
+        },
+    }),
+    Settings=()=>({
+        font_name:'Sans-Serif',
+        font_size:'24px',
     }),
     buf=Buffer(),
     cur=Cursor(buf),
+    settings=Settings(),
     offs=ScreenOffsets();
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,c.canvas.height);
-    // render all the lines
-    buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.x,offs.lmul(i)));
+    // render ALL THE LINES
+    buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.lmul(i)));
 };
 
 var render_cursor=()=>{
     // 1. clear where cursor was previously
     // 2. rewrite text at old cursor position
     // 3. draw the cursor at the new position
-    var l=buf.getline(cur.get_current_line());// current line
-    var line_y_offset=offs.lmul(cur.get_current_line());
-    c.fillText(l,offs.x,line_y_offset);// draw old cursor position's text
+    var l=buf.getline(cur.curln());// current line (what)
+    var ltop=offs.lmul(cur.curln());// top edge of current line (where)
 
     c.save();
     c.globalCompositeOperation='difference';
-    c.fillStyle=cur.eol()?'blue':'orange';
+    if(cur.bob()){c.fillStyle='green';}
+    else if(cur.eob()){c.fillStyle='red';}
+    else if(cur.bol()){c.fillStyle='lightgreen';}
+    else if(cur.eol()){c.fillStyle='pink';}
+    else{c.fillStyle='orange';}
 
     // stats
-    c.clearRect(offs.x,offs.lmul(10),c.canvas.width,offs.h);
-    c.fillText(cur.status(),offs.x,offs.lmul(10)+offs.h);
+    c.clearRect(offs.bw,offs.lmul(10),c.canvas.width,offs.h);
+    c.fillText(cur.status(),offs.bw,offs.lmul(10)+offs.h);
 
-    var cur_left_edge=c.measureText(l.split(0,cur.co)).width,
-        wid=c.measureText(l.split(0,cur.co+1)).width-cur_left_edge;
-    c.fillRect(offs.x+cur_left_edge,line_y_offset,wid,offs.h);// draw cursor over existing text
+    var cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
+        wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
+    // fillrect(x,y,width,height)
+    c.fillRect(offs.bw+cur_left_edge,ltop-offs.h+offs.b,wid,offs.h+offs.b/2);// draw cursor over existing text
     c.restore();
 }
 
@@ -171,7 +189,7 @@ var rsz=()=>{
     requestAnimationFrame(gameloop);
     c.canvas.width=c.canvas.clientWidth;
     c.canvas.height=c.canvas.clientHeight;
-    c.font='24px Sans-Serif';
+    c.font=settings.font_size+' '+settings.font_name;//'24px Sans-Serif';
     offs.init(c);
     c.fillStyle='#dacaba';
 };
@@ -187,4 +205,5 @@ window.onkeydown=(k)=>{
 };
 
 //buf.ins('a test with\na newline\n\nand a pair of newlines\n\n\nand a very long line after three at the end');
-buf.ins('with\na newline');
+buf.ins('withgjqp|\na newline');
+cur.right(0);
