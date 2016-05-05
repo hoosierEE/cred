@@ -15,6 +15,8 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         get_current_line(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
         eol(){return b.s[b.pt+1]==='\n';},// End of line
         bol(){return b.s[b.pt-1]==='\n';},// Beginning of line
+
+        // FIXME - left and right move 2 spaces when changing direction
         left(n){
             if(n===1&&this.bol()){
                 this.msg='BOL';
@@ -31,7 +33,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             // update line and column
             this.cl=this.get_current_line();
             this.co=b.pt-b.lines[this.cl]-1;
-            this.cx=this.co;// left or right movement overrides maximum column
+            this.cx=this.co;
         },
 
         right(n,write_override=false){
@@ -53,17 +55,22 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         },
 
         up(n){
-            // concept: move the point backward to the start of the line above,
-            // then forward to cx, stopping at max of EOL or cx
+            console.log(this.co+','+this.cx+','+this.cl);
+            // find target line
             var target_line=this.cl-n;
             if(target_line<0){target_line=0;}
+            var t_line=b.getline(target_line);// the string
+
+            // find target column
             var target_column=this.cx;
-            var lineabove=b.getline(target_line);
-            if(target_column>lineabove.length){target_column=lineabove.length;}
+            if(target_column>t_line.length-1){target_column=t_line.length-1;}
+            this.co=target_column;
+
+            // move point
             b.pt=b.lines[target_line]+target_column;
             this.cl=target_line;
-            this.co=target_column;
-            //console.log(this.co+','+this.cx+','+this.cl);
+
+            console.log(this.co+','+this.cx+','+this.cl);
         },
 
         down(n){
@@ -93,16 +100,20 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
         },
 
+        gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
+
         ins(ch){// insert ch chars to right of p
             if(this.pt===this.s.length){this.s=this.s+ch;}
-            else{var fst=this.s.slice(0,this.pt), snd=this.s.slice(this.pt); this.s=fst+ch+snd;}
-            // update lines
-            for(var i=0;i<ch.length;++i){if(ch[i]==='\n'){this.lines.push(this.pt+i);}}
-            this.lines.sort();
+            else{
+                var fst=this.s.slice(0,this.pt),
+                    snd=this.s.slice(this.pt);
+                this.s=fst+ch+snd;
+            }
+            this.lines=this.gen_lines();
+            // NOTE: if we add newlines to lines as we go, we can add ch.length to each element
+            // of lines that is past where point started.
             this.pt+=ch.length;
         },
-
-        gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
 
         del(n){// delete n chars to right (n>0) or left (n<0) of point
             if(n===0||n+this.pt<0){return;}
