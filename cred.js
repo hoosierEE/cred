@@ -16,77 +16,56 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         // METHODS
         curln(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
         eol(){return b.s[b.pt+1]==='\n';},// end of line
-        bol(){return b.s[b.pt-0]==='\n';},// beginning of line
-        bob(){return b.s[b.pt-1]===undefined;},// beginning of buffer
-        eob(){return b.pt+1>=b.s.length;},// end of buffer
+        bol(){return b.s[b.pt-1]==='\n';},// beginning of line
+        bob(){return b.pt===0;},// beginning of buffer
+        eob(){return b.pt>b.s.length-1;},// end of buffer
 
-        // FIXME - left and right move 2 spaces when changing direction
         left(n){
-            if(n===1&&this.bol()){
-                this.msg='BOL';
-                return;
-            }
-            else if(b.pt-n<0){
-                this.msg='BOF';
-                b.pt=0;
-            }// goto BOF
-            else{
-                this.msg='...';
-                b.pt-=n;
-                this.cl=this.curln();
-            }
-            // update line and column
-            this.co=b.pt-(b.lines[this.cl]);
+            if(n===1&&this.bol()){return;}
+            else if(b.pt-n<0){b.pt=0;this.cl=0;}// goto BOF
+            else{b.pt-=n;}
+            this.cl=this.curln();
+            this.co=b.pt-this.cl-b.lines[this.cl];
+            this.co=Math.max(this.co,0);
             this.cx=this.co;
         },
 
-        right(n,write_override=false){
-            if(n===1&&this.eol()){
-                this.msg='EOL';
-                return;
-            }// l doesn't cross '\n'
-            else if(b.pt+n>=b.s.length-1){
-                this.msg='EOF';
-                b.pt=Math.min(b.pt+n,b.s.length-1);//b.s.length-(write_override?0:1);
-            }
-            else{
-                this.msg='...';
-                b.pt+=n;
-            }
+        right(n,wo=false){// write override default: not writing; probably moving
+            if(n===1&&this.eol()){b.pt+=wo?1:0; return;}
+            else if(b.pt+n>=b.s.length-(wo?0:1)){b.pt=Math.min(b.pt+n,b.s.length-(wo?0:1));}
+            else{b.pt+=n;}
             this.cl=this.curln();
-            this.co=b.pt-b.lines[this.cl];
+            this.co=b.pt-this.cl-b.lines[this.cl];
+            this.co=Math.max(this.co,0);
             this.cx=this.co;
         },
 
         up(n){
-            // find target line
             var target_line=this.cl-n<0?0:this.cl-n;
-            //if(target_line<0){target_line=0;}
-            var t_line=b.getline(target_line);// the string
-
-            // find target column
-            var target_column=this.cx;
-            if(target_column>t_line.length-1){target_column=t_line.length-1;}
-            this.co=target_column;
-
-            // move point
-            b.pt=b.lines[target_line]+target_column;
-            this.cl=target_line;
+            this.up_or_down(target_line);// goto target line
         },
 
         down(n){
-            // find target line
             var target_line=Math.min(this.cl+n,b.lines.length-1);
+            this.up_or_down(target_line);// goto target line
+        },
 
+        up_or_down(target_line){
+            var t_line=b.getline(target_line);// the string
             // find target column
-            this.cl=this.curln();// line containing point
-            this.co=b.pt-b.lines[this.cl];
+            var target_column=this.cx;
+            if(target_column>t_line.length-1){target_column=t_line.length-1;}
+            if(target_column<0){target_column=0;}
+            this.co=target_column;
+            // move point
+            this.cl=target_line;
+            b.pt=b.lines[target_line]+target_column+this.cl;
         },
 
         append_mode(){if(b.s[b.pt]!=='\n'){this.right(1,true);}},
         insert_mode(){},// intentionally left blank
         esc_fd(){b.del(-2);this.left(2);if(b.pt>b.s.length-1){b.pt=b.s.length-1;}},
-        status(){return this.msg+' [col: '+this.co+', pt: '+b.pt+', line: '+this.cl+']';},
+        status(){return this.msg+' [col: '+this.co+', cx: '+this.cx+', pt: '+b.pt+', line: '+this.cl+']';},
     }),
     Buffer=()=>({
         // STATE
