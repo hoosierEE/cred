@@ -4,67 +4,70 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
     MODE='normal',
     ESC_FD=0,
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
-    Cursor=(b)=>({
+    Cursor=b=>({
         // STATE
         cl:0,// current line
-        //pl:0,// previous line
         co:0,// current column
-        //po:0,// previous column
         cx:0,// maximum column
-        msg:'init',
+        //pl:0,// previous line
+        //po:0,// previous column
 
         // METHODS
         curln(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
         eol(){return b.s[b.pt+1]==='\n';},// end of line
         bol(){return b.s[b.pt-1]==='\n';},// beginning of line
         bob(){return b.pt===0;},// beginning of buffer
-        eob(){return b.pt>b.s.length-1;},// end of buffer
+        eob(){return b.pt>=b.s.length-0;},// end of buffer
 
-        left(n){
-            if(n===1&&this.bol()){return;}
-            else if(b.pt-n<0){b.pt=0;this.cl=0;}// goto BOF
-            else{b.pt-=n;}
+        // to put the point at column X on line Y:
+        // goto line Y lines begin with a newline except the first one in the file
+        // example string:
+        // 0    5     10   15   20   25   30   35    40   45   50   55   60
+        // some text\n...second line is longer, and\nthe third line is last
+        //                                           ^ column=0, line=2, point=40
+        //            ^ column 0, line 1, point 10
+        // ^ column 0, line 0
+        // we can see that in terms of the buffer's Point:
+        // line | column | point
+        // 0    | 0      | follows column
+        // 1    | 0      | first newline index, plus 1
+        // 2    | 0      | second newline index, plus 1
+
+        // del: delete override - allow moving past left-side limits if deleting
+        left(n,del=false){
+            b.pt-=n;
+            if(b.pt<0){b.pt=0;}
+            if(!del&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
+            this.left_right();
+        },
+        // wo: write override - allow moving past right-side limits if writing
+        right(n,wo=false){
+            b.pt+=n;
+            if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
+            if(!wo&&n===1&&b.s[b.pt]==='\n'){b.pt-=1;}
+            this.left_right();
+        },
+        left_right(){
             this.cl=this.curln();
-            this.co=b.pt-this.cl-b.lines[this.cl];
-            this.co=Math.max(this.co,0);
+            this.co=b.pt-(this.cl===0?0:1)-b.lines[this.cl];// subtract the extra newline except at line 0
             this.cx=this.co;
         },
 
-        right(n,wo=false){// write override default: not writing; probably moving
-            if(n===1&&this.eol()){b.pt+=wo?1:0; return;}
-            else if(b.pt+n>=b.s.length-(wo?0:1)){b.pt=Math.min(b.pt+n,b.s.length-(wo?0:1));}
-            else{b.pt+=n;}
-            this.cl=this.curln();
-            this.co=b.pt-this.cl-b.lines[this.cl];
-            this.co=Math.max(this.co,0);
-            this.cx=this.co;
-        },
-
-        up(n){
-            var target_line=this.cl-n<0?0:this.cl-n;
-            this.up_or_down(target_line);// goto target line
-        },
-
-        down(n){
-            var target_line=Math.min(this.cl+n,b.lines.length-1);
-            this.up_or_down(target_line);// goto target line
-        },
-
-        up_or_down(target_line){
-            var t_line=b.getline(target_line);// the string
-            // find target column
-            var target_column=this.cx;
-            if(target_column>t_line.length-1){target_column=t_line.length-1;}
-            if(target_column<0){target_column=0;}
-            this.co=target_column;
-            // move point
+        up(n){this.up_down(Math.max(this.cl-n,0));},
+        down(n){this.up_down(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
+        up_down(target_line){
+            var target_line_length=b.getline(target_line).length-1;
+            this.co=Math.min(Math.max(0,target_line_length),this.cx);// try in order: maxco, len-1, 0
             this.cl=target_line;
-            b.pt=b.lines[target_line]+target_column+this.cl;
+            if(target_line===0){b.pt=this.co;}
+            else{b.pt=b.lines[target_line]+1+this.co;}
         },
 
-        append_mode(){if(b.s[b.pt]!=='\n'){this.right(1,true);}},
+        append_mode(){if(b.s[b.pt]!=='\n'){this.right(1,true);}},// TODO: fix for appending around newlines
+        //append_mode(){this.right(1,true);},
         insert_mode(){},// intentionally left blank
         esc_fd(){b.del(-2);this.left(2);if(b.pt>b.s.length-1){b.pt=b.s.length-1;}},
+        msg:'',
         status(){return this.msg+' [col: '+this.co+', cx: '+this.cx+', pt: '+b.pt+', line: '+this.cl+']';},
     }),
     Buffer=()=>({
@@ -74,7 +77,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         lines:[0],
 
         // METHODS
-        getline(n){// Int->String // the entire line
+        getline(n){// Int->String // the line, not including \n
             var l=this.lines,len=l.length;
             if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
             else if(n===0){return this.s.slice(0,l[1]);}// first
@@ -103,9 +106,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             var fst=this.s.slice(0,this.pt+leftd),
                 snd=this.s.slice(this.pt+rightd);
             this.s=fst+snd;
-            this.lines=this.gen_lines();// recalculate whole line table
+            this.lines=this.gen_lines();// recalculate whole line table AAAH!
         },
     }),
+
     ScreenOffsets=()=>({
         bw:20,// border width
         h:0,y:0,b:0,
@@ -141,19 +145,19 @@ var render_cursor=()=>{
 
     c.save();
     c.globalCompositeOperation='difference';
+    c.fillStyle='orange';
     if(cur.bob()){c.fillStyle='green';}
     else if(cur.eob()){c.fillStyle='red';}
     else if(cur.bol()){c.fillStyle='lightgreen';}
     else if(cur.eol()){c.fillStyle='pink';}
-    else{c.fillStyle='orange';}
 
-    // stats
+    // debugging status line (message, [col, maxcol, point, line])
     c.clearRect(offs.bw,offs.lmul(10),c.canvas.width,offs.h);
     c.fillText(cur.status(),offs.bw,offs.lmul(10)+offs.h);
 
     var cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
         wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
-    // fillrect(x,y,width,height)
+    if(MODE==='insert'){wid=1;}
     c.fillRect(offs.bw+cur_left_edge,ltop-offs.h+offs.b,wid,offs.h+offs.b/2);// draw cursor over existing text
     c.restore();
 }
@@ -183,6 +187,8 @@ window.onkeydown=(k)=>{
     }
 };
 
-//buf.ins('a test with\na newline\n\nand a pair of newlines\n\n\nand a very long line after three at the end');
-buf.ins('withgjqp|\na newline');
+buf.ins('five\n');
+buf.ins('five\n');
+buf.ins('five\n');
+buf.ins('five\n');
 cur.right(0);

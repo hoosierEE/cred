@@ -45,11 +45,11 @@ var update=(rks,t)=>{
             switch(dec.type){
             case'escape':MODE='normal';break;
             case'print':
-                buf.ins(dec.code);
+                buf.ins(dec.code);cur.right(0);
                 if(dec.code==='f'){ESC_FD=-t;}
                 if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';cur.esc_fd();}break;
             case'edit':
-                if(dec.code==='B'){buf.del(-1);cur.left(1);}
+                if(dec.code==='B'){buf.del(-1);cur.left(1,true);}
                 else if(dec.code==='D'){buf.del(1);}
                 break;
             }
