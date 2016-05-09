@@ -1,3 +1,42 @@
+// udpate : [RawKey] -> BufferAction
+var update=(rks,t)=>{
+    while(rks.length){// consume KEYQ, dispatch event handlers
+        var dec=decode(rks.shift());// behead queue
+        if(cur.mode==='normal'){
+            switch(dec.code){
+            case'j':cur.down(1);break;
+            case'k':cur.up(1);break;
+            case'l':cur.right(1);break;
+            case'h':cur.left(1);break;
+            case'i':cur.mode='insert';cur.insert_mode();break;
+            case'a':cur.mode='insert';cur.append_mode();break;
+            case'b':cur.left(2);break;// TODO non-fake word motions
+            case'e':cur.right(2);break;// TODO non-fake word motions
+            case'x':buf.del(1);cur.left(1);break;
+            case' ':console.log('SPC-');
+                break;
+            }
+        }
+        else if(cur.mode==='insert'){
+            switch(dec.type){
+            case'print':
+                buf.ins(dec.code);cur.rowcol();
+                if(dec.code==='f'){cur.fd=-t;}
+                if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.mode='normal';cur.esc_fd();}
+                break;
+            case'edit':
+                if(dec.code==='B'){buf.del(-1);cur.left(1,true);}// backspace
+                else if(dec.code==='D'){buf.del(1);}// forward delete
+                break;
+            case'escape':cur.mode='normal';break;}}
+        if(dec.type==='arrow'){//all modes support arrows in the same way
+            switch(dec.code){
+            case'D':cur.down(1);break;
+            case'U':cur.up(1);break;
+            case'R':cur.right(1,true);break;
+            case'L':cur.left(1,true);break;}}}};
+
+
 // decode : RawKey -> DecodedKey
 var decode=(rk)=>{
     var k=rk.k, mods=rk.mods; // get the components of the KeyStack
@@ -24,44 +63,3 @@ var decode=(rk)=>{
         else if(k.slice(0,4)==='Page'){dec.type='page';dec.code=k[4];} // 'u','d'
         else if(k==='Home'||k==='End'){dec.type='page';dec.code=k[0];}} // 'h','e'
     return dec;};
-
-// udpate : [RawKey] -> BufferAction
-var update=(rks,t)=>{
-    while(rks.length){// consume KEYQ, dispatch event handlers
-        var dec=decode(rks.shift());// behead queue
-        if(cur.mode==='normal'){
-            switch(dec.code){
-            case'i':cur.mode='insert';cur.insert_mode();break;
-            case'a':cur.mode='insert';cur.append_mode();break;
-            case'b':cur.left(2);break;
-            case'e':cur.right(2);break;
-            case'h':cur.left(1);break;
-            case'j':cur.down(1);break;
-            case'k':cur.up(1);break;
-            case'l':cur.right(1);break;
-            case'x':buf.del(1);cur.left(1);break;
-            case' ':console.log('SPC-');break;// hmm...
-            }
-        }else if(cur.mode==='insert'){
-            switch(dec.type){
-            case'escape':cur.mode='normal';break;
-            case'print':
-                buf.ins(dec.code);cur.rowcol();
-                if(dec.code==='f'){ESC_FD=-t;}
-                if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){cur.mode='normal';cur.esc_fd();}break;
-            case'edit':
-                if(dec.code==='B'){buf.del(-1);cur.left(1,true);}
-                else if(dec.code==='D'){buf.del(1);}
-                break;
-            }
-        }
-        if(dec.type==='arrow'){//all modes support arrows in the same way
-            switch(dec.code){
-            case'L':cur.left(1,true);break;
-            case'D':cur.down(1);break;
-            case'U':cur.up(1);break;
-            case'R':cur.right(1,true);break;
-            }
-        }
-    }
-};

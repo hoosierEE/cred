@@ -1,13 +1,13 @@
 // TODO: scrolling, file i/o
 'use strict';
 var c=document.getElementById('c').getContext('2d'),// rarely changing bottom canvas (for text)
-    ESC_FD=0,
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
     Cursor=b=>({
         // STATE
         cl:0,// current line
         co:0,// current column
         cx:0,// maximum column
+        fd:0,// f-d escape sequence
         mode:'normal',// insert, visual, lisp(?)
         msg:'',
 
