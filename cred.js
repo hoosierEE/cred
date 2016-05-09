@@ -13,10 +13,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
         // METHODS
         curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},// line containing point
-        eol(){return b.s[b.pt+1]==='\n';},// end of line
+        eol(){return b.s[b.pt]==='\n';},// currently at the end of line
         bol(){return b.s[b.pt-1]==='\n';},// beginning of line
         bob(){return b.pt===0;},// beginning of buffer
-        eob(){return b.pt>=b.s.length-0;},// end of buffer
+        eob(){return b.pt>=b.s.length;},// end of buffer
 
         // freely: allow moving past left-side limits
         left(n,freely=false){
@@ -28,23 +28,35 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
         // freely: allow moving past right-side limits
         right(n,freely=false){
+            if(this.eob()||this.empty_line()){return;}
             b.pt+=n;
             if(!freely){
-                if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
-                if(n===1&&b.s[b.pt]==='\n'){b.pt-=1;}
+                if(n===1&&b.s[b.pt]==='\n'||b.pt>b.s.length){b.pt-=1;}
             }
             this.rowcol();
         },
 
-        append_mode(){this.right(1,true);this.mode='insert';},
-        insert_mode(){this.mode='insert';},// intentionally left blank
-        normal_mode(){this.mode='normal';},
+        esc_fd(){
+            b.del(-2);
+            this.left(2);
+            this.normal_mode();
+        },
+
+        append_mode(){
+            this.mode='insert';
+            this.right(1,true);
+        },
+
+        empty_line(){return 0===b.getline(this.curln()).length;},
+        insert_mode(){this.mode='insert';},
+        normal_mode(){this.mode='normal';this.rowcol();},
+        visual_mode(){this.mode='visual';},
         inserting(){return this.mode==='insert';},
+        visualizing(){return this.mode==='visual';},
         normal(){return this.mode==='normal';},
 
         rowcol(){
-            if(b.pt){this.cl=this.curln();}
-            else{this.cl=0;}
+            this.cl=b.pt?this.curln():0;
             // subtract the extra newline except at line 0
             this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
         },
@@ -59,12 +71,6 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             else{b.pt=b.lines[target_line]+1+this.co;}
         },
 
-        esc_fd(){
-            b.del(-2);
-            this.left(3,true);
-            if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
-            this.normal_mode();
-        },
         status(){return this.cl+':'+this.co;},
     }),
     Buffer=()=>({
@@ -184,7 +190,10 @@ window.onkeydown=(k)=>{
     }
 };
 
-buf.ins('five\n');
-buf.ins('five\n');
-buf.ins('five\n');
+buf.ins('five\n'+'five\n\n\n'+'five\n');
+//            4            11       16
+//buf.ins('five\n\n\n');
+////                11
+//buf.ins('five\n');
+////            16
 cur.rowcol();
