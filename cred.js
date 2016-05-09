@@ -35,8 +35,12 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             }
             this.rowcol();
         },
-        append_mode(){this.right(1,true);},
-        insert_mode(){},// intentionally left blank
+
+        append_mode(){this.right(1,true);this.mode='insert';},
+        insert_mode(){this.mode='insert';},// intentionally left blank
+        normal_mode(){this.mode='normal';},
+        inserting(){return this.mode==='insert';},
+        normal(){return this.mode==='normal';},
 
         rowcol(){
             if(b.pt){this.cl=this.curln();}
@@ -59,6 +63,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             b.del(-2);
             this.left(3,true);
             if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
+            this.normal_mode();
         },
         status(){return this.cl+':'+this.co;},
     }),

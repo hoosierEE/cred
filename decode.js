@@ -2,33 +2,32 @@
 var update=(rks,t)=>{
     while(rks.length){// consume KEYQ, dispatch event handlers
         var dec=decode(rks.shift());// behead queue
-        if(cur.mode==='normal'){
+        if(cur.normal()){
             switch(dec.code){
             case'j':cur.down(1);break;
             case'k':cur.up(1);break;
             case'l':cur.right(1);break;
             case'h':cur.left(1);break;
-            case'i':cur.mode='insert';cur.insert_mode();break;
-            case'a':cur.mode='insert';cur.append_mode();break;
+            case'i':cur.insert_mode();break;
+            case'a':cur.append_mode();break;
             case'b':cur.left(2);break;// TODO non-fake word motions
             case'e':cur.right(2);break;// TODO non-fake word motions
             case'x':buf.del(1);cur.left(1);break;
-            case' ':console.log('SPC-');
-                break;
+            case' ':console.log('SPC-');break;
             }
         }
-        else if(cur.mode==='insert'){
+        else if(cur.inserting()){
             switch(dec.type){
             case'print':
                 buf.ins(dec.code);cur.rowcol();
                 if(dec.code==='f'){cur.fd=-t;}
-                if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.mode='normal';cur.esc_fd();}
+                if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc_fd();}
                 break;
             case'edit':
                 if(dec.code==='B'){buf.del(-1);cur.left(1,true);}// backspace
                 else if(dec.code==='D'){buf.del(1);}// forward delete
                 break;
-            case'escape':cur.mode='normal';break;}}
+            case'escape':cur.normal_mode();break;}}
         if(dec.type==='arrow'){//all modes support arrows in the same way
             switch(dec.code){
             case'D':cur.down(1);break;
