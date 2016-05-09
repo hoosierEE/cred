@@ -12,7 +12,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         msg:'',
 
         // METHODS
-        curln(){return b.lines.map(x=>b.pt>x).lastIndexOf(true);},// line containing point
+        curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},// line containing point
         //curln(){return b.lines.map(x=>b.pt>=x).lastIndexOf(true);},// line containing point
         eol(){return b.s[b.pt+1]==='\n';},// end of line
         bol(){return b.s[b.pt-1]==='\n';},// beginning of line
