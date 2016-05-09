@@ -13,7 +13,6 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
 
         // METHODS
         curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},// line containing point
-        //curln(){return b.lines.map(x=>b.pt>=x).lastIndexOf(true);},// line containing point
         eol(){return b.s[b.pt+1]==='\n';},// end of line
         bol(){return b.s[b.pt-1]==='\n';},// beginning of line
         bob(){return b.pt===0;},// beginning of buffer
@@ -61,7 +60,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             this.left(3,true);
             if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
         },
-        status(){return this.msg+' [col: '+this.co+', cx: '+this.cx+', pt: '+b.pt+', line: '+this.cl+']';},
+        status(){return this.cl+':'+this.co;},
     }),
     Buffer=()=>({
         // STATE
@@ -144,10 +143,6 @@ var render_cursor=()=>{
         wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
 
     c.fillStyle='orange';
-    if(cur.bob()){c.fillStyle='green';}
-    else if(cur.eob()){c.fillStyle='red';}
-    else if(cur.bol()){c.fillStyle='lightgreen';}
-    else if(cur.eol()){c.fillStyle='pink';}
     if(!wid){wid=10;}
 
     // debugging status line (message, [col, maxcol, point, line])
@@ -187,4 +182,4 @@ window.onkeydown=(k)=>{
 buf.ins('five\n');
 buf.ins('five\n');
 buf.ins('five\n');
-buf.ins('five\n');
+cur.rowcol();

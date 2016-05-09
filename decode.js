@@ -39,6 +39,7 @@ var update=(rks,t)=>{
             case'j':cur.down(1);break;
             case'k':cur.up(1);break;
             case'l':cur.right(1);break;
+            case'x':buf.del(1);cur.left(1);break;
             case' ':console.log('SPC-');break;// hmm...
             }
         }else if(cur.mode==='insert'){
