@@ -29,10 +29,10 @@ var decode=(rk)=>{
 var update=(rks,t)=>{
     while(rks.length){// consume KEYQ, dispatch event handlers
         var dec=decode(rks.shift());// behead queue
-        if(MODE==='normal'){
+        if(cur.mode==='normal'){
             switch(dec.code){
-            case'i':MODE='insert';cur.insert_mode();break;
-            case'a':MODE='insert';cur.append_mode();break;
+            case'i':cur.mode='insert';cur.insert_mode();break;
+            case'a':cur.mode='insert';cur.append_mode();break;
             case'b':cur.left(2);break;
             case'e':cur.right(2);break;
             case'h':cur.left(1);break;
@@ -41,13 +41,13 @@ var update=(rks,t)=>{
             case'l':cur.right(1);break;
             case' ':console.log('SPC-');break;// hmm...
             }
-        }else if(MODE==='insert'){
+        }else if(cur.mode==='insert'){
             switch(dec.type){
-            case'escape':MODE='normal';break;
+            case'escape':cur.mode='normal';break;
             case'print':
-                buf.ins(dec.code);cur.right(0);
+                buf.ins(dec.code);cur.rowcol();
                 if(dec.code==='f'){ESC_FD=-t;}
-                if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){MODE='normal';cur.esc_fd();}break;
+                if(dec.code==='d'&&ESC_FD<0&&t+ESC_FD<500){cur.mode='normal';cur.esc_fd();}break;
             case'edit':
                 if(dec.code==='B'){buf.del(-1);cur.left(1,true);}
                 else if(dec.code==='D'){buf.del(1);}
@@ -56,10 +56,10 @@ var update=(rks,t)=>{
         }
         if(dec.type==='arrow'){//all modes support arrows in the same way
             switch(dec.code){
-            case'L':cur.left(1);break;
+            case'L':cur.left(1,true);break;
             case'D':cur.down(1);break;
             case'U':cur.up(1);break;
-            case'R':cur.right(1);break;
+            case'R':cur.right(1,true);break;
             }
         }
     }

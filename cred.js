@@ -1,7 +1,6 @@
 // TODO: scrolling, file i/o
 'use strict';
 var c=document.getElementById('c').getContext('2d'),// rarely changing bottom canvas (for text)
-    MODE='normal',
     ESC_FD=0,
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
     Cursor=b=>({
@@ -9,48 +8,42 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         cl:0,// current line
         co:0,// current column
         cx:0,// maximum column
-        //pl:0,// previous line
-        //po:0,// previous column
+        mode:'normal',// insert, visual, lisp(?)
+        msg:'',
 
         // METHODS
-        curln(){return b.lines.map(_=>b.pt>=_).lastIndexOf(true);},
+        curln(){return b.lines.map(x=>b.pt>x).lastIndexOf(true);},// line containing point
+        //curln(){return b.lines.map(x=>b.pt>=x).lastIndexOf(true);},// line containing point
         eol(){return b.s[b.pt+1]==='\n';},// end of line
         bol(){return b.s[b.pt-1]==='\n';},// beginning of line
         bob(){return b.pt===0;},// beginning of buffer
         eob(){return b.pt>=b.s.length-0;},// end of buffer
 
-        // to put the point at column X on line Y:
-        // goto line Y lines begin with a newline except the first one in the file
-        // example string:
-        // 0    5     10   15   20   25   30   35    40   45   50   55   60
-        // some text\n...second line is longer, and\nthe third line is last
-        //                                           ^ column=0, line=2, point=40
-        //            ^ column 0, line 1, point 10
-        // ^ column 0, line 0
-        // we can see that in terms of the buffer's Point:
-        // line | column | point
-        // 0    | 0      | follows column
-        // 1    | 0      | first newline index, plus 1
-        // 2    | 0      | second newline index, plus 1
-
-        // del: delete override - allow moving past left-side limits if deleting
-        left(n,del=false){
+        // freely: allow moving past left-side limits
+        left(n,freely=false){
             b.pt-=n;
             if(b.pt<0){b.pt=0;}
-            if(!del&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
-            this.left_right();
+            if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
+            this.rowcol();
         },
-        // wo: write override - allow moving past right-side limits if writing
-        right(n,wo=false){
+
+        // freely: allow moving past right-side limits
+        right(n,freely=false){
             b.pt+=n;
-            if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
-            if(!wo&&n===1&&b.s[b.pt]==='\n'){b.pt-=1;}
-            this.left_right();
+            if(!freely){
+                if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
+                if(n===1&&b.s[b.pt]==='\n'){b.pt-=1;}
+            }
+            this.rowcol();
         },
-        left_right(){
-            this.cl=this.curln();
-            this.co=b.pt-(this.cl===0?0:1)-b.lines[this.cl];// subtract the extra newline except at line 0
-            this.cx=this.co;
+        append_mode(){this.right(1,true);},
+        insert_mode(){},// intentionally left blank
+
+        rowcol(){
+            if(b.pt){this.cl=this.curln();}
+            else{this.cl=0;}
+            // subtract the extra newline except at line 0
+            this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
         },
 
         up(n){this.up_down(Math.max(this.cl-n,0));},
@@ -63,11 +56,11 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             else{b.pt=b.lines[target_line]+1+this.co;}
         },
 
-        append_mode(){if(b.s[b.pt]!=='\n'){this.right(1,true);}},// TODO: fix for appending around newlines
-        //append_mode(){this.right(1,true);},
-        insert_mode(){},// intentionally left blank
-        esc_fd(){b.del(-2);this.left(2);if(b.pt>b.s.length-1){b.pt=b.s.length-1;}},
-        msg:'',
+        esc_fd(){
+            b.del(-2);
+            this.left(3,true);
+            if(b.pt>b.s.length-1){b.pt=b.s.length-1;}
+        },
         status(){return this.msg+' [col: '+this.co+', cx: '+this.cx+', pt: '+b.pt+', line: '+this.cl+']';},
     }),
     Buffer=()=>({
@@ -94,9 +87,9 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
                     snd=this.s.slice(this.pt);
                 this.s=fst+ch+snd;
             }
-            this.lines=this.gen_lines();
-            // NOTE: if we add newlines to lines as we go, we can add ch.length to each element
-            // of lines that is past where point started.
+            // NOTE: by adding newlines as we go, we can add ch.length
+            // to each element of lines that is past the editing location.
+            this.lines=this.gen_lines();// recalculate whole line table AAAH!
             this.pt+=ch.length;
         },
 
@@ -106,6 +99,8 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
             var fst=this.s.slice(0,this.pt+leftd),
                 snd=this.s.slice(this.pt+rightd);
             this.s=fst+snd;
+            // NOTE: by subtracting newlines as we go, we can subtract ch.length
+            // from each element of lines past the editing location.
             this.lines=this.gen_lines();// recalculate whole line table AAAH!
         },
     }),
@@ -145,19 +140,21 @@ var render_cursor=()=>{
 
     c.save();
     c.globalCompositeOperation='difference';
+    var cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
+        wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
+
     c.fillStyle='orange';
     if(cur.bob()){c.fillStyle='green';}
     else if(cur.eob()){c.fillStyle='red';}
     else if(cur.bol()){c.fillStyle='lightgreen';}
     else if(cur.eol()){c.fillStyle='pink';}
+    if(!wid){wid=10;}
 
     // debugging status line (message, [col, maxcol, point, line])
     c.clearRect(offs.bw,offs.lmul(10),c.canvas.width,offs.h);
     c.fillText(cur.status(),offs.bw,offs.lmul(10)+offs.h);
 
-    var cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
-        wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
-    if(MODE==='insert'){wid=1;}
+    if(cur.mode==='insert'){wid=1;}
     c.fillRect(offs.bw+cur_left_edge,ltop-offs.h+offs.b,wid,offs.h+offs.b/2);// draw cursor over existing text
     c.restore();
 }
@@ -191,4 +188,3 @@ buf.ins('five\n');
 buf.ins('five\n');
 buf.ins('five\n');
 buf.ins('five\n');
-cur.right(0);
