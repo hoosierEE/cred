@@ -5,7 +5,7 @@ var Buffer=()=>({
     lines:[0],
 
     // METHODS
-    getline(n){// Int->String // the line, not including \n
+    getline(n){// Int->String the Nth line, not including any trailing newline
         var l=this.lines,len=l.length;
         if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
         else if(n===0){return this.s.slice(0,l[1]);}// first
@@ -13,6 +13,7 @@ var Buffer=()=>({
         else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
     },
 
+    // ()->[Int] array of line start indexes
     gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
 
     ins(ch){// insert ch chars to right of p
@@ -22,9 +23,7 @@ var Buffer=()=>({
                 snd=this.s.slice(this.pt);
             this.s=fst+ch+snd;
         }
-        // NOTE: by adding newlines as we go, we can add ch.length
-        // to each element of lines that is past the editing location.
-        this.lines=this.gen_lines();// recalculate whole line table AAAH!
+        this.lines=this.gen_lines();// recalc whole table - works, but expensive
         this.pt+=ch.length;
     },
 
@@ -34,8 +33,6 @@ var Buffer=()=>({
         var fst=this.s.slice(0,this.pt+leftd),
             snd=this.s.slice(this.pt+rightd);
         this.s=fst+snd;
-        // NOTE: by subtracting newlines as we go, we can subtract ch.length
-        // from each element of lines past the editing location.
-        this.lines=this.gen_lines();// recalculate whole line table AAAH!
+        this.lines=this.gen_lines();// recalculate whole table - works, but expensive
     },
 });
