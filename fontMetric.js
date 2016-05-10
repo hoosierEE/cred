@@ -13,7 +13,7 @@ var objOff=(obj)=>{
         currtop+=obj.offsetTop;
     }
     return[currleft,currtop];
-}
+};
 
 var FontMetric=(fontName,fontSize)=>{
     var text=document.createElement("span");
@@ -56,5 +56,4 @@ var FontMetric=(fontName,fontSize)=>{
 
     // return text accent, descent and total height
     return [taccent,theight,tdescent];
-}
-
+};
