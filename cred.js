@@ -2,7 +2,6 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),// rarely changing bottom canvas (for text)
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
-
     ScreenOffsets=()=>({
         bw:20,// border width
         h:0,y:0,b:0,
