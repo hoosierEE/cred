@@ -29,9 +29,10 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         // freely: allow moving past right-side limits
         right(n,freely=false){
             if(this.eob()||this.empty_line()){return;}
-            b.pt+=n;
-            if(!freely){
-                if(n===1&&b.s[b.pt]==='\n'||b.pt>b.s.length){b.pt-=1;}
+            if(b.pt<b.s.length){
+                if(b.s[b.pt+1]==='\n'&&n===1){b.pt+=freely?1:0;}
+                else if(b.pt+n>b.s.length){b.pt=b.s.length-1;}
+                else{b.pt+=n;}
             }
             this.rowcol();
         },
@@ -39,6 +40,7 @@ var c=document.getElementById('c').getContext('2d'),// rarely changing bottom ca
         esc_fd(){
             b.del(-2);
             this.left(2);
+            if(this.eol()||this.eob()){this.left(1);}
             this.normal_mode();
         },
 
