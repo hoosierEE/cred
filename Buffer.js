@@ -19,7 +19,7 @@ var Buffer=()=>({
     ins(ch){// insert ch chars to right of p
         if(this.pt===this.s.length){this.s=this.s+ch;}
         else{var fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
-        this.lines=this.gen_lines();// recalc whole table - works, but expensive
+        this.lines=this.gen_lines();
         this.pt+=ch.length;
     },
 
@@ -27,6 +27,6 @@ var Buffer=()=>({
         if(n===0||n+this.pt<0){return;}
         var leftd=n<0?n:0,rightd=n<0?0:n;
         var fst=this.s.slice(0,this.pt+leftd),snd=this.s.slice(this.pt+rightd);this.s=fst+snd;
-        this.lines=this.gen_lines();// recalculate whole table - works, but expensive
+        this.lines=this.gen_lines();
     },
 });
