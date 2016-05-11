@@ -13,6 +13,12 @@ var Cursor=(b)=>({// Buffer -> Cursor
     bob(){return b.pt===0;},// beginning of buffer
     eob(){return b.pt>=b.s.length;},// end of buffer
 
+    rowcol(){
+        this.cl=b.pt?this.curln():0;
+        // subtract the extra newline except at line 0
+        this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
+    },
+
     // freely: allow moving past left-side limits
     left(n,freely=false){
         b.pt-=n;
@@ -44,12 +50,7 @@ var Cursor=(b)=>({// Buffer -> Cursor
     insert_mode(){this.mode='insert';},
     normal_mode(){this.mode='normal';this.rowcol();},
     visual_mode(){this.mode='visual';},
-
-    rowcol(){
-        this.cl=b.pt?this.curln():0;
-        // subtract the extra newline except at line 0
-        this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
-    },
+    status(){return this.cl+':'+this.co;},
 
     up(n){this.up_down(Math.max(this.cl-n,0));},
     down(n){this.up_down(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
@@ -60,6 +61,4 @@ var Cursor=(b)=>({// Buffer -> Cursor
         if(target_line===0){b.pt=this.co;}
         else{b.pt=b.lines[target_line]+1+this.co;}
     },
-
-    status(){return this.cl+':'+this.co;},
 });

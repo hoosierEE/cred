@@ -18,21 +18,15 @@ var Buffer=()=>({
 
     ins(ch){// insert ch chars to right of p
         if(this.pt===this.s.length){this.s=this.s+ch;}
-        else{
-            var fst=this.s.slice(0,this.pt),
-                snd=this.s.slice(this.pt);
-            this.s=fst+ch+snd;
-        }
+        else{var fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
         this.lines=this.gen_lines();// recalc whole table - works, but expensive
         this.pt+=ch.length;
     },
 
     del(n){// delete n chars to right (n>0) or left (n<0) of point
         if(n===0||n+this.pt<0){return;}
-        var leftd=n<0?n:0, rightd=n<0?0:n;
-        var fst=this.s.slice(0,this.pt+leftd),
-            snd=this.s.slice(this.pt+rightd);
-        this.s=fst+snd;
+        var leftd=n<0?n:0,rightd=n<0?0:n;
+        var fst=this.s.slice(0,this.pt+leftd),snd=this.s.slice(this.pt+rightd);this.s=fst+snd;
         this.lines=this.gen_lines();// recalculate whole table - works, but expensive
     },
 });
