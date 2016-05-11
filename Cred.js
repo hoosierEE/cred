@@ -18,6 +18,7 @@ var c=document.getElementById('c').getContext('2d'),
         bw:20,// border width
         h:0,y:0,b:0,
         lmul(lnum){return this.y+this.h*lnum;},// lower edge of line
+        shil(c){return Math.floor((c.canvas.height-this.y)/this.h)},// screen height, in lines
         init(ctx){
             var fm=FontMetric(settings.font_name,settings.font_size);
             this.h=fm[1];// total line height
@@ -51,9 +52,6 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     if(cur.mode==='insert'){wid=1;}
     c.fillRect(offs.bw+cur_left_edge,ltop-offs.h+offs.b,wid,offs.h+offs.b/2);// draw cursor over existing text
     c.restore();
-
-    // move canvas to show cursor
-    c.setTransform(1,0,0,1,0,-offs.lmul(cur.curln()-buf.lines.length));
 };
 
 var render_text=()=>{
@@ -67,6 +65,9 @@ var gameloop=now=>{
     update(KEYQ,now);
     render_text();
     render_cursor();
+
+    // move canvas by the amount necessary to put the cursor on-screen
+    c.setTransform(1,0,0,1,0,-offs.lmul(cur.curln()-offs.shil(c)));
 };
 
 var rsz=()=>{

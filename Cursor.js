@@ -16,7 +16,21 @@ var Cursor=(b)=>({// Buffer -> Cursor
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},// line containing point
     eol(){return b.s[b.pt]==='\n';},// end-of-line: cursor is on a newline
     bol(){return b.s[b.pt-1]==='\n';},// beginning-of-line: newline directly to left of cursor
-    bob(){return b.pt===0;},// beginning of buffe
+    bob(){return b.pt===0;},// beginning of buffer
+    eob(){return b.pt>=b.s.length;},// end of buffer
+
+    rowcol(){
+        this.cl=b.pt?this.curln():0;
+        // subtract the extra newline except at line 0
+        this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
+    },
+
+    // freely: allow moving past left-side limits
+    left(n,freely=false){
+        b.pt-=n;
+        if(b.pt<0){b.pt=0;}
+        if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
+        this.rowcol();
     },
 
     // freely: allow moving past right-side limits
