@@ -13,7 +13,7 @@ var update=(rks,t)=>{
             case'b':cur.left(2);break;// TODO non-fake word motions
             case'e':cur.right(2);break;// TODO non-fake word motions
             case'x':buf.del(1);cur.left(1);break;
-            case' ':console.log('SPC-');break;
+            case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
             }
         }
         else if(cur.mode==='insert'){

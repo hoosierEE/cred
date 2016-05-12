@@ -56,7 +56,7 @@ var Cursor=(b)=>({// Buffer -> Cursor
     insert_mode(){this.mode='insert';},
     normal_mode(){this.mode='normal';this.rowcol();},
     visual_mode(){this.mode='visual';},
-    status(){return this.cl+':'+this.co;},
+    status(){return this.mode+'  '+this.cl+':'+this.co;},
 
     up(n){this.up_down(Math.max(this.cl-n,0));},
     down(n){this.up_down(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
