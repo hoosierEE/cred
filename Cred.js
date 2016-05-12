@@ -14,37 +14,36 @@ var c=document.getElementById('c').getContext('2d'),
         },
     }),
 
-    ScreenOffsets=(c)=>({// @param the target Canvas
+    ScreenOffsets=(c)=>({// @param a target Canvas
         bw:20,// border width
         h:0,y:0,b:0,
-        viewport:{x:0,y:0,w:c.canvas.width,h:c.canvas.height},
-        curln_y(n){return this.y+this.h*n;},// lower edge of line n, in pixels
-        curco_x(n){return this.bw;},// right edge of cursor at column n, in pixels
+        viewport:{x:0,y:0,w:0,h:0},// viewport bounding rectangle, position and size
+        curln_top(n){return this.y+this.h*n;},// top edge of line n, in pixels
         screen_lines(){return Math.floor((c.canvas.height-this.y)/this.h)},// screen height, in lines
-        scroll(m){// scroll to position m
-            // viewport determines bounding rect
+        scroll(){// scroll to cursor if it's outside viewport
+            var cur_top=this.curln_top(cur.cl),// top of cursor
+                v_upper=this.viewport.y,// top of viewport bounding rect
+                v_lower=v_upper+this.viewport.h;// bottom of viewport bounding rect
 
-            var amt=[0,0];// x,y
-            // test if cursor is outside viewport
-            // vertical
-            // horizontal
-            // move viewport (x or y)
-            if(cur.cl<this.screen_lines()){amt=this.curln_y(cur.cl);}
-            else{amt[1]=this.curln_y(m-Math.floor(this.screen_lines()/2));}
-            console.log('screen_lines: '+this.screen_lines()+', '+amt);
-            this.viewport.y=0;
-            this.viewport.h=0;
-            c.setTransform(1,0,0,1,amt[0],amt[1]);// cursor at bottom of page
-
-            // if cursor is outside bounding box in horizontal direction
-            this.viewport.x=0;
-            this.viewport.w=0;
+            console.log('ct: '+cur_top+' vu: '+v_upper+' vl: '+v_lower);
+            if(cur_top>v_lower*0.8){
+                // increment viewport
+                this.viewport.y+=cur_top-(0.8*v_lower|0);
+                if(this.viewport.y<0){this.viewport.y=0;}
+            }
+            if(cur_top<v_lower*0.2){
+                this.viewport.y=-(v_lower*0.2|0)+cur_top;
+                if(this.viewport.y<0){this.viewport.y=0;}
+            }
+            c.setTransform(1,0,0,1,0,-this.viewport.y);// cursor at bottom of page
         },
         init(ctx){// must be called before using other ScreenOffsets methods
             var fm=FontMetric(settings.font_name,settings.font_size);
+            //fm[0] is baseline (bottom edge of letters such as abcde)
             this.h=fm[1];// total line height
             this.b=fm[2];// lower bound of text such as: jgpq|
             this.y=this.h+this.bw;
+            this.viewport={x:0,y:0,w:c.canvas.width,h:c.canvas.height};
         },
     }),
     settings=Settings(),
@@ -56,7 +55,7 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     // 3. draw the cursor at the new position
     c.save();
     var l=buf.getline(cur.cl);// current line (what)
-    var ltop=offs.curln_y(cur.cl);// top edge of current line (where)
+    var ltop=offs.curln_top(cur.cl);// top edge of current line (where)
     c.globalCompositeOperation='difference';
     var cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
         wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
@@ -65,8 +64,7 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     if(!wid){wid=10;}
 
     // debugging status line (message, [col, maxcol, point, line])
-    c.clearRect(offs.bw,offs.curln_y(10),c.canvas.width,offs.h);
-    c.fillText(cur.status(),offs.bw,offs.curln_y(10)+offs.h);
+    c.fillText(cur.status(),offs.bw,offs.curln_top(0)+offs.h);
 
     if(cur.mode==='insert'){wid=1;}
     c.fillRect(offs.bw+cur_left_edge,ltop-offs.h+offs.b,wid,offs.h+offs.b/2);// draw cursor over existing text
@@ -74,10 +72,9 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 };
 
 var render_text=()=>{
-    var h=c.canvas.height;
-    c.clearRect(0,-h,c.canvas.width,3*h);
+    c.clearRect(0,0,c.canvas.width,offs.viewport.y+offs.viewport.h);
     // render ALL THE LINES
-    buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.curln_y(i)));
+    buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.curln_top(i)));
 };
 
 var gameloop=now=>{
@@ -89,7 +86,7 @@ var gameloop=now=>{
     // render_popups();
 
     // move canvas by the amount necessary to put the cursor on-screen
-    offs.scroll(cur.cl);
+    offs.scroll();
 };
 
 var rsz=()=>{
