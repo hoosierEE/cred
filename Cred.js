@@ -45,7 +45,7 @@ var c=document.getElementById('c').getContext('2d'),
             this.line_height=fm[1];// total line height
             this.baseline=fm[2];// lower bound of text such as: jgpq|
             this.v={x:0,y:0,w:c.canvas.width,h:c.canvas.height};
-            this.scroll();
+            //this.scroll();
         },
     }),
     settings=Settings(),
@@ -59,19 +59,18 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     var l=buf.getline(cur.cl),// current line
         ltop=offs.ln_top(cur.cl),// top edge of current line
         cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
-        wid=c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge;
+        wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10;
 
-    if(!wid){wid=10;}
-    // bottom of screen
+    // statusbar
     var status_line_y=offs.v.y+offs.v.h-offs.ln_top(-1);
     c.fillStyle='rgba(20,20,20,0.9)';
-    //c.clearRect(0,status_line_y-offs.line_height,c.canvas.width,2*offs.line_height);
     c.fillRect(0,status_line_y-offs.line_height-offs.baseline,c.canvas.width,2*offs.line_height);
+
+    // cursor
     c.fillStyle='orange';
     c.globalCompositeOperation='difference';
     c.fillText(cur.status(),offs.bw,status_line_y);// debug status line
 
-    if(cur.mode==='insert'){wid=1;}
     c.fillRect(offs.bw+cur_left_edge,ltop-offs.line_height+offs.baseline,wid,offs.line_height);
     c.restore();
 };
