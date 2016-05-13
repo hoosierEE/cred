@@ -1,6 +1,6 @@
 * cred
 
-[[file:img/comma.png]]
+[[file:img/with-cursors.png]]
 
 /Canvas Rendered EDitor/
 
