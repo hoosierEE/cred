@@ -3,6 +3,7 @@ var Buffer=()=>({
     s:'',
     pt:0,
     lines:[0],
+    changed:false,
 
     // METHODS
     getline(n){// Int->String the Nth line, not including any trailing newline
@@ -21,6 +22,7 @@ var Buffer=()=>({
         else{var fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
         this.lines=this.gen_lines();
         this.pt+=ch.length;
+        this.changed=true;
     },
 
     del(n){// delete n chars to right (n>0) or left (n<0) of point
@@ -28,5 +30,6 @@ var Buffer=()=>({
         var leftd=n<0?n:0,rightd=n<0?0:n;
         var fst=this.s.slice(0,this.pt+leftd),snd=this.s.slice(this.pt+rightd);this.s=fst+snd;
         this.lines=this.gen_lines();
+        this.changed=true;
     },
 });
