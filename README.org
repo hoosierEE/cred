@@ -35,28 +35,6 @@ Fork/pull if you want to contribute.
 License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
 
 ** Coding Style
-Google Chrome 49 is the target browser, which eliminates the need for verbose polyfills.  The Chrome JavaScript runtime also supports some features that I use a lot, particularly this "lightweight" function syntax:
-
-#+BEGIN_SRC js
-// instead of this:
-var foo=function(param){return explicit_return_value;};
-
-// use this when possible:
-var foo=param=>{implicit_return_value;};
-#+END_SRC
-
-As well as this alternative syntax for defining a function within an object literal (in this example, also used with an arrow function returning an object literal):
-
-#+BEGIN_SRC js
-var Thing=()=>({
-    m_one(p){p+1;},
-    m_two(q){q*q;}, // trailing comma is fine
-});
-var a=Thing();
-a.m_one(2); // returns 3
-a.m_two(9); // returns 81
-#+END_SRC
-
 Some inspiration for this style comes from this [[http://nsl.com/papers/style.pdf][K style guide]].
 
 Other conventions:
@@ -66,7 +44,7 @@ Other conventions:
 - rarely_used_name_snake_case
 - cu // commonly used name with a comment
 
-I also somewhat hand-minify code when I consider it to be stable.  Below is a snippet of that's being actively developed:
+I also somewhat hand-minify code when I consider it to be stable.  Below is an in-progres snippet:
 
 #+BEGIN_SRC js
 // ...
@@ -83,7 +61,6 @@ I also somewhat hand-minify code when I consider it to be stable.  Below is a sn
         do_last_thing();}};
 
 #+END_SRC
-
 
 That said, I think that I'm not zealous about style, and am open to change.
 
