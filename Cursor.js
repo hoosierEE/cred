@@ -15,8 +15,6 @@ var Cursor=(b)=>({// Buffer -> Cursor
     // METHODS
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},// line containing point
     eol(){return b.s[b.pt]==='\n';},// end-of-line: cursor is on a newline
-    bol(){return b.s[b.pt-1]==='\n';},// beginning-of-line: newline directly to left of cursor
-    bob(){return b.pt===0;},// beginning of buffer
     eob(){return b.pt>=b.s.length;},// end of buffer
 
     rowcol(){

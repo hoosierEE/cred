@@ -6,7 +6,7 @@ var c=document.getElementById('c').getContext('2d'),
     cur=Cursor(buf),
 
     Configuration=()=>({
-        font_name:'Sans-Serif',
+        font_name:'Verdana',//'Sans-Serif',
         font_size:'24px',
         init(c){
             c.font=this.font_size+' '+this.font_name;
@@ -17,17 +17,38 @@ var c=document.getElementById('c').getContext('2d'),
     Window=(c)=>({// c: the target Canvas
         bw:20,// border width
         // defaults: bad enough to clue you in
-        line_height:10, baseline:5, v:{x:0,y:0,w:0,h:0},// viewport position and size
+        line_height:10, baseline:5, v:{},// viewport position and size
         ln_top(n){return this.bw+this.line_height*(n+1);},// top pixel of line n
-        num_visible_lines(){return Math.floor((c.canvas.height-2*this.bw)/this.line_height);},
-        scroll(soff=4){// Scroll to cursor. Optional scroll offset `soff` lines from top/bottom of screen.
-            // TODO: horizontal scroll
+        co_left(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(0,n)).width;},// left edge of column n
+        co_right(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(n,n+1)).width;},// right edge of column n
+        num_visible_lines(){return (c.canvas.height-2*this.bw)/this.line_height|0;},
+        scroll(soff=5){// TODO scrolloffset `soff` wonky for large values
 
-            var prev_y=this.v.y;
-            // NOTE: while loops make the math easier.
-            while(this.ln_top(cur.cl+soff)>this.v.y+this.v.h){this.v.y+=this.ln_top(cur.cl)-this.ln_top(cur.cl-1);}
-            while(this.ln_top(cur.cl-soff)<this.v.y){this.v.y-=this.ln_top(cur.cl)-this.ln_top(cur.cl-1);}
+            if(soff>this.num_visible_lines()){soff=this.num_visible_lines()/2|0;}
+            else if(soff<0){soff=0;}
+            var prev_y=this.v.y,
+                prev_x=this.v.x;
+
+
+            // scroll down
+            var t_ln_top=this.ln_top(cur.cl+soff);
+            if(t_ln_top>this.v.y+this.v.h){
+                //this.v.y+=this.line_height*(t_ln_top)
+            }
+            if(t_ln_top<this.v.y){
+            }
+
+            // while loops: slower than doing the math, but hey: no math!
+            while(this.ln_top(cur.cl+soff)>this.v.y+this.v.h){
+                this.v.y+=this.ln_top(cur.cl)-this.ln_top(cur.cl-1);
+            }
+            // scroll up
+            while(this.ln_top(cur.cl-soff)<this.v.y){
+                this.v.y-=this.ln_top(cur.cl)-this.ln_top(cur.cl-1);
+            }
+
             if(this.v.y<0){this.v.y=0;}// bounds check
+            if(this.v.x<0){this.v.x=0;}
             if(prev_y!=this.v.y){c.setTransform(1,0,0,1,0,-this.v.y);}// move canvas opposite of viewport
         },
         init(ctx){// must be called before using other Window methods
@@ -44,18 +65,12 @@ var c=document.getElementById('c').getContext('2d'),
 
 var render_text=()=>{
     c.clearRect(0,0,c.canvas.width,win.v.y+win.v.h);
-    if(buf.changed){// If the buffer changed, render everything
-        buf.changed=false;
-        buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),win.bw,win.ln_top(i)));
-    }
-    else{
-        var from_line=cur.cl-win.num_visible_lines(),
-            to_line=cur.cl+win.num_visible_lines();
-        if(from_line<0){from_line=0;}
-        if(to_line>buf.lines.length-1){to_line=buf.lines.length-1;}
-        for(var i=from_line;i<to_line+1;++i){
-            c.fillText(buf.getline(i),win.bw,win.ln_top(i));
-        }
+    var from_line=cur.cl-win.num_visible_lines(),
+        to_line=cur.cl+win.num_visible_lines();
+    if(from_line<0){from_line=0;}
+    if(to_line>buf.lines.length-1){to_line=buf.lines.length-1;}
+    for(var i=from_line;i<to_line+1;++i){
+        c.fillText(buf.getline(i),win.bw,win.ln_top(i));
     }
 };
 
@@ -70,16 +85,16 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
         wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10;
 
     // statusbar background
-    var status_line_y=win.v.y+win.v.h-win.ln_top(-1);
-    c.fillStyle='rgba(20,20,20,0.9)';
+    var status_line_y=win.v.y+win.v.h-win.line_height;
+    c.fillStyle='rgba(20,20,20,0.8)';
     c.fillRect(0,status_line_y-win.line_height-win.baseline,c.canvas.width,2*win.line_height);
 
     // statusbar
     c.fillStyle='orange';
-    c.globalCompositeOperation='difference';
     c.fillText(cur.status(),win.bw,status_line_y);// debug status line
 
     // cursor
+    c.globalCompositeOperation='difference';
     c.fillRect(win.bw+cur_left_edge,win.ln_top(cur.cl)-win.line_height+win.baseline,wid,win.line_height);
     c.restore();
 };
@@ -151,3 +166,4 @@ var example_code=
     '};';
 buf.ins(example_code);
 cur.rowcol();
+cur.up(11);
