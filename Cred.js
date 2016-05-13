@@ -43,21 +43,16 @@ var c=document.getElementById('c').getContext('2d'),
     offs=ScreenOffsets(c);
 
 var render_text=()=>{
+    c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);
     if(buf.changed){// If the buffer changed, render everything
         buf.changed=false;
-        c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);
         buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.ln_top(i)));
     }
-    // TODO: only render lines inside of viewport?
-    // if soff==0, there could be up to 1 screen's worth of lines on either side
-    // of the cursor.  So always render that many lines before and after.
     else{
         var from_line=cur.cl-offs.num_visible_lines(),
             to_line=cur.cl+offs.num_visible_lines();
         if(from_line<0){from_line=0;}
         if(to_line>buf.lines.length-1){to_line=buf.lines.length-1;}
-        console.log('from: '+from_line+', to: '+to_line);
-        c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);
         for(var i=from_line;i<to_line+1;++i){
             c.fillText(buf.getline(i),offs.bw,offs.ln_top(i));
         }
@@ -91,8 +86,9 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 
 var gameloop=now=>{
     update(KEYQ,now);
-    offs.scroll();// must happen before anything gets drawn, or scrolling is one frame behind
+    offs.scroll();
     render_text();
+    // other ideas:
     // render_minimap();
     // render_statusline();
     render_cursor();
