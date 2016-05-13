@@ -5,7 +5,7 @@ var c=document.getElementById('c').getContext('2d'),
     buf=Buffer(),
     cur=Cursor(buf),
 
-    Settings=()=>({
+    Configuration=()=>({
         font_name:'Sans-Serif',
         font_size:'24px',
         init(c){
@@ -14,7 +14,7 @@ var c=document.getElementById('c').getContext('2d'),
         },
     }),
 
-    ScreenOffsets=(c)=>({// c: the target Canvas
+    Window=(c)=>({// c: the target Canvas
         bw:20,// border width
         // defaults: bad enough to clue you in
         line_height:10, baseline:5, v:{x:0,y:0,w:0,h:0},// viewport position and size
@@ -30,8 +30,8 @@ var c=document.getElementById('c').getContext('2d'),
             if(this.v.y<0){this.v.y=0;}// bounds check
             if(prev_y!=this.v.y){c.setTransform(1,0,0,1,0,-this.v.y);}// move canvas opposite of viewport
         },
-        init(ctx){// must be called before using other ScreenOffsets methods
-            var fm=FontMetric(settings.font_name,settings.font_size);
+        init(ctx){// must be called before using other Window methods
+            var fm=FontMetric(cfg.font_name,cfg.font_size);
             //fm[0] is baseline (bottom edge of letters such as abcde)
             this.line_height=fm[1];// total line height
             this.baseline=fm[2];// lower bound of text such as: jgpq|
@@ -39,22 +39,22 @@ var c=document.getElementById('c').getContext('2d'),
             this.scroll();
         },
     }),
-    settings=Settings(),
-    offs=ScreenOffsets(c);
+    cfg=Configuration(),
+    win=Window(c);
 
 var render_text=()=>{
-    c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);
+    c.clearRect(0,0,c.canvas.width,win.v.y+win.v.h);
     if(buf.changed){// If the buffer changed, render everything
         buf.changed=false;
-        buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.ln_top(i)));
+        buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),win.bw,win.ln_top(i)));
     }
     else{
-        var from_line=cur.cl-offs.num_visible_lines(),
-            to_line=cur.cl+offs.num_visible_lines();
+        var from_line=cur.cl-win.num_visible_lines(),
+            to_line=cur.cl+win.num_visible_lines();
         if(from_line<0){from_line=0;}
         if(to_line>buf.lines.length-1){to_line=buf.lines.length-1;}
         for(var i=from_line;i<to_line+1;++i){
-            c.fillText(buf.getline(i),offs.bw,offs.ln_top(i));
+            c.fillText(buf.getline(i),win.bw,win.ln_top(i));
         }
     }
 };
@@ -65,28 +65,31 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     // 3. draw the cursor at the new position
     c.save();
     var l=buf.getline(cur.cl),// current line
-        //ltop=offs.ln_top(cur.cl),// top edge of current line
+        //ltop=win.ln_top(cur.cl),// top edge of current line
         cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
         wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10;
 
     // statusbar background
-    var status_line_y=offs.v.y+offs.v.h-offs.ln_top(-1);
+    var status_line_y=win.v.y+win.v.h-win.ln_top(-1);
     c.fillStyle='rgba(20,20,20,0.9)';
-    c.fillRect(0,status_line_y-offs.line_height-offs.baseline,c.canvas.width,2*offs.line_height);
+    c.fillRect(0,status_line_y-win.line_height-win.baseline,c.canvas.width,2*win.line_height);
 
     // statusbar
     c.fillStyle='orange';
     c.globalCompositeOperation='difference';
-    c.fillText(cur.status(),offs.bw,status_line_y);// debug status line
+    c.fillText(cur.status(),win.bw,status_line_y);// debug status line
 
     // cursor
-    c.fillRect(offs.bw+cur_left_edge,offs.ln_top(cur.cl)-offs.line_height+offs.baseline,wid,offs.line_height);
+    c.fillRect(win.bw+cur_left_edge,win.ln_top(cur.cl)-win.line_height+win.baseline,wid,win.line_height);
     c.restore();
 };
 
 var gameloop=now=>{
+    // LOGIC
     update(KEYQ,now);
-    offs.scroll();
+    win.scroll();
+
+    // RENDER - only after transforming text, viewport, or cursor
     render_text();
     // other ideas:
     // render_minimap();
@@ -100,8 +103,8 @@ var rsz=()=>{
     requestAnimationFrame(gameloop);
     c.canvas.width=c.canvas.clientWidth;
     c.canvas.height=c.canvas.clientHeight;
-    settings.init(c);
-    offs.init(c);
+    cfg.init(c);
+    win.init(c);
 };
 
 window.onload=rsz;
@@ -117,34 +120,34 @@ window.onkeydown=(k)=>{
 var example_code=
     'if(!wid){wid=10;}\n'+
     '// bottom of screen\n'+
-    'var status_line_y=offs.v.y+offs.v.h-offs.ln_top(-1);\n'+
-    'c.clearRect(0,status_line_y-offs.line_height,c.canvas.width,2*offs.line_height);\n'+
-    'c.fillText(cur.status(),offs.bw,status_line_y);// debug status line\n'+
+    'var status_line_y=win.v.y+win.v.h-win.ln_top(-1);\n'+
+    'c.clearRect(0,status_line_y-win.line_height,c.canvas.width,2*win.line_height);\n'+
+    'c.fillText(cur.status(),win.bw,status_line_y);// debug status line\n'+
     '\n'+
     'if(cur.mode==="insert"){wid=1;}\n'+
-    'c.fillRect(offs.bw+cur_left_edge,ltop-offs.line_height+offs.baseline,wid,offs.line_height);\n'+
+    'c.fillRect(win.bw+cur_left_edge,ltop-win.line_height+win.baseline,wid,win.line_height);\n'+
     'c.restore();\n'+
     '};\n'+
     '\n'+
     'var render_text=()=>{\n'+
-    'c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);\n'+
+    'c.clearRect(0,0,c.canvas.width,win.v.y+win.v.h);\n'+
     '// render ALL THE LINES\n'+
-    'buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.ln_top(i)));\n'+
+    'buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),win.bw,win.ln_top(i)));\n'+
     'if(!wid){wid=10;}\n'+
     '// bottom of screen\n'+
-    'var status_line_y=offs.v.y+offs.v.h-offs.ln_top(-1);\n'+
-    'c.clearRect(0,status_line_y-offs.line_height,c.canvas.width,2*offs.line_height);\n'+
-    'c.fillText(cur.status(),offs.bw,status_line_y);// debug status line\n'+
+    'var status_line_y=win.v.y+win.v.h-win.ln_top(-1);\n'+
+    'c.clearRect(0,status_line_y-win.line_height,c.canvas.width,2*win.line_height);\n'+
+    'c.fillText(cur.status(),win.bw,status_line_y);// debug status line\n'+
     '\n'+
     'if(cur.mode==="insert"){wid=1;}\n'+
-    'c.fillRect(offs.bw+cur_left_edge,ltop-offs.line_height+offs.baseline,wid,offs.line_height);\n'+
+    'c.fillRect(win.bw+cur_left_edge,ltop-win.line_height+win.baseline,wid,win.line_height);\n'+
     'c.restore();\n'+
     '};\n'+
     '\n'+
     'var render_text=()=>{\n'+
-    'c.clearRect(0,0,c.canvas.width,offs.v.y+offs.v.h);\n'+
+    'c.clearRect(0,0,c.canvas.width,win.v.y+win.v.h);\n'+
     '// render ALL THE LINES\n'+
-    'buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),offs.bw,offs.ln_top(i)));\n'+
+    'buf.lines.forEach((ln,i)=>c.fillText(buf.getline(i),win.bw,win.ln_top(i)));\n'+
     '};';
 buf.ins(example_code);
 cur.rowcol();
