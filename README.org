@@ -34,35 +34,15 @@ Fork/pull if you want to contribute.
 ** License
 License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
 
-** Coding Style
-Some inspiration for this style comes from this [[http://nsl.com/papers/style.pdf][K style guide]].
-
-Other conventions:
+** Code Style
+Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other (not very strict) conventions include:
 
 - ALL_CAPS_CONSTANTS
 - ProperCamelCaseClasses
 - rarely_used_name_snake_case
 - cu // commonly used name with a comment
-
-I also somewhat hand-minify code when I consider it to be stable.  Below is an in-progres snippet:
-
-#+BEGIN_SRC js
-// ...
-        do_last_thing();
-    }
-};
-
-#+END_SRC
-
-...and here's what it would look like when "done":
-
-#+BEGIN_SRC js
-// ...
-        do_last_thing();}};
-
-#+END_SRC
-
-That said, I think that I'm not zealous about style, and am open to change.
+- 4-space indentation
+- "complete thoughts" short enough to fit on 1 line /should/ only take 1 line
 
 * Links
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]

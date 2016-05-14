@@ -1,4 +1,4 @@
-// TODO: horizontal scrolling, file i/o
+// TODO: file i/o
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     //mmc=document.getElementById('mmc').getContext('2d'),// minimap
@@ -8,7 +8,7 @@ var c=document.getElementById('c').getContext('2d'),
 
     Configuration=()=>({
         font_size:'18px',
-        font_name:'Verdana',//'Sans-Serif',
+        font_name:'mono',//'Sans-Serif',
         init(c){
             c.font=this.font_size+' '+this.font_name;
             c.fillStyle='#dacaba';
@@ -27,30 +27,25 @@ var c=document.getElementById('c').getContext('2d'),
         co_right(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(0,n+1)).width;},// right edge of column n
         num_visible_lines(){return (c.canvas.height-2*this.bw)/this.line_height|0;},
 
-        scroll(soff=5){// FIXME: `soff` is wonky for large values
-
+        scroll(soff=8){
             if(soff>this.num_visible_lines()){soff=this.num_visible_lines()/2|0;}
-            else if(soff<0){soff=0;}
-            var prev_y=this.v.y,
-                prev_x=this.v.x;
+            else if(soff<1){soff=1;}// smallest usable value - 0 is too small
+            var prev_y=this.v.y, prev_x=this.v.x;// grab current value of x and y
 
             // scroll up or down
-            var ltop=this.ln_top(cur.cl+soff),
-                lbot=this.ln_top(cur.cl-soff);
+            var ltop=this.ln_top(cur.cl+soff), lbot=this.ln_top(cur.cl-soff);
             if(ltop>this.v.y+this.v.h){this.v.y+=ltop-(this.v.y+this.v.h);}
             if(lbot<this.v.y){this.v.y-=this.v.y-lbot;}
 
             // scroll left or right
-            var crt=this.co_right(cur.co)+this.bw,
-                clt=this.co_left(cur.co)-this.bw;
+            var crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
             if(crt>this.v.x+this.v.w){this.v.x+=crt-this.v.w;}
             if(clt<this.v.x){this.v.x-=this.v.x-clt;}
 
-            // bounds checks
             if(this.v.y<0){this.v.y=0;}
             if(this.v.x<0){this.v.x=0;}
 
-            // move canvas opposite of viewport
+            // move canvas opposite of viewport if x or y changed
             if(prev_x!=this.v.x||prev_y!=this.v.y){
                 c.setTransform(1,0,0,1,-this.v.x,-this.v.y);
             }

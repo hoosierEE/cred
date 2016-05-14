@@ -10,7 +10,7 @@ var Buffer=()=>({
         var l=this.lines,len=l.length;
         if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
         else if(n===0){return this.s.slice(0,l[1]);}// first
-        else if(len<=n){return this.s.slice(1+l[len-1]);}// last
+        else if(n>=len){return this.s.slice(1+l[len-1]);}// last
         else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
     },
 

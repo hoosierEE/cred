@@ -17,12 +17,20 @@ var Cursor=(b)=>({// Buffer -> Cursor
     bol(){return b.s[b.pt-1]==='\n';},
     eol(){return b.s[b.pt]==='\n';},// end-of-line: cursor is on a newline
     eob(){return b.pt>=b.s.length;},// end of buffer
-    forward_to_char(c){
+    forward_search(r){
+        var ra=b.getline(this.cl).slice(this.co+1).search(r);
+        if(ra>=0){this.right(ra+1);}
+    },
+    backward_search(r){
+        var ra=b.getline(this.cl).slice(0,this.co).split('').reverse().join('').search(r);
+        if(ra>=0){this.left(ra+1);}
+    },
+    forward_char(c){
         if(this.eol()){return;}
         var ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
         if(ca>=0){this.right(ca+1);}
     },
-    backward_to_char(c){
+    backward_char(c){
         if(this.bol()){return;}
         var ca=b.getline(this.cl).slice(0,this.co).split('').reverse().indexOf(c);
         if(ca>=0){this.left(ca+1);}
