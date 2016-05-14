@@ -10,8 +10,8 @@ var update=(rks,t)=>{
             case'h':cur.left(1);break;
             case'i':cur.insert_mode();break;
             case'a':cur.append_mode();break;
-            case'b':cur.backward_search(/\W/);break;//cur.left(2);break;
-            case'e':cur.forward_search(/\W/);break;//cur.right(2);break;
+            case'b':cur.backward_search(/\W/);break;
+            case'e':cur.forward_search(/\W/);break;
             case'x':buf.del(1);cur.left(1);break;
             case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
             }
