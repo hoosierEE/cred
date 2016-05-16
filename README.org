@@ -45,10 +45,16 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 - "complete thoughts" short enough to fit on 1 line /should/ only take 1 line
 
 * Links
-- [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
+** overall architectural-type things
+
+- [[https://github.com/creationix/tedit][tedit - IDE that directly edits Git repos (really impressive concepts here!)]]
+- [[http://www.isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing][robust game loops]]
 - [[http://cryto.net/~joepie91/blog/2015/05/04/functional-programming-in-javascript-map-filter-reduce/][functional javascript]]
+
+** text-editor-specific things
+
+- [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
 - [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
 - [[https://github.com/jaz303/gapbuffer/blob/master/index.js][gap buffer in Node.js]]
 - [[https://news.ycombinator.com/item?id=11244103][yc on this subject]]
-- [[http://www.isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing][robust game loops]]
