@@ -13,6 +13,8 @@ var Cursor=(b)=>({// Buffer -> Cursor
     fd:0,// f-d escape sequence
     mode:'normal',// insert, TODO visual, various "minor modes"
 
+    fsm:{mode:'normal',multiplier:'1',argument:0},
+
     // METHODS
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
     bol(){return b.s[b.pt-1]==='\n';},
@@ -22,7 +24,7 @@ var Cursor=(b)=>({// Buffer -> Cursor
 
     // Search
     to_bol(){if(!this.bol()){this.left(this.co);}},
-    to_eol(){this.right(b.getline(this.cl).length-this.co-1);this.cx=-1;},
+    to_eol(){if(!this.eol()){this.right(b.getline(this.cl).length-this.co-1);this.cx=-1;}},
     to_bob(){b.pt=0;this.rowcol();},
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
@@ -76,8 +78,6 @@ var Cursor=(b)=>({// Buffer -> Cursor
     down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
     up_down_helper(target_line){
         var target_line_length=b.getline(target_line).length-1;
-        console.log(target_line_length);
-        if(target_line_length<0){target_line_length=0;}
         if(this.cx<0){this.co=target_line_length;}
         else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
         this.cl=target_line;
@@ -93,7 +93,6 @@ var Cursor=(b)=>({// Buffer -> Cursor
     visual_mode(){this.mode='visual';},
 
     // Parse a multi-part command
-    // TODO this doesn't really belong in Cursor, more like `update` or `decode`
     fsm:{mul:'',verb:'',subj:''},
     parse(dec){
         if(dec.code.search(/\d/)!==-1){this.fsm.mul+=dec.code;}
