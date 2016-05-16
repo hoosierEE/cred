@@ -48,6 +48,7 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 ** overall architectural-type things
 
 - [[https://github.com/creationix/tedit][tedit - IDE that directly edits Git repos (really impressive concepts here!)]]
+- [[https://github.com/martanne/vis#operators][vis feature set]]
 - [[http://vimsheet.com/][vim command cheatsheet]]
 - [[http://www.isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing][robust game loops]]
 - [[http://cryto.net/~joepie91/blog/2015/05/04/functional-programming-in-javascript-map-filter-reduce/][functional javascript]]
