@@ -21,34 +21,37 @@ var Cursor=(b)=>({// Buffer -> Cursor
 
     // Search
     to_bol(){this.left(this.co);},
-    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1)); this.cx=-1;},
-    to_bob(){b.pt=0; this.rowcol();},
-    to_eob(){b.pt=b.s.length-1; this.rowcol();},
+    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
+    to_bob(){b.pt=0;this.rowcol();},
+    to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
         var ra=b.s.slice(b.pt+1).search(/\n{2,}/);
         if(ra>=0){b.pt+=ra+2;this.rowcol();}
         else{this.to_eob();}
     },
-    backward_paragraph(){
-        var ra=b.s.slice(0,b.pt).split('').reverse().join('').search(/\n{2,}/);
-        if(ra>=0){b.pt-=ra+1;this.rowcol();}
-        else{this.to_bob();}
-    },
     forward_word(){
-        var ra=b.s.slice(b.pt+1).search(/\w\W/);if(ra>=0){this.right(ra+1,true);}
-    },
-    backward_word(){
-        var ra=b.s.slice(0,b.pt).split('').reverse().join('').search(/(\w\W)|(\W)/);
-        if(ra>=0){this.left(ra+1,true);}
+        var ra=b.s.slice(b.pt+1).search(/\w\W/);
+        if(ra>=0){this.right(ra+1,true);}
+        else{this.to_eol();}
     },
     forward_to_char(c){
         if(this.eol()){this.cx=-1;return;}
         var ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
         if(ca>=0){this.right(ca+1);}
     },
+    backward_paragraph(){
+        var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\n{2,}/);
+        if(ra>=0){b.pt-=ra+1;this.rowcol();}
+        else{this.to_bob();}
+    },
+    backward_word(){
+        var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\n|(\w\W)/);
+        if(ra>=0){this.left(ra+1,true);}
+        else{this.to_bol();}
+    },
     backward_to_char(c){
         if(this.bol()){return;}
-        var ca=b.getline(this.cl).slice(0,this.co).split('').reverse().indexOf(c);
+        var ca=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
         if(ca>=0){this.left(ca+1);}
     },
 
