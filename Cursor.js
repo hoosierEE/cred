@@ -21,20 +21,11 @@ var Cursor=(b)=>({// Buffer -> Cursor
     eol(){return b.s[b.pt]==='\n';},
     eob(){return b.pt>=b.s.length;},
 
+    fsm:{mul:'',verb:'',subj:''},
     parse(dec){
-        if(dec.code.search(/\d/)!==-1){console.log('digit');}
-        switch(dec.code){
-        case'0':
-        case'1':
-        case'2':
-        case'3':
-        case'4':
-        case'5':
-        case'6':
-        case'7':
-        case'8':
-        case'9':break;
-        }
+        if(dec.code.search(/\d/)!==-1){this.fsm.mul+=dec.code;}
+        if(dec.code.search(/[fFtT]/)!==-1){this.fsm.verb='find';}
+        console.log(this.fsm);
     },
 
     // 'semantic' motions

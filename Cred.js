@@ -62,15 +62,6 @@ var update=(rks,t)=>{
         if(cur.mode==='normal'){
             switch(dec.code){
             case'0':cur.to_bol();break;
-            case'1':
-            case'2':
-            case'3':
-            case'4':
-            case'5':
-            case'6':
-            case'7':
-            case'8':
-            case'9':cur.parse(dec);break;
             case'$':cur.to_eol();break;
             case'{':cur.backward_paragraph();break;
             case'}':cur.forward_paragraph();break;
@@ -86,10 +77,11 @@ var update=(rks,t)=>{
             case'x':buf.del(1);cur.left(1);break;
             case'D':buf.del(buf.getline(cur.cl).slice(cur.co).length);cur.left(1);break;
             case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
+            default:if(dec.code.search(/[1-9dcyfgt]/)!==-1){cur.parse(dec);}break;
             }
         }
-        else if(cur.mode==='parsing'){
-
+        else if(cur.mode==='vimcmd'){
+            // parse multi-part vim commands (verb [modifier] object)
         }
         else if(cur.mode==='insert'){
             switch(dec.type){
