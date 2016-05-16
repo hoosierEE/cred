@@ -77,7 +77,7 @@ var Cursor=(b)=>({// Buffer -> Cursor
     up(n){this.up_down_helper(Math.max(this.cl-n,0));},
     down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
     up_down_helper(target_line){
-        var target_line_length=b.getline(target_line).length-1;
+        var target_line_length=Math.max(0,b.getline(target_line).length-1);
         if(this.cx<0){this.co=target_line_length;}
         else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
         this.cl=target_line;
