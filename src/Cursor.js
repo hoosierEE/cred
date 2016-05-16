@@ -13,20 +13,17 @@ var Cursor=(b)=>({// Buffer -> Cursor
     fd:0,// f-d escape sequence
     mode:'normal',// insert, TODO visual, various "minor modes"
 
-    fsm:{mode:'normal',multiplier:'1',argument:0},
-
     // METHODS
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
     bol(){return b.s[b.pt-1]==='\n';},
     eol(){return b.s[b.pt]==='\n';},
     eob(){return b.pt>=b.s.length;},
-    empty_line(){return 0===b.getline(this.curln()).length;},
 
     // Search
-    to_bol(){if(!this.bol()){this.left(this.co);}},
-    to_eol(){if(!this.eol()){this.right(b.getline(this.cl).length-this.co-1);this.cx=-1;}},
-    to_bob(){b.pt=0;this.rowcol();},
-    to_eob(){b.pt=b.s.length-1;this.rowcol();},
+    to_bol(){this.left(this.co);},
+    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1)); this.cx=-1;},
+    to_bob(){b.pt=0; this.rowcol();},
+    to_eob(){b.pt=b.s.length-1; this.rowcol();},
     forward_paragraph(){
         var ra=b.s.slice(b.pt+1).search(/\n{2,}/);
         if(ra>=0){b.pt+=ra+2;this.rowcol();}
@@ -92,6 +89,7 @@ var Cursor=(b)=>({// Buffer -> Cursor
     normal_mode(){this.mode='normal';this.rowcol();},
     visual_mode(){this.mode='visual';},
 
+    // FIXME: this should be in decode or Input.js
     // Parse a multi-part command
     fsm:{mul:'',verb:'',subj:''},
     parse(dec){
