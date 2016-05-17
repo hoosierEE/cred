@@ -1,4 +1,4 @@
-* cred ([[hoosieree.github.io/cred][demo]])
+* cred ([[http://hoosieree.github.io/cred][demo]])
 
 [[file:img/with-cursors.png]]
 
