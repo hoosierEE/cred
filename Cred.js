@@ -214,12 +214,12 @@ var c=document.getElementById('c').getContext('2d'),
         cmd:{mul:'',verb:'',mod:'',state:'',prev_cmd:{}},// current and previous command
 
         // METHODS
-        empty_cmd(){return {mul:'',verb:'',mod:'',state:'',prev_cmd:{}};},
-        reset(){this.cmd=this.empty_cmd();},
+        get_empty_cmd(){return {mul:'',verb:'',mod:'',state:'',prev_cmd:{}};},
+        reset(){this.cmd=this.get_empty_cmd();},
 
         parse(t,dec){// parse : DecodedKey -> Action Cursor
             if(dec.code.search(/\d/)!==-1){this.cmd.mul+=dec.code;}
-            if(dec.code.search(/]fFtT]/)!==-1){this.cmd.verb='find';}
+            if(dec.code.search(/[fFtT]/)!==-1){this.cmd.verb='find';}
             if(cur.mode==='normal'){
                 switch(dec.code){
                     // simple (1-argument) motions
