@@ -22,18 +22,20 @@ var c=document.getElementById('c').getContext('2d'),
             if(line_offset>this.num_visible_lines()){line_offset=this.num_visible_lines()/2|0;}
             else if(line_offset<1){line_offset=1;}// smallest usable value - 0 is too small
             var prev_y=this.v.y, prev_x=this.v.x;// grab current value of x and y
-            // scroll up or down
+
+            // up/down
             var ltop=this.ln_top(cur.cl+line_offset), lbot=this.ln_top(cur.cl-line_offset);
             if(ltop>this.v.y+this.v.h){this.v.y+=ltop-(this.v.y+this.v.h);}
             if(lbot<this.v.y){this.v.y-=this.v.y-lbot;}
-            // scroll left or right
+
+            // left/right
             var crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
             if(crt>this.v.x+this.v.w){this.v.x+=crt-this.v.w;}
             if(clt<this.v.x){this.v.x-=this.v.x-clt;}
-            // negative bounds checks
             if(this.v.y<0){this.v.y=0;}
             if(this.v.x<0){this.v.x=0;}
-            // move canvas opposite of viewport if x or y changed
+
+            // translate canvas if necessary
             if(prev_x!=this.v.x||prev_y!=this.v.y){c.setTransform(1,0,0,1,-this.v.x,-this.v.y);}
         },
         init(ctx){// must be called before using other Window methods, but AFTER the HTML body loads
@@ -55,6 +57,11 @@ var c=document.getElementById('c').getContext('2d'),
 
 
     Buffer=()=>({// class
+        /* Buffer
+           A line-oriented view of a String, with an insertion point.
+           Editing operations automatically update line numbers.
+         */
+
         // STATE
         s:'',
         pt:0,
@@ -70,7 +77,7 @@ var c=document.getElementById('c').getContext('2d'),
         },
 
         // gen_lines : () -> [Int] // array of line start indexes
-        gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
+        gen_lines(){return [...this.s].reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
 
         ins(ch){// insert ch chars to right of p
             if(this.pt===this.s.length){this.s=this.s+ch;}
@@ -105,12 +112,14 @@ var c=document.getElementById('c').getContext('2d'),
         mode:'normal',// insert, TODO visual, various "minor modes"
 
         // METHODS
+
+        // where is the cursor?
         curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
         bol(){return b.s[b.pt-1]==='\n';},
         eol(){return b.s[b.pt]==='\n';},
         eob(){return b.pt>=b.s.length;},
 
-        // Search
+        // Search resulting in motion
         to_bol(){this.left(this.co);},
         to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
         to_bob(){b.pt=0;this.rowcol();},
@@ -146,7 +155,7 @@ var c=document.getElementById('c').getContext('2d'),
             if(ca>=0){this.left(ca+1);}
         },
 
-        // Motion
+        // Motion primitives
         left(n,freely=false){
             b.pt-=n;if(b.pt<0){b.pt=0;}
             if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
@@ -176,7 +185,7 @@ var c=document.getElementById('c').getContext('2d'),
             else{b.pt=b.lines[target_line]+1+this.co;}
         },
 
-        // MODE changers
+        // Mode changers
         esc_fd(){b.del(-2);this.left(2);if(this.eol()||this.eob()){this.left(1);}this.normal_mode();},
         append_mode(){this.mode='insert'; this.right(1,true);},
         insert_mode(){this.mode='insert';},
@@ -241,7 +250,6 @@ var c=document.getElementById('c').getContext('2d'),
             }
         },
     }),
-
 
     //// instances of the above classes
     buf=Buffer(),
