@@ -3,12 +3,14 @@
 var c=document.getElementById('c').getContext('2d'),
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
 
+    //// Classes
+    Window=(c,cur,cfg)=>({// class
+        // @param c: the target canvas
 
-    Window=(c)=>({// class @param c: the target Canvas
         // STATE
         bw:20,// border width
-        // defaults should be bad enough to clue you in that something's awry
-        line_height:10, line_descent:5, v:{},// viewport position and size
+        line_ascent:5,line_descent:5,line_height:10,
+        v:{},// viewport position and size
 
         // METHODS
         ln_top(n){return this.bw+this.line_height*(n+1);},// top pixel of line n
@@ -16,27 +18,25 @@ var c=document.getElementById('c').getContext('2d'),
         co_right(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(0,n+1)).width;},// right edge of column n
         num_visible_lines(){return (c.canvas.height-2*this.bw)/this.line_height|0;},
 
-        scroll(soff=5){
-            if(soff>this.num_visible_lines()){soff=this.num_visible_lines()/2|0;}
-            else if(soff<1){soff=1;}// smallest usable value - 0 is too small
+        scroll(line_offset=5){
+            if(line_offset>this.num_visible_lines()){line_offset=this.num_visible_lines()/2|0;}
+            else if(line_offset<1){line_offset=1;}// smallest usable value - 0 is too small
             var prev_y=this.v.y, prev_x=this.v.x;// grab current value of x and y
-
             // scroll up or down
-            var ltop=this.ln_top(cur.cl+soff), lbot=this.ln_top(cur.cl-soff);
+            var ltop=this.ln_top(cur.cl+line_offset), lbot=this.ln_top(cur.cl-line_offset);
             if(ltop>this.v.y+this.v.h){this.v.y+=ltop-(this.v.y+this.v.h);}
             if(lbot<this.v.y){this.v.y-=this.v.y-lbot;}
-
             // scroll left or right
             var crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
             if(crt>this.v.x+this.v.w){this.v.x+=crt-this.v.w;}
             if(clt<this.v.x){this.v.x-=this.v.x-clt;}
-
+            // negative bounds checks
             if(this.v.y<0){this.v.y=0;}
             if(this.v.x<0){this.v.x=0;}
             // move canvas opposite of viewport if x or y changed
             if(prev_x!=this.v.x||prev_y!=this.v.y){c.setTransform(1,0,0,1,-this.v.x,-this.v.y);}
         },
-        init(ctx){// must be called before using other Window methods
+        init(ctx){// must be called before using other Window methods, but AFTER the HTML body loads
             var fm=FontMetric(cfg.font_name,cfg.font_size);
             this.line_ascent=fm[0];// top of text such as QMEW|
             this.line_height=fm[1];// total line height
@@ -61,7 +61,7 @@ var c=document.getElementById('c').getContext('2d'),
         lines:[0],
 
         // METHODS
-        getline(n){// Int->String the Nth line, not including any trailing newline
+        getline(n){// getline : Int -> String // the Nth line, not including any trailing newline
             var l=this.lines,len=l.length;
             if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
             else if(n===0){return this.s.slice(0,l[1]);}// first
@@ -69,7 +69,7 @@ var c=document.getElementById('c').getContext('2d'),
             else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
         },
 
-        // ()->[Int] array of line start indexes
+        // gen_lines : () -> [Int] // array of line start indexes
         gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
 
         ins(ch){// insert ch chars to right of p
@@ -188,25 +188,73 @@ var c=document.getElementById('c').getContext('2d'),
     }),
 
 
-    Parser=()=>({// class
-        fsm:{mul:'',verb:'',mod:'',state:''},
-        parse(dec){// parse : Decoder -> Action
-            if(dec.code.search(/\d/)!==-1){this.fsm.mul+=dec.code;}
-            if(dec.code.search(/]fFtT]/)!==-1){this.fsm.verb='find';}
-            console.log(this.fsm);
+    Parser=(cur,buf)=>({// class
+        cmd:{mul:'',verb:'',mod:'',state:'',prev_cmd:{}},// current and previous command
+        reset(){this.cmd={mul:'',verb:'',mod:'',state:''}},
+
+        parse(t,dec){// parse : DecodedKey -> Action // might dispatch to Cursor, Buffer, or both.
+            if(dec.code.search(/\d/)!==-1){this.cmd.mul+=dec.code;}
+            if(dec.code.search(/]fFtT]/)!==-1){this.cmd.verb='find';}
+            if(cur.mode==='normal'){
+                switch(dec.code){
+                case'0':cur.to_bol();break;
+                case'$':cur.to_eol();break;
+                case'{':cur.backward_paragraph();break;
+                case'}':cur.forward_paragraph();break;
+                case'j':cur.down(1);break;
+                case'k':cur.up(1);break;
+                case'l':cur.right(1);break;
+                case'G':cur.to_eob();break;
+                case'h':cur.left(1);break;
+                case'i':cur.insert_mode();break;
+                case'a':cur.append_mode();break;
+                case'b':cur.backward_word();break;
+                case'e':cur.forward_word();break;
+                case'x':buf.del(1);cur.left(1);break;
+                case'D':buf.del(buf.getline(cur.cl).slice(cur.co).length);cur.left(1);break;
+                case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
+                }
+            }
+            else if(cur.mode==='insert'){
+                switch(dec.type){
+                case'print':
+                    buf.ins(dec.code);cur.rowcol();
+                    // auxiliary escape methods: quickly type 'fd' or use the chord 'C-['
+                    if(dec.code==='f'){cur.fd=-t;}
+                    if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc_fd();}
+                    if(dec.code==='['&&dec.mods[1]){buf.del(-1);cur.mode='normal';cur.left(2);}
+                    break;
+                case'edit':
+                    if(dec.code==='B'){buf.del(-1);cur.left(1,true);}// backspace
+                    else if(dec.code==='D'){buf.del(1);}// forward delete
+                    break;
+                case'escape':cur.normal_mode();break;
+                }
+            }
+            if(dec.type==='arrow'){//all modes support arrows in the same way
+                switch(dec.code){
+                case'D':cur.down(1);break;
+                case'U':cur.up(1);break;
+                case'R':cur.right(1,true);break;
+                case'L':cur.left(1,true);break;
+                }
+            }
         },
     }),
 
-    // instances of the above classes
-    cfg=Configuration(),
+
+    //// instances of the above classes
     buf=Buffer(),
     cur=Cursor(buf),
-    par=Parser(cur),
-    win=Window(c);
+    par=Parser(cur,buf),
+    cfg=Configuration(),
+    win=Window(c,cur,cfg);
+
+
+//// Functions
 
 // decode : RawKey -> DecodedKey
 var decode=({k, mods})=>{
-    //var k=rk.k, mods=rk.mods;// get the components of the RawKey object
     var dec={type:'',code:'',mods:mods};// return type (modifiers pass through)
     // printable
     if(k==='Space'){dec.code=' ';}
@@ -236,61 +284,6 @@ var decode=({k, mods})=>{
         else if(k==='Home'||k==='End'){dec.type='page';dec.code=k[0];}// 'h','e'
     }
     return dec;
-};
-
-// udpate : [DecodedKey] -> Action
-var update=(rks,t)=>{
-    while(rks.length){// consume KEYQ, dispatch event handlers
-        var dec=decode(rks.shift());// behead queue
-        if(cur.mode==='normal'){
-            switch(dec.code){
-            case'0':cur.to_bol();break;
-            case'$':cur.to_eol();break;
-            case'{':cur.backward_paragraph();break;
-            case'}':cur.forward_paragraph();break;
-            case'j':cur.down(1);break;
-            case'k':cur.up(1);break;
-            case'l':cur.right(1);break;
-            case'G':cur.to_eob();break;
-            case'h':cur.left(1);break;
-            case'i':cur.insert_mode();break;
-            case'a':cur.append_mode();break;
-            case'b':cur.backward_word();break;
-            case'e':cur.forward_word();break;
-            case'x':buf.del(1);cur.left(1);break;
-            case'D':buf.del(buf.getline(cur.cl).slice(cur.co).length);cur.left(1);break;
-            case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
-            default:if(dec.code.search(/[1-9dcyfgt]/)!==-1){par.parse(dec);}break;
-            }
-        }
-        else if(cur.mode==='vimcmd'){
-            // parse multi-part vim commands (verb [modifier] object)
-        }
-        else if(cur.mode==='insert'){
-            switch(dec.type){
-            case'print':
-                buf.ins(dec.code);cur.rowcol();
-                // auxiliary escape methods: quickly type 'fd' or use the chord 'C-['
-                if(dec.code==='f'){cur.fd=-t;}
-                if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc_fd();}
-                if(dec.code==='['&&dec.mods[1]){buf.del(-1);cur.mode='normal';cur.left(2);}
-                break;
-            case'edit':
-                if(dec.code==='B'){buf.del(-1);cur.left(1,true);}// backspace
-                else if(dec.code==='D'){buf.del(1);}// forward delete
-                break;
-            case'escape':cur.normal_mode();break;
-            }
-        }
-        if(dec.type==='arrow'){//all modes support arrows in the same way
-            switch(dec.code){
-            case'D':cur.down(1);break;
-            case'U':cur.up(1);break;
-            case'R':cur.right(1,true);break;
-            case'L':cur.left(1,true);break;
-            }
-        }
-    }
 };
 
 
@@ -333,33 +326,30 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
     c.restore();
 };
 
-var gameloop=now=>{
-    update(KEYQ,now);
-    win.scroll();
-    render_text();
-    render_cursor();
-    // other ideas:
-    //render_minimap();
-    // render_statusline();
-    // render_popups();
-};
-
-var rsz=()=>{
-    requestAnimationFrame(gameloop);
-    c.canvas.width=c.canvas.clientWidth;
-    c.canvas.height=c.canvas.clientHeight;
-    cfg.init(c);
-    win.init(c);
-};
-
-c.canvas.onmousewheel=(ev)=>{console.log(ev);};
-
-window.onload=rsz;
-window.onresize=rsz;
-window.onkeydown=(k)=>{
-    requestAnimationFrame(gameloop);
-    if(k.type==='keydown'){// push incoming events to a queue as they occur
-        if(!k.metaKey){k.preventDefault();}
-        KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
-    }
+window.onload=()=>{
+    var gameloop=(now)=>{
+        while(KEYQ.length){par.parse(now,decode(KEYQ.shift()));}// consume keyboard events
+        win.scroll();
+        render_text();
+        render_cursor();
+        // other ideas: render_minimap(); render_statusline(); render_popups();
+    };
+    var rsz=()=>{
+        requestAnimationFrame(gameloop);
+        c.canvas.width=c.canvas.clientWidth;
+        c.canvas.height=c.canvas.clientHeight;
+        cfg.init(c);
+        win.init(c);
+    };
+    // events
+    window.onresize=rsz;
+    c.canvas.onmousewheel=(ev)=>{console.log(ev);};
+    window.onkeydown=(k)=>{
+        requestAnimationFrame(gameloop);
+        if(k.type==='keydown'){// push incoming events to a queue as they occur
+            if(!k.metaKey){k.preventDefault();}// allows CMD-I on OSX
+            KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
+        }
+    };
+    rsz();
 };
