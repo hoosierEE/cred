@@ -367,4 +367,3 @@ window.onkeydown=(k)=>{
         KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
     }
 };
-
