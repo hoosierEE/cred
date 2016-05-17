@@ -2,15 +2,163 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
-    buf=Buffer(),
-    cur=Cursor(buf),
 
+    ////
+    Buffer=()=>({
+        // STATE
+        s:'',
+        pt:0,
+        lines:[0],
+
+        // METHODS
+        getline(n){// Int->String the Nth line, not including any trailing newline
+            var l=this.lines,len=l.length;
+            if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}// line in middle
+            else if(n===0){return this.s.slice(0,l[1]);}// first
+            else if(n>=len){return this.s.slice(1+l[len-1]);}// last
+            else{return this.getline(Math.max(0,len+n));}// negative n indexes backwards but doesn't wrap
+        },
+
+        // ()->[Int] array of line start indexes
+        gen_lines(){return this.s.split('').reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
+
+        ins(ch){// insert ch chars to right of p
+            if(this.pt===this.s.length){this.s=this.s+ch;}
+            else{var fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
+            this.lines=this.gen_lines();
+            this.pt+=ch.length;
+        },
+
+        del(n){// delete n chars to right (n>0) or left (n<0) of point
+            if(n===0||n+this.pt<0){return;}
+            var leftd=n<0?n:0,rightd=n<0?0:n;
+            var fst=this.s.slice(0,this.pt+leftd),snd=this.s.slice(this.pt+rightd);this.s=fst+snd;
+            this.lines=this.gen_lines();
+        },
+    }),
+
+
+    ////
+    Cursor=(b)=>({
+        /* Cursor
+           Given a Buffer b:
+           * keep track of editing "mode" (normal, insert, etc.)
+           * modify b's point in response to motion commands
+           * provide a "row, column" view of the Buffer (which is really just a String)
+           * FSM for multi-part commands (e.g: `dt;` which means: delete from Point to first occurrence of ';')
+           */
+
+        // STATE
+        cl:0,// current line
+        co:0,// current column
+        cx:0,// maximum column
+        fd:0,// f-d escape sequence
+        mode:'normal',// insert, TODO visual, various "minor modes"
+
+        // METHODS
+        curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
+        bol(){return b.s[b.pt-1]==='\n';},
+        eol(){return b.s[b.pt]==='\n';},
+        eob(){return b.pt>=b.s.length;},
+
+        // Search
+        to_bol(){this.left(this.co);},
+        to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
+        to_bob(){b.pt=0;this.rowcol();},
+        to_eob(){b.pt=b.s.length-1;this.rowcol();},
+        forward_paragraph(){
+            var ra=b.s.slice(b.pt+1).search(/\n{2,}/);
+            if(ra>=0){b.pt+=ra+2;this.rowcol();}
+            else{this.to_eob();}
+        },
+        forward_word(){
+            var ra=b.s.slice(b.pt+1).search(/\w\W/);
+            if(ra>=0){this.right(ra+1,true);}
+            else{this.to_eol();}
+        },
+        forward_to_char(c){
+            if(this.eol()){this.cx=-1;return;}
+            var ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
+            if(ca>=0){this.right(ca+1);}
+        },
+        backward_paragraph(){
+            var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\n{2,}/);
+            if(ra>=0){b.pt-=ra+1;this.rowcol();}
+            else{this.to_bob();}
+        },
+        backward_word(){
+            var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\n|(\w\W)/);
+            if(ra>=0){this.left(ra+1,true);}
+            else{this.to_bol();}
+        },
+        backward_to_char(c){
+            if(this.bol()){return;}
+            var ca=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
+            if(ca>=0){this.left(ca+1);}
+        },
+
+        // Motion
+        left(n,freely=false){
+            b.pt-=n;if(b.pt<0){b.pt=0;}
+            if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
+            this.rowcol();
+        },
+        right(n,freely=false){
+            if(this.eob()){return;}
+            if(b.pt<b.s.length){
+                if(b.s[b.pt+1]==='\n'&&n===1){b.pt+=freely?1:0;}
+                else if(b.pt+n>b.s.length){b.pt=b.s.length-1;}
+                else{b.pt+=n;}
+            }
+            this.rowcol();
+        },
+        rowcol(){
+            this.cl=b.pt?this.curln():0;
+            this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
+        },
+        up(n){this.up_down_helper(Math.max(this.cl-n,0));},
+        down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
+        up_down_helper(target_line){
+            var target_line_length=Math.max(0,b.getline(target_line).length-1);
+            if(this.cx<0){this.co=target_line_length;}
+            else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
+            this.cl=target_line;
+            if(target_line===0){b.pt=this.co;}
+            else{b.pt=b.lines[target_line]+1+this.co;}
+        },
+
+        // MODE changers
+        esc_fd(){b.del(-2);this.left(2);if(this.eol()||this.eob()){this.left(1);}this.normal_mode();},
+        append_mode(){this.mode='insert'; this.right(1,true);},
+        insert_mode(){this.mode='insert';},
+        normal_mode(){this.mode='normal';this.rowcol();},
+        visual_mode(){this.mode='visual';},
+
+        // status : () -> String // contains the modeline
+        status(){return this.mode+'  '+this.cl+':'+this.co;},
+    }),
+
+
+    ////
+    Parser=()=>({
+        fsm:{mul:'',verb:'',mod:'',state:''},
+        parse(dec){
+            if(dec.code.search(/\d/)!==-1){this.fsm.mul+=dec.code;}
+            if(dec.code.search(/]fFtT]/)!==-1){this.fsm.verb='find';}
+            console.log(this.fsm);
+        },
+    }),
+
+
+    ////
     Configuration=()=>({
         font_size:'20px',
         font_name:'courier new',//'Sans-Serif',
         init(c){c.font=this.font_size+' '+this.font_name; c.fillStyle='#dacaba';},
     }),
 
+
+    ////
     Window=(c)=>({// c: the target Canvas
         // STATE
         bw:20,// border width
@@ -52,10 +200,49 @@ var c=document.getElementById('c').getContext('2d'),
             this.scroll();
         },
     }),
+
+    //// instances of the above classes
     cfg=Configuration(),
+    buf=Buffer(),
+    cur=Cursor(buf),
+    par=Parser(cur),
     win=Window(c);
 
-// udpate : [DecodedKey] -> BufferAction
+// decode : RawKey -> DecodedKey
+var decode=(rk)=>{
+    var k=rk.k, mods=rk.mods;// get the components of the RawKey object
+    var dec={type:'',code:'',mods:mods};// return type (modifiers pass through)
+    // printable
+    if(k==='Space'){dec.code=' ';}
+    else{
+        var shft=mods[3];
+        var ma=k.slice(-1);// maybe alphanumeric
+        var kd=k.slice(0,-1);
+        if(kd==='Key'){dec.code=shft?ma:ma.toLowerCase();}
+        else if(kd==='Digit'){dec.code=shft?")!@#$%^&*("[ma]:ma;}
+        else if(k==='Tab'){dec.code='\t';}
+        else if(k==='Enter'){dec.code='\n';}
+        else{
+            var pun=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
+                     ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
+                     ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'];
+            var pid=pun.indexOf(k);
+            if(pid>=0){dec.code=pun[pid+(shft?2:1)];}
+        }
+    }
+    // non-printable
+    if(dec.code.length>0){dec.type='print';}
+    else{
+        if(k==='Backspace'||k==='Delete'){dec.type='edit';dec.code=k[0];}// 'b','d'
+        else if(k==='Escape'){dec.type='escape';}// dec.code should still be an empty string ('')
+        else if(k.slice(0,5)==='Arrow'){dec.type='arrow';dec.code=k[5];}// 'u','d','l','r'
+        else if(k.slice(0,4)==='Page'){dec.type='page';dec.code=k[4];}// 'u','d'
+        else if(k==='Home'||k==='End'){dec.type='page';dec.code=k[0];}// 'h','e'
+    }
+    return dec;
+};
+
+// udpate : [DecodedKey] -> Action
 var update=(rks,t)=>{
     while(rks.length){// consume KEYQ, dispatch event handlers
         var dec=decode(rks.shift());// behead queue
@@ -77,7 +264,7 @@ var update=(rks,t)=>{
             case'x':buf.del(1);cur.left(1);break;
             case'D':buf.del(buf.getline(cur.cl).slice(cur.co).length);cur.left(1);break;
             case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
-            default:if(dec.code.search(/[1-9dcyfgt]/)!==-1){cur.parse(dec);}break;
+            default:if(dec.code.search(/[1-9dcyfgt]/)!==-1){par.parse(dec);}break;
             }
         }
         else if(cur.mode==='vimcmd'){
@@ -181,34 +368,3 @@ window.onkeydown=(k)=>{
     }
 };
 
-var welcome=
-    "Welcome to CRED\n"+
-    "\n"+
-    "Cred is a text editor rendered in HTML5 Canvas, which aims to capture some of Spacemacs' UI,\n"+
-    "but also work natively on Chromebooks or possibly web browsers.\n"+
-    "\n"+
-    "Currently Cred supports basic Vim motions, such as 'hjkl', '0', '$', and a few others.\n"+
-    "\n"+
-    "Cred does not yet open files or write files, and in its current state might only be useful as an\n"+
-    "alternative method for editing in-memory strings.\n"+
-    "\n"+
-    "However, some more features are planned...\n"+
-    "\n"+
-    "\n"+
-    "\n"+
-    "An incomplete to-do list includes:\n"+
-    "\n"+
-    "* numemric-prefixed commands\n"+
-    "* multi-character command parsing\n"+
-    "* mouse scrolling\n"+
-    "* file i/o\n"+
-    "* git[hub] integration\n"+
-    "* syntax highlighting\n"+
-    "* different font styling in the same document\n"+
-    "* popup UI menus like the SPC-* interface from Spacemacs\n"+
-    "* persistent, live-customizable theme\n"+
-    "* inline images\n";
-
-buf.ins(welcome);
-cur.rowcol();
-cur.up(11);
