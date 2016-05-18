@@ -218,8 +218,9 @@ var c=document.getElementById('c').getContext('2d'),
         reset(){this.cmd=this.get_empty_cmd();},
 
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            if(dec.code.search(/\d/)!==-1){this.cmd.mul+=dec.code;}
-            if(dec.code.search(/[fFtT]/)!==-1){this.cmd.verb='find';}
+            /* 1. based on starting mode (normal, insert, visual, ?),
+               2. 
+            */
             if(cur.mode==='normal'){
                 switch(dec.code){
                     // simple (1-argument) motions
@@ -242,6 +243,10 @@ var c=document.getElementById('c').getContext('2d'),
                 case'D':cur.del_to_eol();break;
                 case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
                     // TODO complex (>1 argument) commands
+                default:
+                    if(dec.code.search(/\d/)!==-1){this.cmd.mul+=dec.code;}
+                    if(dec.code.search(/[fFtT]/)!==-1){this.cmd.verb='find';}
+                    break;
                 }
             }
             else if(cur.mode==='insert'){
@@ -271,7 +276,7 @@ var c=document.getElementById('c').getContext('2d'),
         },
     }),
 
-    //// instances of the above classes
+    //// instances of the above classes:
     buf=Buffer(),
     cur=Cursor(buf),
     par=Parser(cur),
