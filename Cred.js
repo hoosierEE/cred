@@ -218,8 +218,11 @@ var c=document.getElementById('c').getContext('2d'),
         reset(){this.cmd=this.get_empty_cmd();},
 
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            /* 1. based on starting mode (normal, insert, visual, ?),
-               2. 
+            /* 1. Based on starting mode (normal, insert, visual, ?)...
+               2. accumulate incoming keypresses into a string.
+               3. As soon as the string matches a valid "Action Cursor", do it.
+                  Then put this Action on the "previous actions" stack.
+               4. otherwise, if it doesn't match, discard the string
             */
             if(cur.mode==='normal'){
                 switch(dec.code){
