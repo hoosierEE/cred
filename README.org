@@ -55,6 +55,7 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 
 ** specific
 
+- [[https://takac.github.io/][vim grammar]]
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
 - [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
