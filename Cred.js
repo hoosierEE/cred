@@ -62,7 +62,7 @@ var c=document.getElementById('c').getContext('2d'),
         /* Buffer
            A line-oriented view of a String, with an insertion point.
            Editing operations automatically update line numbers.
-         */
+        */
 
         // STATE
         s:'',
@@ -211,20 +211,27 @@ var c=document.getElementById('c').getContext('2d'),
            Convert keyboard events into Action Cursor
         */
         // STATE
-        cmd:{mul:'',verb:'',mod:'',state:'',prev_cmd:{}},// current and previous command
+        cmd:{mul:'',verb:'',mod:'',state:'',current:'',prev_cmd:{}},// current and previous command
 
         // METHODS
         get_empty_cmd(){return {mul:'',verb:'',mod:'',state:'',prev_cmd:{}};},
         reset(){this.cmd=this.get_empty_cmd();},
 
+        // parsing
+        modifier:/a|i/,
+        multiplier:/[1-9][0-9]*/,
+        operator:/[cdy]/,
+        motion:/[beGhjklw$^]/,
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            /* 1. Based on starting mode (normal, insert, visual, ?)...
-               2. accumulate incoming keypresses into a string.
-               3. As soon as the string matches a valid "Action Cursor", do it.
-                  Then put this Action on the "previous actions" stack.
-               4. otherwise, if it doesn't match, discard the string
-            */
-            if(cur.mode==='normal'){
+            if(cur.mode!=='insert'){
+                if(!dec.mods.slice(0,-1).some(_=>_)){this.cmd.current+=dec.code;}// ignore chords
+                var op=this.cmd.current.search(this.operator),
+                    mo=this.cmd.current.search(this.motion);
+                if(op<mo){}
+                else{this.cmd.current='';}
+                console.log('cur: '+this.cmd.current);
+            }
+            else if(cur.mode==='normal'){
                 switch(dec.code){
                     // simple (1-argument) motions
                 case'j':cur.down(1);break;
@@ -246,10 +253,7 @@ var c=document.getElementById('c').getContext('2d'),
                 case'D':cur.del_to_eol();break;
                 case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
                     // TODO complex (>1 argument) commands
-                default:
-                    if(dec.code.search(/\d/)!==-1){this.cmd.mul+=dec.code;}
-                    if(dec.code.search(/[fFtT]/)!==-1){this.cmd.verb='find';}
-                    break;
+                default:break;
                 }
             }
             else if(cur.mode==='insert'){
