@@ -1,7 +1,7 @@
 // TODO: file i/o
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
-    KEYQ=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
+    Keyq=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
 
     //// Classes
     Window=(c,cur,cfg)=>({// class
@@ -103,7 +103,6 @@ var c=document.getElementById('c').getContext('2d'),
            * keep track of editing "mode" (normal, insert, etc.)
            * modify b's point in response to motion commands
            * provide a "row, column" view of the Buffer (which is really just a String)
-           * FSM for multi-part commands (e.g: `dt;` which means: delete from Point to first occurrence of ';')
            */
 
         // STATE
@@ -224,9 +223,14 @@ var c=document.getElementById('c').getContext('2d'),
         motion:/[beGhjklw$^]/,
         parse(t,dec){// parse : DecodedKey -> Action Cursor
             if(cur.mode!=='insert'){
-                if(!dec.mods.slice(0,-1).some(_=>_)){this.cmd.current+=dec.code;}// ignore chords
+                if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}// ignore chords
                 var op=this.cmd.current.search(this.operator),
                     mo=this.cmd.current.search(this.motion);
+                // rule : [multiplier] motion
+                // rule : [multiplier] operator
+                // rule : [mul] operator [mul] motion  // e.g. 2d5w (twice (delete 5 words forward))
+                // terminal commands: motion, text objects
+                // IDEA: stack commands blindly until a terminal command appears, then parse!
                 if(op<mo){}
                 else{this.cmd.current='';}
                 console.log('cur: '+this.cmd.current);
@@ -272,7 +276,7 @@ var c=document.getElementById('c').getContext('2d'),
                 case'escape':cur.normal_mode();break;
                 }
             }
-            if(dec.type==='arrow'){//all modes support arrows in the same way
+            if(dec.type==='arrow'){// all modes support arrows in the same way
                 switch(dec.code){
                 case'D':cur.down(1);break;
                 case'U':cur.up(1);break;
@@ -368,7 +372,7 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 
 window.onload=()=>{
     var gameloop=(now)=>{
-        while(KEYQ.length){par.parse(now,decode(KEYQ.shift()));}// consume keyboard events
+        while(Keyq.length){par.parse(now,decode(Keyq.shift()));}// consume keyboard events
         win.scroll();
         render_text();
         render_cursor();
@@ -388,7 +392,7 @@ window.onload=()=>{
         requestAnimationFrame(gameloop);
         if(k.type==='keydown'){// push incoming events to a queue as they occur
             if(!k.metaKey){k.preventDefault();}// allows CMD-I on OSX
-            KEYQ.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
+            Keyq.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
         }
     };
     rsz();
