@@ -2,6 +2,7 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     Keyq=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
+    Mouseq=[],
 
     //// Classes
     Window=(c,cur,cfg)=>({// class
@@ -158,11 +159,13 @@ var c=document.getElementById('c').getContext('2d'),
 
         // Motion primitives
         left(n,freely=false){
+            n|=0;
             b.pt-=n;if(b.pt<0){b.pt=0;}
             if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
             this.rowcol();
         },
         right(n,freely=false){
+            n|=0;
             if(this.eob()){return;}
             if(b.pt<b.s.length){
                 if(b.s[b.pt+1]==='\n'&&n===1){b.pt+=freely?1:0;}
@@ -178,6 +181,7 @@ var c=document.getElementById('c').getContext('2d'),
         up(n){this.up_down_helper(Math.max(this.cl-n,0));},
         down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
         up_down_helper(target_line){
+            target_line|=0;// remove floats
             var target_line_length=Math.max(0,b.getline(target_line).length-1);
             if(this.cx<0){this.co=target_line_length;}
             else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
@@ -222,7 +226,7 @@ var c=document.getElementById('c').getContext('2d'),
         operator:/[cdy]/,
         motion:/[beGhjklw$^]/,
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            if(cur.mode!=='insert'){
+            /*if(cur.mode!=='insert'){
                 if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}// ignore chords
                 var op=this.cmd.current.search(this.operator),
                     mo=this.cmd.current.search(this.motion);
@@ -235,7 +239,7 @@ var c=document.getElementById('c').getContext('2d'),
                 else{this.cmd.current='';}
                 console.log('cur: '+this.cmd.current);
             }
-            else if(cur.mode==='normal'){
+            else */ if(cur.mode==='normal'){
                 switch(dec.code){
                     // simple (1-argument) motions
                 case'j':cur.down(1);break;
@@ -373,6 +377,11 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 window.onload=()=>{
     var gameloop=(now)=>{
         while(Keyq.length){par.parse(now,decode(Keyq.shift()));}// consume keyboard events
+        while(Mouseq.length){
+            var wheel=Mouseq.shift();
+            if(wheel<0){cur.up(-wheel%win.line_height|0);}
+            else{cur.down(wheel%win.line_height|0);}
+        }
         win.scroll();
         render_text();
         render_cursor();
@@ -387,7 +396,10 @@ window.onload=()=>{
     };
     // events
     window.onresize=rsz;
-    c.canvas.onmousewheel=(ev)=>{console.log(ev);};
+    c.canvas.onmousewheel=(ev)=>{
+        requestAnimationFrame(gameloop);
+        Mouseq.push(ev.deltaY);
+    };
     window.onkeydown=(k)=>{
         requestAnimationFrame(gameloop);
         if(k.type==='keydown'){// push incoming events to a queue as they occur

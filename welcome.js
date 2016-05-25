@@ -17,7 +17,6 @@ var welcome=
     "\n"+
     "* numemric-prefixed commands\n"+
     "* multi-character command parsing\n"+
-    "* mouse scrolling\n"+
     "* file i/o\n"+
     "* git[hub] integration\n"+
     "* syntax highlighting\n"+
