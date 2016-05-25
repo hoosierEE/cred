@@ -377,8 +377,8 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 window.onload=()=>{
     var gameloop=(now)=>{
         while(Keyq.length){par.parse(now,decode(Keyq.shift()));}// consume keyboard events
-        while(Mouseq.length){
-            var wheel=Mouseq.shift();
+        while(Mouseq.wheel.length){
+            var wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
             else{cur.down(wheel%win.line_height|0);}
         }
