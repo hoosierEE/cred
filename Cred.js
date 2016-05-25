@@ -2,7 +2,7 @@
 'use strict';
 var c=document.getElementById('c').getContext('2d'),
     Keyq=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
-    Mouseq=[],
+    Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},
 
     //// Classes
     Window=(c,cur,cfg)=>({// class
@@ -398,7 +398,7 @@ window.onload=()=>{
     window.onresize=rsz;
     c.canvas.onmousewheel=(ev)=>{
         requestAnimationFrame(gameloop);
-        Mouseq.push(ev.deltaY);
+        Mouseq.wheel.push(ev.deltaY);
     };
     window.onkeydown=(k)=>{
         requestAnimationFrame(gameloop);
