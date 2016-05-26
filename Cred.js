@@ -208,25 +208,23 @@ var c=document.getElementById('c').getContext('2d'),
         status(){return this.mode+'  '+this.cl+':'+this.co;},
     }),
 
+    ParserCommand=()=>({mul:'',verb:'',mod:'',state:[''],current:'',prev_cmd:{}}),
 
     Parser=(cur)=>({// class
-        /* Parser
-           Convert keyboard events into Action Cursor
-        */
+        /* Convert keyboard events into Action Cursor */
         // STATE
-        cmd:{mul:'',verb:'',mod:'',state:'',current:'',prev_cmd:{}},// current and previous command
+        cmd:{},// current and previous command
 
         // METHODS
-        get_empty_cmd(){return {mul:'',verb:'',mod:'',state:'',prev_cmd:{}};},
-        reset(){this.cmd=this.get_empty_cmd();},
+        init(){this.cmd=ParserCommand();},
 
-        // parsing
         modifier:/a|i/,
         multiplier:/[1-9][0-9]*/,
         operator:/[cdy]/,
         motion:/[beGhjklw$^]/,
+
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            /*if(cur.mode!=='insert'){
+            /* if(cur.mode!=='insert'){
                 if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}// ignore chords
                 var op=this.cmd.current.search(this.operator),
                     mo=this.cmd.current.search(this.motion);
@@ -239,7 +237,7 @@ var c=document.getElementById('c').getContext('2d'),
                 else{this.cmd.current='';}
                 console.log('cur: '+this.cmd.current);
             }
-            else */ if(cur.mode==='normal'){
+            else */if(cur.mode==='normal'){
                 switch(dec.code){
                     // simple (1-argument) motions
                 case'j':cur.down(1);break;
