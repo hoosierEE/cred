@@ -1,56 +1,57 @@
-var ParserCommand=()=>({mul:'',verb:'',mod:'',state:[''],current:'',prev_cmd:{}}),
-    Parser=(cur)=>({// class
-        /* Convert keyboard events into Action Cursor */
-        // STATE
-        cmd:{},// current and previous command
-
-        // METHODS
-        init(){this.cmd=ParserCommand();},
-
+var Parser=(cur)=>{/* Convert keyboard events into Actions */
+    var ParserCommand=()=>({current:'',previous:{''}});
+    return ({
+        cmd:ParserCommand(),// current and previous command
         modifier:/a|i/,
         multiplier:/[1-9][0-9]*/,
         operator:/[cdy]/,
         motion:/[beGhjklw$^]/,
-
         parse(t,dec){// parse : DecodedKey -> Action Cursor
-            /* if(cur.mode!=='insert'){
-               if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}// ignore chords
-               var op=this.cmd.current.search(this.operator),
-               mo=this.cmd.current.search(this.motion);
-               // rule : [multiplier] motion
-               // rule : [multiplier] operator
-               // rule : [mul] operator [mul] motion  // e.g. 2d5w (twice (delete 5 words forward))
-               // terminal commands: motion, text objects
-               // IDEA: stack commands blindly until a terminal command appears, then parse!
-               if(op<mo){}
-               else{this.cmd.current='';}
-               console.log('cur: '+this.cmd.current);
-               }
-               else */if(cur.mode==='normal'){
-                   switch(dec.code){
-                       // simple (1-argument) motions
-                   case'j':cur.down(1);break;
-                   case'k':cur.up(1);break;
-                   case'l':cur.right(1);break;
-                   case'h':cur.left(1);break;
-                   case'0':cur.to_bol();break;
-                   case'$':cur.to_eol();break;
-                   case'{':cur.backward_paragraph();break;
-                   case'}':cur.forward_paragraph();break;
-                   case'G':cur.to_eob();break;
-                   case'b':cur.backward_word();break;
-                   case'e':cur.forward_word();break;
-                       // mode changers
-                   case'i':cur.insert_mode();break;
-                   case'a':cur.append_mode();break;
-                       // simple (1-argument) editing actions
-                   case'x':cur.del_at_point();break;
-                   case'D':cur.del_to_eol();break;
-                   case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
-                       // TODO complex (>1 argument) commands
-                   default:break;
-                   }
-               }
+            if(cur.mode!=='insert'){
+                if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}//append non-chords
+                // rule : [multiplier] motion
+                // rule : [multiplier] operator
+                // rule : [mul] operator [mul] motion  // e.g. 2d5w (twice (delete 5 words forward))
+                // terminal commands: motion, text objects
+                // IDEA: stack commands blindly until a terminal command (e.g. motion) appears,
+                // then parse!
+                console.log('cur: '+this.cmd.current);
+                var mo=this.cmd.current.search(this.motion),op,mu,md;
+                if(mo>=0){
+                    op=this.cmd.current.search(this.operator);
+                    mu=this.cmd.current.search(this.multiplier);
+                    md=this.cmd.current.search(this.modifier);
+                    // last, clear 'current' and push it to 'previous'
+                    this.cmd.previous.push(this.cmd.current);
+                    this.cmd.current='';
+                }
+
+                if(cur.mode==='normal'){
+                    switch(dec.code){
+                        // simple (1-argument) motions
+                    case'j':cur.down(1);break;
+                    case'k':cur.up(1);break;
+                    case'l':cur.right(1);break;
+                    case'h':cur.left(1);break;
+                    case'0':cur.to_bol();break;
+                    case'$':cur.to_eol();break;
+                    case'{':cur.backward_paragraph();break;
+                    case'}':cur.forward_paragraph();break;
+                    case'G':cur.to_eob();break;
+                    case'b':cur.backward_word();break;
+                    case'e':cur.forward_word();break;
+                        // mode changers
+                    case'i':cur.insert_mode();break;
+                    case'a':cur.append_mode();break;
+                        // simple (1-argument) editing actions
+                    case'x':cur.del_at_point();break;
+                    case'D':cur.del_to_eol();break;
+                    case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
+                        // TODO complex (>1 argument) commands
+                    default:break;
+                    }
+                }
+            }
             else if(cur.mode==='insert'){
                 switch(dec.type){
                 case'print':
@@ -77,4 +78,4 @@ var ParserCommand=()=>({mul:'',verb:'',mod:'',state:[''],current:'',prev_cmd:{}}
             }
         },
     });
-
+};
