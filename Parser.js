@@ -1,8 +1,5 @@
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
-    var modifier=/a|i/,
-        multiplier=/[1-9][0-9]*/,
-        operator=/[cdy]/,
-        motion=/[beGhjklw$^]/,
+    var ParserCommand=()=>({current:'',previous:''}),
 
         parse_arrow=(dec)=>{
             switch(dec.code){
@@ -14,7 +11,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        parse_insert=(dec)=>{
+        parse_insert=(dec,t)=>{
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
@@ -58,34 +55,51 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
             //case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
         },
-        ParserCommand=()=>({current:'',previous:['']});
+
+        /* command tokenizers */
+        multiplier=/[1-9][0-9]*/g,
+        modifier=/a|i/,
+        operator=/[cdy]/,
+        motion=/[beGhjklw$^]/,
+        object=/[wWps(){}\[\]"'`]/,
+        find_all=(r,s)=>{var m,res=[];while((m=r.exec(s))!==null){res.push(m)}r.lastIndex=0;return res;},
+        tokenize=(cmd,is_motion)=>{/* tokenize a command ending with a motion */
+            var t={times:[]};
+            var m;
+            t.times=find_all(multiplier,cmd).map(a=>parseInt(a,10));
+            //while((m=multiplier.exec(cmd))!==null){t.times.push(parseInt(m,10));}multiplier.lastIndex=0;
+            t.oper=cmd.search(operator);
+            if(is_motion){t.move=cmd.search(motion);}
+            else{
+                t.modifier=cmd.search(modifier);
+                t.object=cmd.search(object);
+            }
+            return t;
+        };
 
     return ({
-        cmd:ParserCommand(),// current and previous command
-        parse(t,dec){// parse : DecodedKey -> Action Cursor
-            if(cur.mode==='insert'){parse_insert(dec);}
+        cmd:ParserCommand(),/* current, previous command */
+        reset(){this.cmd=ParserCommand();},
+        parse(t,dec){/* parse : DecodedKey -> Action Cursor */
+            /* motion: [repeat] (h|j|k|l|w|e|b|...)
+               operator: [repeat] (c|d|y)
+               text_obj: [repeat] modifier (w|W|p|s|(|)|{|}|"|'|`)
+               rule: operator (motion|text_obj)
+               e.g: 5d2w = (repeat-five-times (delete (repeat-two-times (word-forward))))
+            */
+            if(cur.mode==='insert'){parse_insert(dec,t);}
             else{
-                /* rule: [multiplier] motion
-                   rule: [multiplier] operator
-                   rule: [mul] operator [mul] motion  // 2d5w = (repeat twice (delete (5 (words forward))))
-                   // 5d2w = (repeat five times (delete (2 (words forward))))
-                   Use implicit `g` (go) when `operator` is absent.
-                   terminal commands: motion, text objects
-                   IDEA: stack commands blindly until a terminal command (e.g. motion) appears,
-                   then parse!
-                */
-                if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}//append non-chords
+                // only append non-chords
+                if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}
 
-                //console.log('cur: '+this.cmd.current);
-                var mo=motion.exec(this.cmd.current),op,mu,md;;
-                console.log('motion.exec: '+mo+', motion.lastIndex: '+motion.lastIndex);
-                mo=this.cmd.current.search(motion)
-                if(mo>=0){
-                    op=this.cmd.current.search(operator);
-                    mu=this.cmd.current.search(multiplier);
-                    md=this.cmd.current.search(modifier);
-                    // lastly, clear 'current' and push it to 'previous'
-                    this.cmd.previous.push(this.cmd.current);
+                var mo=this.cmd.current.search(motion),
+                    ob=this.cmd.current.search(object);
+                if(mo>=0||ob>=0){
+                    var tokens=tokenize(this.cmd.current,(mo>=0));
+                    console.log(JSON.stringify(tokens));
+
+                    // clean up
+                    this.cmd.previous=this.cmd.current;
                     this.cmd.current='';
                 }
                 if(cur.mode==='normal'){parse_single(dec);}
