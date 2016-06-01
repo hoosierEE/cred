@@ -1,7 +1,13 @@
+/* motion: [repeat] (h|j|k|l|w|e|b|...)
+   operator: [repeat] (c|d|y)
+   text_obj: [repeat] modifier (w|W|p|s|(|)|{|}|"|'|`)
+   rule: operator (motion|text_obj)
+   e.g: 5d2w = (repeat-five-times (delete (repeat-two-times (word-forward))))
+*/
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
     var ParserCommand=()=>({current:'',previous:''}),
 
-        parse_arrow=(dec)=>{
+        arrow=(dec)=>{
             switch(dec.code){
             case'D':cur.down(1);break;
             case'U':cur.up(1);break;
@@ -11,7 +17,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        parse_insert=(dec,t)=>{
+        insert=(dec,t)=>{
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
@@ -29,7 +35,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        parse_single=(dec,repeats=1)=>{
+        single_token=(dec,repeats=1)=>{
             for(var i=0;i<repeats;++i){
                 switch(dec.code){
                     // motions
@@ -60,20 +66,21 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         multiplier=/[1-9][0-9]*/g,
         modifier=/a|i/,
         operator=/[cdy]/,
-        motion=/[beGhjklw$^]/,
+        motion=/[beGhjklw$0^]/,
         object=/[wWps(){}\[\]"'`]/,
-        find_all=(r,s)=>{var m,res=[];while((m=r.exec(s))!==null){res.push(m)}r.lastIndex=0;return res;},
-        tokenize=(cmd,is_motion)=>{/* tokenize a command ending with a motion */
-            var t={times:[]};
-            var m;
-            t.times=find_all(multiplier,cmd).map(a=>parseInt(a,10));
-            //while((m=multiplier.exec(cmd))!==null){t.times.push(parseInt(m,10));}multiplier.lastIndex=0;
-            t.oper=cmd.search(operator);
-            if(is_motion){t.move=cmd.search(motion);}
-            else{
-                t.modifier=cmd.search(modifier);
-                t.object=cmd.search(object);
-            }
+
+        find_all=(regex,str)=>{
+            var match,result=[];
+            while((match=regex.exec(str))!==null){result.push(match)}
+            regex.lastIndex=0;
+            return result.map(a=>parseInt(a,10));
+        },
+
+        tokenize=(cmd,is_obj)=>{
+            var t={};
+            t.times=find_all(multiplier,cmd);
+            t.oper=cmd.match(operator);
+            if(is_obj){t.modifier=cmd.search(modifier);t.txt_obj=cmd.search(object);}
             return t;
         };
 
@@ -81,31 +88,26 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         cmd:ParserCommand(),/* current, previous command */
         reset(){this.cmd=ParserCommand();},
         parse(t,dec){/* parse : DecodedKey -> Action Cursor */
-            /* motion: [repeat] (h|j|k|l|w|e|b|...)
-               operator: [repeat] (c|d|y)
-               text_obj: [repeat] modifier (w|W|p|s|(|)|{|}|"|'|`)
-               rule: operator (motion|text_obj)
-               e.g: 5d2w = (repeat-five-times (delete (repeat-two-times (word-forward))))
-            */
-            if(cur.mode==='insert'){parse_insert(dec,t);}
+            if(cur.mode==='insert'){insert(dec,t);}
             else{
                 // only append non-chords
                 if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}
 
-                var mo=this.cmd.current.search(motion),
-                    ob=this.cmd.current.search(object);
+                var mo=this.cmd.current.search(motion),ob=this.cmd.current.search(object);
                 if(mo>=0||ob>=0){
-                    var tokens=tokenize(this.cmd.current,(mo>=0));
+                    // tokenize
+                    var tokens=tokenize(this.cmd.current,(ob>=0));
                     console.log(JSON.stringify(tokens));
+
+                    // parse the command
+                    if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
 
                     // clean up
                     this.cmd.previous=this.cmd.current;
                     this.cmd.current='';
                 }
-                if(cur.mode==='normal'){parse_single(dec);}
-                // if(cur.mode==='visual'){TODO}
             }
-            if(dec.type==='arrow'){parse_arrow(dec);}// parse arrows regardless of Cursor mode
+            if(dec.type==='arrow'){arrow(dec);}// parse arrows regardless of Cursor mode
         }
     });
 };
