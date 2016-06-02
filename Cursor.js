@@ -27,8 +27,9 @@ Cursor=(b)=>({// class
     to_bob(){b.pt=0;this.rowcol();},
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
-        var ra=b.s.slice(b.pt+1).search(/\n{2,}/);// start of a series of newlines
-        if(ra>=0){b.pt+=ra+2;this.rowcol();}
+        var ra=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);// start of a series of newlines
+        console.log(ra);
+        if(ra>=0){b.pt+=ra+3;this.rowcol();}
         else{this.to_eob();}
     },
     forward_word(){
@@ -42,8 +43,8 @@ Cursor=(b)=>({// class
         if(ca>=0){this.right(ca+1);}
     },
     backward_paragraph(){
-        var ra=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/\n{2,}/);
-        if(ra>=0){b.pt-=ra+2;this.rowcol();}
+        var ra=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
+        if(ra>=0){b.pt-=ra+3;this.rowcol();}
         else{this.to_bob();}
     },
     backward_word(){

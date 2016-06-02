@@ -62,6 +62,8 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             //case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
         },
 
+        append_non_chord=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.current+=d.code;}},
+
         /* command tokenizers */
         multiplier=/[1-9][0-9]*/g,
         modifier=/a|i/,
@@ -69,45 +71,41 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         motion=/[beGhjklw$0^]/,
         object=/[wWps(){}\[\]"'`]/,
 
-        find_all=(regex,str)=>{
-            var match,result=[];
-            while((match=regex.exec(str))!==null){result.push(match)}
-            regex.lastIndex=0;
-            return result.map(a=>parseInt(a,10));
-        },
+        validate=(tokens)=>{},
 
         tokenize=(cmd,is_obj)=>{
             var t={};
-            t.times=find_all(multiplier,cmd);
-            t.oper=cmd.match(operator);
+            t.times=cmd.match(multiplier)||[1];
+            t.oper=cmd.search(operator);
             if(is_obj){t.modifier=cmd.search(modifier);t.txt_obj=cmd.search(object);}
             return t;
         };
 
     return ({
-        cmd:ParserCommand(),/* current, previous command */
-        reset(){this.cmd=ParserCommand();},
-        parse(t,dec){/* parse : DecodedKey -> Action Cursor */
+        cmd:ParserCommand(),
+        parse(t,dec){
+            if(dec.type==='arrow'){arrow(dec);}// parse arrows in any mode
             if(cur.mode==='insert'){insert(dec,t);}
             else{
-                // only append non-chords
-                if(!(dec.mods[0]||dec.mods[1]||dec.mods[2])){this.cmd.current+=dec.code;}
+                append_non_chord(dec,this.cmd);// build the command 1 char at a time
 
-                var mo=this.cmd.current.search(motion),ob=this.cmd.current.search(object);
-                if(mo>=0||ob>=0){
+
+
+
+                // if the command ends in a text object or motion, parse the command
+                var [mo,ob]=[motion,object].map(a=>!!(this.cmd.current.match(a)));
+                if(mo||ob){
                     // tokenize
-                    var tokens=tokenize(this.cmd.current,(ob>=0));
+                    var tokens=tokenize(this.cmd.current,ob);
                     console.log(JSON.stringify(tokens));
 
                     // parse the command
                     if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
 
                     // clean up
-                    this.cmd.previous=this.cmd.current;
-                    this.cmd.current='';
+                    this.cmd.previous=this.cmd.current;this.cmd.current='';
                 }
             }
-            if(dec.type==='arrow'){arrow(dec);}// parse arrows regardless of Cursor mode
         }
     });
 };
