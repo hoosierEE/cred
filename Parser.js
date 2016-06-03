@@ -89,9 +89,6 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             else{
                 append_non_chord(dec,this.cmd);// build the command 1 char at a time
 
-
-
-
                 // if the command ends in a text object or motion, parse the command
                 var [mo,ob]=[motion,object].map(a=>!!(this.cmd.current.match(a)));
                 if(mo||ob){
