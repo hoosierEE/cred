@@ -5,7 +5,7 @@
    e.g: 5d2w = (repeat-five-times (delete (repeat-two-times (word-forward))))
 */
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
-    var ParserCommand=()=>({current:'',previous:''}),
+    var ParserCommand=()=>({c:'',p:''}),// current, previous
 
         arrow=(dec)=>{
             switch(dec.code){
@@ -21,16 +21,15 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
-                // auxiliary escape methods: quickly type 'fd' or use the chord 'C-['
-                if(dec.code==='f'){cur.fd=-t;}
-                if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc_fd();}
-                if(dec.code==='['&&dec.mods[1]){cur.del_backward();cur.mode='normal';cur.left(1);}
+                // auxiliary escape methods: quickly type 'fd', or use the chord 'C-['
+                if(dec.code==='f'){cur.fd=-t;}if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc(2);}
+                if(dec.code==='['&&dec.mods[1]){cur.esc(1);}//del_backward();cur.mode='normal';cur.left(1);}
                 break;
             case'edit':
                 if(dec.code==='B'){cur.del_backward();}// backspace
                 else if(dec.code==='D'){cur.del_forward();}// forward delete
                 break;
-            case'escape':cur.normal_mode();break;
+            case'escape':cur.esc();break;
             default:break;
             }
         },
@@ -62,16 +61,14 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             //case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
         },
 
-        append_non_chord=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.current+=d.code;}},
+        append_non_chord=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},
 
         /* command tokenizers */
-        multiplier=/[1-9][0-9]*/g,
         modifier=/a|i/,
-        operator=/[cdy]/,
         motion=/[beGhjklw$0^]/,
+        multiplier=/[1-9][0-9]*/g,
         object=/[wWps(){}\[\]"'`]/,
-
-        validate=(tokens)=>{},
+        operator=/[cdy]/,
 
         tokenize=(cmd,is_obj)=>{
             var t={};
@@ -88,19 +85,25 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             if(cur.mode==='insert'){insert(dec,t);}
             else{
                 append_non_chord(dec,this.cmd);// build the command 1 char at a time
+                console.log(this.cmd);
 
                 // if the command ends in a text object or motion, parse the command
-                var [mo,ob]=[motion,object].map(a=>!!(this.cmd.current.match(a)));
-                if(mo||ob){
-                    // tokenize
-                    var tokens=tokenize(this.cmd.current,ob);
-                    console.log(JSON.stringify(tokens));
+                if(this.cmd.c==='i'){cur.insert_mode(); this.cmd={c:'',p:this.cmd.c};}
+                else if(this.cmd.c==='a'){cur.append_mode(); this.cmd={c:'',p:this.cmd.c}; 
+                }
+                else{
+                    var [mo,ob]=[motion,object].map(a=>!!(this.cmd.c.match(a)));
+                    if(mo||ob){
 
-                    // parse the command
-                    if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
+                        // tokenize
+                        var tokens=tokenize(this.cmd.c,ob);
+                        console.log(JSON.stringify(tokens));
 
+                        // parse the command, consume the cmd string
+                        if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
+                    }
                     // clean up
-                    this.cmd.previous=this.cmd.current;this.cmd.current='';
+                    this.cmd={c:'',p:this.cmd.c};
                 }
             }
         }

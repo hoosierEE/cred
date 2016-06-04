@@ -1,9 +1,9 @@
 Cursor=(b)=>({// class
     /* Cursor
        Given a Buffer b:
-       * keep track of editing "mode" (normal, insert, etc.)
-       * modify b's point in response to motion commands
-       * provide a "row, column" view of the Buffer (which is really just a String)
+       - keep track of editing "mode" (normal, insert, etc.)
+       - modify b's point in response to motion commands
+       - provide a "row, column" view of the Buffer (which is really just a String)
        */
 
     // STATE
@@ -27,7 +27,7 @@ Cursor=(b)=>({// class
     to_bob(){b.pt=0;this.rowcol();},
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
-        var ra=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);// start of a series of newlines
+        var ra=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
         console.log(ra);
         if(ra>=0){b.pt+=ra+3;this.rowcol();}
         else{this.to_eob();}
@@ -48,7 +48,7 @@ Cursor=(b)=>({// class
         else{this.to_bob();}
     },
     backward_word(){
-        var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\n|(\w\W)/);
+        var ra=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
         if(ra>=0){this.left(ra+1,true);}
         else{this.to_bol();}
     },
@@ -59,14 +59,12 @@ Cursor=(b)=>({// class
     },
 
     // Motion primitives
-    left(n,freely=false){
-        n|=0;
+    left(n=0,freely=false){
         b.pt-=n;if(b.pt<0){b.pt=0;}
         if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
         this.rowcol();
     },
-    right(n,freely=false){
-        n|=0;
+    right(n=0,freely=false){
         if(this.eob()){return;}
         if(b.pt<b.s.length){
             if(b.s[b.pt+1]==='\n'&&n===1){b.pt+=freely?1:0;}
@@ -99,8 +97,19 @@ Cursor=(b)=>({// class
     ins(s){b.ins(s);},// pass it on
 
     // Mode changers
-    esc_fd(){b.del(-2);this.left(2);if(this.eol()||this.eob()){this.left(1);}this.normal_mode();},
-    append_mode(){this.mode='insert'; this.right(1,true);},
+    esc(n=0){
+        switch(n){
+        case 0:break;
+        case 1:this.del_backward(1);break;
+        case 2:this.del_backward(2);break;
+        }
+        if(!this.bol()){this.left(1);}
+        this.normal_mode();
+    },
+    append_mode(){
+        this.mode='insert';
+        this.right(+!this.eol(),true);
+    },
     insert_mode(){this.mode='insert';},
     normal_mode(){this.mode='normal';this.rowcol();},
     visual_mode(){this.mode='visual';},
