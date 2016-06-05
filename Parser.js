@@ -17,13 +17,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        insert=(dec,t)=>{
+        insert=(t,dec)=>{
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
                 // auxiliary escape methods: quickly type 'fd', or use the chord 'C-['
                 if(dec.code==='f'){cur.fd=-t;}if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc(2);}
-                if(dec.code==='['&&dec.mods[1]){cur.esc(1);}//del_backward();cur.mode='normal';cur.left(1);}
+                if(dec.code==='['&&dec.mods[1]){cur.esc(1);}
                 break;
             case'edit':
                 if(dec.code==='B'){cur.del_backward();}// backspace
@@ -61,7 +61,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             //case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
         },
 
-        append_non_chord=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},
+        app=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
         /* command tokenizers */
         modifier=/a|i/,
@@ -69,12 +69,11 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         multiplier=/[1-9][0-9]*/g,
         object=/[wWps(){}\[\]"'`]/,
         operator=/[cdy]/,
+        tkzs=[modifier,motion,multiplier,object,operator],
 
         tokenize=(cmd,is_obj)=>{
-            var t={};
+            var t={a:tkzs.map(t=>cmd.match(t))};
             t.times=cmd.match(multiplier)||[1];
-            t.oper=cmd.search(operator);
-            if(is_obj){t.modifier=cmd.search(modifier);t.txt_obj=cmd.search(object);}
             return t;
         };
 
@@ -82,10 +81,10 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         cmd:ParserCommand(),
         parse(t,dec){
             if(dec.type==='arrow'){arrow(dec);}// parse arrows in any mode
-            if(cur.mode==='insert'){insert(dec,t);}
+            if(cur.mode==='insert'){insert(t,dec);}
             else{
-                append_non_chord(dec,this.cmd);// build the command 1 char at a time
-                console.log(this.cmd);
+                app(dec,this.cmd);// build the command 1 char at a time
+                //console.log(this.cmd);
 
                 // if the command ends in a text object or motion, parse the command
                 if(this.cmd.c==='i'){cur.insert_mode(); this.cmd={c:'',p:this.cmd.c};}
@@ -101,9 +100,10 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
                         // parse the command, consume the cmd string
                         if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
+
+                        // clean up
+                        this.cmd={c:'',p:this.cmd.c};
                     }
-                    // clean up
-                    this.cmd={c:'',p:this.cmd.c};
                 }
             }
         }

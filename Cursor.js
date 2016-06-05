@@ -4,7 +4,7 @@ Cursor=(b)=>({// class
        - keep track of editing "mode" (normal, insert, etc.)
        - modify b's point in response to motion commands
        - provide a "row, column" view of the Buffer (which is really just a String)
-       */
+    */
 
     // STATE
     cl:0,// current line
@@ -28,7 +28,6 @@ Cursor=(b)=>({// class
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
         var ra=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        console.log(ra);
         if(ra>=0){b.pt+=ra+3;this.rowcol();}
         else{this.to_eob();}
     },
@@ -98,20 +97,14 @@ Cursor=(b)=>({// class
 
     // Mode changers
     esc(n=0){
-        switch(n){
-        case 0:break;
-        case 1:this.del_backward(1);break;
-        case 2:this.del_backward(2);break;
-        }
+        this.del_backward(n);
         if(!this.bol()){this.left(1);}
         this.normal_mode();
+        this.rowcol();
     },
-    append_mode(){
-        this.mode='insert';
-        this.right(+!this.eol(),true);
-    },
+    append_mode(){this.mode='insert';this.right(+!this.eol(),true);},
     insert_mode(){this.mode='insert';},
-    normal_mode(){this.mode='normal';this.rowcol();},
+    normal_mode(){this.mode='normal';},
     visual_mode(){this.mode='visual';},
 
     // status : () -> String // contains the modeline
