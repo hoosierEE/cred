@@ -1,4 +1,4 @@
-* cred ([[http://hoosieree.github.io/cred][demo]])
+* cred ([[http://alexshroyer.com/cred][demo]])
 
 [[file:img/with-cursors.png]]
 
@@ -7,27 +7,25 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
-- learn from other implementations (Spacemacs, Ace, Sublime Text, etc.)
-- unique rendering mode
-- reinvent +ALL+ Some of the wheels!
-- but really: Spacemacs for the web
+Personally I find the user interface of Vim (and by extension Spacemacs) to be very pleasing to use.  I want to create an application that captures some of my favorite features from Vim and Spacemacs, but runs natively on a Chromebook, which means JavaScript.
+
+I also want to become more familiar with modern (ES6) JavaScript features, and explore potential solutions to some of the limitations imposed by the browser environment.  In particular, file i/o is handled very differently in browsers compared to "native" applications.
+
+There are also some features of the more mainstream WYSIWYG editors that I enjoy, such as
+
+- fonts besides monospace
+- different font styles
+- inline images
+- mouse integration
+
+This means a terminal-based editor is not going to work for me, at least not well.
+
+Finally, there are a number of interesting problems that need to be solved when writing a Vim-like text editor, such as:
+
+- parse grammar of multi-part editing commands
+- persistent in-memory data structure for per-buffer editing history
+- draw text without perceptible lag
   
-* Features
-...in various amounts of implementation
-
-** render to HTML5 canvas
-This [[http://stackoverflow.com/a/12437275/2037637][may be crazy]].  But it's part of the acronym, so it stays.
-
-** game loop: separate concerns, smooth UI
-- =while(true){input(),logic(),render()}=
-- service =inputs= immediately
-- update =logic= at fixed time steps for smoother animations
-- =render= webGL possible; 2d still offers finer grained control and faster redraws than DOM
-
-** layered, modal, keyboard-driven input
-- =normal=, =insert=, =visual= modes like Vim
-- popup mini-modes like Spacemacs
-
 * Contributing
 Fork/pull if you want to contribute.
 
@@ -37,12 +35,13 @@ License is [[http://unlicense.org/][the unlicense]], which is about as permissiv
 ** Code Style
 Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other (not very strict) conventions include:
 
-- ALL_CAPS_CONSTANTS
-- ProperCamelCaseClasses
-- rarely_used_name_snake_case
+- CONSTANT_SHOUTING
+- ProperNameClasses
+- rarely_used_name
 - cu // commonly used name with a comment
 - 4-space indentation
-- "complete thoughts" short enough to fit on 1 line /should/ only take 1 line
+- always use braces ={}= and semicolons =;= to reduce JavaScript decision fatigue
+- "complete thoughts" which are /short enough/ (about 2/3 of a Tweet, max) go on one line
 
 * Links
 ** general
