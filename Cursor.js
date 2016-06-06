@@ -10,7 +10,6 @@ Cursor=(b)=>({// class
     cl:0,// current line
     co:0,// current column
     cx:0,// maximum column
-    fd:0,// f-d escape sequence
     mode:'normal',// insert, TODO visual, various "minor modes"
 
     // METHODS

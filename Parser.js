@@ -17,12 +17,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
+        fd=0,// 'fd' escape sequence
         insert=(t,dec)=>{
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
                 // auxiliary escape methods: quickly type 'fd', or use the chord 'C-['
-                if(dec.code==='f'){cur.fd=-t;}if(dec.code==='d'&&cur.fd<0&&t+cur.fd<500){cur.esc(2);}
+                if(dec.code==='f'){fd=-t;}if(dec.code==='d'&&fd<0&&t+fd<500){cur.esc(2);}
                 if(dec.code==='['&&dec.mods[1]){cur.esc(1);}
                 break;
             case'edit':
@@ -34,29 +35,27 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        single_token=(dec,repeats=1)=>{
-            for(var i=0;i<repeats;++i){
-                switch(dec.code){
-                    // motions
-                case'j':cur.down(1);break;
-                case'k':cur.up(1);break;
-                case'l':cur.right(1);break;
-                case'h':cur.left(1);break;
-                case'0':cur.to_bol();break;
-                case'$':cur.to_eol();break;
-                case'{':cur.backward_paragraph();break;
-                case'}':cur.forward_paragraph();break;
-                case'G':cur.to_eob();break;
-                case'b':cur.backward_word();break;
-                case'e':cur.forward_word();break;
-                    // mode changers
-                case'i':cur.insert_mode();break;
-                case'a':cur.append_mode();break;
-                    // editing actions
-                case'x':cur.del_at_point();break;
-                case'D':cur.del_to_eol();break;
-                default:break;
-                }
+        single_token=(dec)=>{
+            switch(dec.code){
+                // motions
+            case'j':cur.down(1);break;
+            case'k':cur.up(1);break;
+            case'l':cur.right(1);break;
+            case'h':cur.left(1);break;
+            case'0':cur.to_bol();break;
+            case'$':cur.to_eol();break;
+            case'{':cur.backward_paragraph();break;
+            case'}':cur.forward_paragraph();break;
+            case'G':cur.to_eob();break;
+            case'b':cur.backward_word();break;
+            case'e':cur.forward_word();break;
+                // mode changers
+            case'i':cur.insert_mode();break;
+            case'a':cur.append_mode();break;
+                // editing actions
+            case'x':cur.del_at_point();break;
+            case'D':cur.del_to_eol();break;
+            default:break;
             }
             //case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
         },
@@ -71,7 +70,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         operator=/[cdy]/,
         tkzs=[modifier,motion,multiplier,object,operator],
 
-        tokenize=(cmd,is_obj)=>{
+        tokenize=(cmd,ismotion)=>{
             var t={a:tkzs.map(t=>cmd.match(t))};
             t.times=cmd.match(multiplier)||[1];
             return t;
@@ -88,18 +87,22 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
                 // if the command ends in a text object or motion, parse the command
                 if(this.cmd.c==='i'){cur.insert_mode(); this.cmd={c:'',p:this.cmd.c};}
-                else if(this.cmd.c==='a'){cur.append_mode(); this.cmd={c:'',p:this.cmd.c}; 
+                else if(this.cmd.c==='a'){cur.append_mode(); this.cmd={c:'',p:this.cmd.c};
                 }
                 else{
                     var [mo,ob]=[motion,object].map(a=>!!(this.cmd.c.match(a)));
                     if(mo||ob){
 
                         // tokenize
-                        var tokens=tokenize(this.cmd.c,ob);
+                        var tokens=tokenize(this.cmd.c,mo);
                         console.log(JSON.stringify(tokens));
 
                         // parse the command, consume the cmd string
-                        if(tokens.times.length<2){single_token(dec,tokens.times.pop())}
+                        if(tokens.times.length<2){
+                            for(var i=0,l=tokens.times.pop(),i<l;++i){
+                                single_token(dec);
+                            }
+                        }
 
                         // clean up
                         this.cmd={c:'',p:this.cmd.c};
