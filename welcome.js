@@ -26,7 +26,6 @@ var welcome=
     "* inline images\n";
 
 buf.ins(welcome);
-for(var i=0;i<100;++i){buf.ins('\n');}
-buf.ins('here is some text at the end');
+buf.ins('\n'.repeat(30)+'and here is some text at the end');
 cur.rowcol();
 cur.to_bob();
