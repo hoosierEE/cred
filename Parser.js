@@ -34,7 +34,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        single_token=(code)=>{
+        exec_atomic=(code)=>{
             var result=true;
             switch(code){
                 // motions
@@ -46,6 +46,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             case'0':cur.to_bol();break;
             case'{':cur.backward_paragraph();break;
             case'}':cur.forward_paragraph();break;
+            case'gg':cur.to_bob();break;
             case'G':cur.to_eob();break;
             case'b':cur.backward_word();break;
             case'e':cur.forward_word();break;
@@ -63,6 +64,11 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
+        rx=(r,s)=>{
+            var res=r.exec(s);
+            return res?{val:res[0],idx:res.index}:{val:-1,idx:-1};
+        },
+
         rxall=(regex,str)=>{
             var arr,result=[];
             while((arr=regex.exec(str))!==null){result.push({val:arr[0],idx:arr.index});}
@@ -78,17 +84,15 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         /* get the tokens, not necessarily in order */
         tokenize=(cmd)=>{
-            var rx=(r,s)=>{var res=r.exec(s); return res?{val:res,idx:res.index}:{val:[-1],idx:-1};},
-                idsort=(x,y)=>x.idx>y.idx?1:((x.idx<y.idx)?-1:0),
-                res=[modifier,motion,object,operator].map(x=>rx(x,cmd))
-                .concat(rxall(multiplier,cmd))
-                .filter(x=>x.idx>=0).sort(idsort);
-
-            var t={
-                original:cmd,// for debugging
-                tree:res,
+            var result={
+                original:cmd,
+                modifier:rx(modifier,cmd),
+                motion:rx(motion,cmd),
+                multiplier:rxall(multiplier,cmd),
+                object:rx(object,cmd),
+                opeerator:rx(operator,cmd)
             };
-            return t;
+            return result;
         };
 
     return ({
@@ -98,18 +102,16 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             if(cur.mode==='insert'){insert(t,dec);}
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
-                if(single_token(this.cmd.c)){this.cmd.c='';}
-                else{/* if the command ends with a text object or motion, parse the command */
+                if(exec_atomic(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
+                else{/* if the command ends with a text object or motion, parse it */
                     if([motion,object].some(x=>x.test(this.cmd.c))){
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
                         console.log(JSON.stringify(tokens,null,4));
 
                         // parse the command, consume the cmd string
-                        var times=tokens.multiplier?tokens.multiplier.pop().val:1;
-                        for(var i=0;i<times;++i){
-                            single_token(dec.code);
-                        }
+                        var times=parseInt(tokens.multiplier.pop().val)||1;
+                        for(var i=0;i<times;++i){exec_atomic(dec.code);}
                         this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
                     }
                 }
