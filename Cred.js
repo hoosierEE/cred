@@ -1,5 +1,5 @@
-// TODO: file i/o
 'use strict';
+// TODO: file i/o
 var c=document.getElementById('c').getContext('2d'),
     Keyq=[{mods:[false,false,false,false],k:''}],// lightens duties for key event handler
     Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},

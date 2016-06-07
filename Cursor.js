@@ -1,4 +1,5 @@
-Cursor=(b)=>({// class
+'use strict';
+var Cursor=(b)=>({// class
     /* Cursor
        Given a Buffer b:
        - keep track of editing "mode" (normal, insert, etc.)

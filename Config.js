@@ -1,4 +1,5 @@
-Configuration=()=>({// class
+'use strict';
+var Configuration=()=>({// class
     // STATE
     font_size:'20px',
     font_name:'courier new',//'Sans-Serif',

@@ -1,5 +1,6 @@
+'use strict';
 //// Classes
-Window=(c,cur,cfg)=>({// class
+var Window=(c,cur,cfg)=>({// class
     // @param c: the target canvas
 
     // STATE

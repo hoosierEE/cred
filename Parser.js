@@ -1,3 +1,4 @@
+'use strict';
 /* motion: [repeat] (h|j|k|l|w|e|b|...)
    operator: [repeat] (c|d|y)
    text_obj: [repeat] modifier (w|W|p|s|(|)|{|}|"|'|`)
