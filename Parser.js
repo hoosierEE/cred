@@ -18,12 +18,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        fd=0,// 'fd' escape sequence
         insert=(t,dec)=>{
+            var fd=0;// 'fd' escape sequence
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
-                if(dec.code==='f'){fd=-t;}if(dec.code==='d'&&fd<0&&t+fd<500){cur.esc(2);}// 'fd'
+                if(dec.code==='f'){this.fd=-t;}
+                if(dec.code==='d'&&this.fd<0&&t+this.fd<500){cur.esc(2);}
                 if(dec.code==='['&&dec.mods[1]){cur.esc(1);}// 'C-['
                 break;
             case'edit':
@@ -65,11 +66,11 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
-        modifier=/a|i/,
-        motion=/([beGhjklw$^])|gg|([fF][a-zA-Z])/,
-        multiplier=/[1-9][0-9]*/,
-        object=/[wWps(){}\[\]"'`]/,
-        operator=/[cdy]/,
+        modifier=/(a|i)/,
+        motion=/([beGhjklw$^])|(gg)|([fFtT].)/,
+        multiplier=/([1-9][0-9]*)/,
+        object=/([wWps(){}\[\]"'`])/,
+        operator=/([cdy])/,
 
         tokenize=(cmd)=>{
             var t={
@@ -89,7 +90,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_atomic(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
-                else{/* if the command ends with a text object or motion, parse it */
+                else{/* if the command contains a text object or motion, parse it */
                     if([motion,object].some(x=>x.test(this.cmd.c))){
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
