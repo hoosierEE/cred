@@ -1,10 +1,11 @@
 'use strict';
-/* motion: [repeat] (h|j|k|l|w|e|b|...)
-   operator: [repeat] (c|d|y)
-   text_obj: [repeat] modifier (w|W|p|s|(|)|{|}|"|'|`)
-   rule: operator (motion|text_obj)
-   e.g: 5d2w = (repeat-five-times (delete (repeat-two-times (word-forward))))
-*/
+/* examples
+   5d2e = (repeat-five-times (delete (repeat-two-times (from cursor to end of word))))
+   2de = (repeat-two-times (delete (from cursor to end of word)))
+   2e = (repeat-two-times (move-cursor (from cursor to end of word))) NB. implied "move" function
+   2ce = (repeat-two-times (delete (from cursor to end of word)));(enter-insert-mode)
+   ya) = (copy (from open-paren before cursor, to matching close paren after cursor, including the parens themselves))
+ */
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
     var ParserCommand=()=>({c:'',p:''}),
 
@@ -64,17 +65,16 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             return result;
         },
 
-        //append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
-        append_char=(d,c)=>{if(!d.mods.slice(0,-1).filter(x=>x).length){c.c+=d.code;}},// append non-shifted code
+        append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
         modifier={type:'modifier',regex:/a|i/},
         motion={type:'motion',regex:/[beGhjklw$^]|gg|([fFtT].)/},
-        multiplier={type:'multiplier',regex:/[1-9][0-9]*/},
+        repeat={type:'repeat',regex:/[1-9][0-9]*/},
         object={type:'object',regex:/[wWps(){}\[\]"'`]/},
         operator={type:'operator',regex:/[cdy]/},
 
         tokenize=(cmd)=>{
-            var token_types=[modifier,motion,multiplier,object,operator],
+            var token_types=[modifier,motion,repeat,object,operator],
                 rxmatch=(ro,s)=>{// (regex,string) -> [type, match, start, length]
                     var x=ro.regex.exec(s),y=[ro.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
@@ -85,7 +85,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
                 hastype=(arr,type)=>arr.filter(x=>x[0]===type),
-                ts=consume([],cmd).map(a=>[a[0],a[1]]),
+                ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 flat=ts.reduce((x,y)=>x.concat(y));
             /* if the resulting array has both an object and a motion:
                if there's a modifier:
@@ -113,8 +113,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                         console.log(JSON.stringify(tokens,null,4));
 
                         // TODO: parse the command
-                        //var times=parseInt(tokens.multiplier.pop().val)||1;
-                        var times=1;
+                        var times=parseInt(tokens[tokens.length-2][1]||1);
                         for(var i=0;i<times;++i){exec_atomic(dec.code);}
 
                         this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
