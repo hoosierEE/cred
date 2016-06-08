@@ -65,39 +65,19 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
-        rxall=(reg_obj,str)=>{
-            var arr,res;
-            if(reg_obj.regex.global){
-                var val=[],idx=[];
-                while(arr=reg_obj.regex.exec(str)){
-                    val.push(arr[0]);
-                    idx.push(arr.index);
-                }
-                res={type:reg_obj.name,value:val,index:idx};
-            }
-            else{
-                arr=reg_obj.regex.exec(str);
-                if(arr){res={type:reg_obj.name,val:arr[0],idx:arr.index};}
-                else{res={type:'none',value:-1,index:-1};}
-            }
-            return res;
-        },
-
-        modifier={name:'modifier',regex:/a|i/},
-        motion={name:'motion',regex:/[beGhjklw$^]|gg/},
-        multiplier={name:'multiplier',regex:/[1-9][0-9]*/g},
-        object={name:'object',regex:/[wWps(){}\[\]"'`]/},
-        operator={name:'operator',regex:/[cdy]/},
+        modifier=/a|i/,
+        motion=/([beGhjklw$^])|gg|([fF][a-zA-Z])/,
+        multiplier=/[1-9][0-9]*/,
+        object=/[wWps(){}\[\]"'`]/,
+        operator=/[cdy]/,
 
         tokenize=(cmd)=>{
-            var t=[
-                cmd,
-                //modifier:rxall(modifier,cmd),
-                rxall(motion,cmd),
-                rxall(multiplier,cmd),
-                //object:rxall(object,cmd),
-                rxall(operator,cmd),
-            ];
+            var t={
+                mod:modifier.exec(cmd),
+                mot:motion.exec(cmd),
+                obj:object.exec(cmd),
+                ope:operator.exec(cmd),
+            };
             return t;
         };
 
@@ -110,7 +90,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_atomic(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{/* if the command ends with a text object or motion, parse it */
-                    if([motion,object].some(x=>x.regex.test(this.cmd.c))){
+                    if([motion,object].some(x=>x.test(this.cmd.c))){
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
                         console.log(JSON.stringify(tokens,null,4));
@@ -119,6 +99,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                         //var times=parseInt(tokens.multiplier.pop().val)||1;
                         var times=1;
                         for(var i=0;i<times;++i){exec_atomic(dec.code);}
+
                         this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
                     }
                 }
