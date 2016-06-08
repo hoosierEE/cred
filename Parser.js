@@ -112,7 +112,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                         var tokens=tokenize(this.cmd.c);
                         console.log(JSON.stringify(tokens,null,4));
 
-                        // parse the command, consume the cmd string
+                        // TODO: parse the command
                         //var times=parseInt(tokens.multiplier.pop().val)||1;
                         var times=1;
                         for(var i=0;i<times;++i){exec_atomic(dec.code);}

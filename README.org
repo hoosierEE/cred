@@ -7,24 +7,31 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
-Personally I find the user interface of Vim (and by extension Spacemacs) to be very pleasing to use.  I want to create an application that captures some of my favorite features from Vim and Spacemacs, but runs natively on a Chromebook, which means JavaScript.
+The primary goal of Cred is to offer a Spacemacs-like UI in a web-native package.  This means it can run on an unmodified Chromebook, or even as a static web site.  This entails some trade-offs:
 
-I also want to become more familiar with modern (ES6) JavaScript features, and explore potential solutions to some of the limitations imposed by the browser environment.  In particular, file i/o is handled very differently in browsers compared to "native" applications.
+- sandboxed app has no access to other programs (e.g. a shell)
+- no millions of developer-hours already invested in features and debugging
 
-There are also some features of the more mainstream WYSIWYG editors that I enjoy, such as
+...but also affords some interesting features not feasible (or awkward) for an app with terminal heritage:
 
 - fonts besides monospace
-- different font styles
-- inline images
+- inline font styles
+- images, audio, video
 - mouse integration
+  
+** Completed Features
 
-This means a terminal-based editor is not going to work for me, at least not well.
-
-Finally, there are a number of interesting problems that need to be solved when writing a Vim-like text editor, such as:
-
-- parse grammar of multi-part editing commands
+- scrolling via keyboard or mouse
+- many normal-mode motions (forward-paragraph, backward-word, etc.)
+- tokenize multi-part commands (e.g. =12ya)=)
 - persistent in-memory data structure for per-buffer editing history
 - draw text without perceptible lag
+
+** Todos
+
+- parse multi-part commands
+- visual mode
+- text object spans (e.g. =daw= should delete an entire word touching the cursor, even if the cursor is in the middle of the word)
   
 * Contributing
 Fork/pull if you want to contribute.
