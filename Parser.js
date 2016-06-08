@@ -37,7 +37,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        exec_atomic=(code)=>{
+        exec_one=(code)=>{
             var result=true;
             switch(code){
                 // motions
@@ -70,7 +70,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         modifier={type:'modifier',regex:/a|i/},
         motion={type:'motion',regex:/[beGhjklw$^]|gg|([fFtT].)/},
         repeat={type:'repeat',regex:/[1-9][0-9]*/},
-        object={type:'object',regex:/[wWps(){}\[\]"'`]/},
+        object={type:'object',regex:/[wWps()<>{}\[\]"'`]/},
         operator={type:'operator',regex:/[cdy]/},
 
         tokenize=(cmd)=>{
@@ -87,16 +87,29 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 hastype=(arr,type)=>arr.filter(x=>x[0]===type),
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 flat=ts.reduce((x,y)=>x.concat(y));
-            /* if the resulting array has both an object and a motion:
-               if there's a modifier:
-               remove the motion; otherwise remove the object
+            /* if the resulting array has both an object and a motion, then:
+               remove the (modifier?motion:object)
             */
             if(flat.includes('motion')&&flat.includes('object')){
                 ts=ts.filter(x=>x[0]!==(flat.includes('modifier')?'motion':'object'));
             }
             return ts;
-        };
+        },
 
+        tree=(tokens)=>{
+            // example:
+            // test example sentence  with some normal words and a a a a a a bunch of short ones
+            // 2y3e => test example sentence  with some normal
+            //        (test example sentence)(with some normal) // yanked: (2 groups of (3e))
+            var stack=[];
+            tokens.slice().reverse().forEach(x=>{
+                if(x[0]==='object'||x[0]==='motion'){stack.push(x);}// noun
+                if(x[0]==='modifier'||x[0]==='repeat'||x[0]==='operator'){
+                    stack.push(x.concat([stack.pop()]));
+                }// verb
+            });
+            return stack;
+        };
     return ({
         cmd:ParserCommand(),
         parse(t,dec){
@@ -104,17 +117,20 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             if(cur.mode==='insert'){insert(t,dec);}
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
-                if(exec_atomic(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
+                if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{/* if the command contains a text object or motion, parse it */
                     if([motion,object].some(x=>x.regex.test(this.cmd.c))){
 
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
-                        console.log(JSON.stringify(tokens,null,4));
+                        console.log(JSON.stringify(tokens,null,2));
+                        console.log(JSON.stringify(tree(tokens),null,2));
+                        //console.log(JSON.stringify(tokens.slice().reverse().reduce((x,y)=>y.concat([x])),null,2));
 
                         // TODO: parse the command
+                        // NOTE: once we have the tokens, we can apply rules, such as "rule: operator (motion|object)"
                         var times=parseInt(tokens[tokens.length-2][1]||1);
-                        for(var i=0;i<times;++i){exec_atomic(dec.code);}
+                        for(var i=0;i<times;++i){exec_one(tokens[tokens.length-1][1]);}
 
                         this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
                     }
