@@ -64,22 +64,37 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             return result;
         },
 
-        append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
+        //append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
+        append_char=(d,c)=>{if(!d.mods.slice(0,-1).filter(x=>x).length){c.c+=d.code;}},// append non-shifted code
 
-        modifier=/(a|i)/,
-        motion=/([beGhjklw$^])|(gg)|([fFtT].)/,
-        multiplier=/([1-9][0-9]*)/,
-        object=/([wWps(){}\[\]"'`])/,
-        operator=/([cdy])/,
+        modifier={type:'modifier',regex:/a|i/},
+        motion={type:'motion',regex:/[beGhjklw$^]|gg|([fFtT].)/},
+        multiplier={type:'multiplier',regex:/[1-9][0-9]*/},
+        object={type:'object',regex:/[wWps(){}\[\]"'`]/},
+        operator={type:'operator',regex:/[cdy]/},
 
         tokenize=(cmd)=>{
-            var t={
-                mod:modifier.exec(cmd),
-                mot:motion.exec(cmd),
-                obj:object.exec(cmd),
-                ope:operator.exec(cmd),
-            };
-            return t;
+            var token_types=[modifier,motion,multiplier,object,operator],
+                rxmatch=(ro,s)=>{// (regex,string) -> [type, match, start, length]
+                    var x=ro.regex.exec(s),y=[ro.type];
+                    return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
+                },
+                bycolumn=(i)=>(x,y)=>x[i]<y[i]?-1:((x[i]>y[i])?1:0),
+                consume=(arr,str)=>{/* build array of tokens until no match */
+                    var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);// first match
+                    return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
+                },
+                hastype=(arr,type)=>arr.filter(x=>x[0]===type),
+                ts=consume([],cmd).map(a=>[a[0],a[1]]),
+                flat=ts.reduce((x,y)=>x.concat(y));
+            /* if the resulting array has both an object and a motion:
+               if there's a modifier:
+               remove the motion; otherwise remove the object
+            */
+            if(flat.includes('motion')&&flat.includes('object')){
+                ts=ts.filter(x=>x[0]!==(flat.includes('modifier')?'motion':'object'));
+            }
+            return ts;
         };
 
     return ({
@@ -91,7 +106,8 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_atomic(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{/* if the command contains a text object or motion, parse it */
-                    if([motion,object].some(x=>x.test(this.cmd.c))){
+                    if([motion,object].some(x=>x.regex.test(this.cmd.c))){
+
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
                         console.log(JSON.stringify(tokens,null,4));
