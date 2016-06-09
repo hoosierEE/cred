@@ -50,6 +50,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             case'{':cur.backward_paragraph();break;
             case'}':cur.forward_paragraph();break;
             case'gg':cur.to_bob();break;
+            //case'dd':cur.delete_line();break;
             case'G':cur.to_eob();break;
             case'b':cur.backward_word();break;
             case'e':cur.forward_word();break;
@@ -90,14 +91,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 has=(str)=>ts.reduce((x,y)=>x.concat(y)).includes(str);
 
-            // is 'w' an object or a motion?
+            // is 'w' an object or a motion?  If it has a modifier, then it's an object.
             if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
             return ts;// [['tokentype','chars']], in order that they were typed
         },
 
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
-           else return an error message and the original string that caused it.
-         */
+           else return an error message and the original string that caused it. */
         lex=(raw_tokens)=>{
             var mult=1,cmd=[],tokens=raw_tokens.slice(),
                 original=raw_tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
@@ -149,13 +149,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
-                else{/* if the command contains a text object or motion, parse it */
+                else{// if the command contains a text object or motion, parse it
                     if([motion,object].some(x=>x.reg.test(this.cmd.c))){
-                        var tokens=tokenize(this.cmd.c),// tokenize
-                            lexed=lex(tokens);// lex // TODO: parse
+                        var tokens=tokenize(this.cmd.c),// tokenize.
+                            lexed=lex(tokens);// lex. TODO: parse
 
                         console.log(JSON.stringify(lexed,null,4));
-                        if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
+                        if(lexed.error){}//console.log(JSON.stringify(lexed,null,4));}
                         else{
                             var times=lexed.mult;
                             for(var i=0;i<times;++i){exec_one(lexed.cmd[lexed.cmd.length-1]);}
