@@ -81,64 +81,74 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                     var x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
-
                 token_types=[modifier,motion,count,object,operator],
                 consume=(arr,str)=>{// ([],command) -> [[type, match, start, length]]
                     var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);// first match
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
-
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
-                has=(str)=>ts.reduce((x,y)=>x.concat(y)).includes(str);
-
+                has=(str)=>!ts.length?false:ts.reduce((x,y)=>x.concat(y)).includes(str);
             // is 'w' an object or a motion?  If it has a modifier, then it's an object.
             if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
-            return ts;// [['tokentype','chars']], in order that they were typed
+            if(ts.length>0){return ts;}// [['tokentype','chars']], in order that they were typed
+            else{return [['UNKNOWN TOKEN',cmd]];}// [['error message','offending token']]
         },
 
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
            else return an error message and the original string that caused it. */
         lex=(raw_tokens)=>{
-            var mult=1,cmd=[],tokens=raw_tokens.slice(),
+            var mult=1,cmd={},tokens=raw_tokens.slice(),
                 original=raw_tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
                 has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                err={original:original,error:'PARSE ERROR'};
+                err={original:original,error:'PARSE ERROR'};// default error message
+
+            // error
+            if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
 
             // [count] operator [count] modifier object
-            if(has('modifier')){
+            else if(has('modifier')){
                 var t=tokens.shift();
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='operator'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
+                if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='modifier'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
-                if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+                if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
+                if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
             }
 
             // [count] operator [count] (motion|object)
             else if(has('operator')){
                 var t=tokens.shift();
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='operator'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
+                if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='motion'){cmd.push(t[1]);if(t=tokens.shift()){return err;};}
-                else if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+                if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;};}
+                else if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
             }
 
             // [count] motion
             else if(has('motion')){
                 var t=tokens.shift();
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='motion'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+                if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
             }
 
             // [count] object
             else if(has('object')){
                 var t=tokens.shift();
                 if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+                if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
             }
             else{return err;}
             return{original:original, mult:mult, cmd:cmd,};
+        },
+
+        /* Given an already-parsed expression, evaluate it. */
+        evaluate=(tree)=>{
+            var verbs={c:'change',d:'delete',y:'copy',g:'move'},
+                verb=tree.cmd.verb||'g',
+                range={mult:tree.mult,noun:tree.cmd.noun,mod:tree.cmd.mod};
+
+            return ({func:verbs[verb],range:range});
         };
 
     return ({
@@ -151,12 +161,14 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{// if the command contains a text object or motion, parse it
                     if([motion,object].some(x=>x.reg.test(this.cmd.c))){
-                        var tokens=tokenize(this.cmd.c),// tokenize.
-                            lexed=lex(tokens);// lex. TODO: parse
+                        var tokens=tokenize(this.cmd.c), lexed=lex(tokens);
 
-                        console.log(JSON.stringify(lexed,null,4));
-                        if(lexed.error){}//console.log(JSON.stringify(lexed,null,4));}
+                        // TODO: parse
+
+                        if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
                         else{
+                            console.log(JSON.stringify(lexed,null,0));
+                            console.log(JSON.stringify(evaluate(lexed),null,4));
                             var times=lexed.mult;
                             for(var i=0;i<times;++i){exec_one(lexed.cmd[lexed.cmd.length-1]);}
                         }
