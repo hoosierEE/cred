@@ -87,9 +87,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 hastype=(arr,type)=>arr.filter(x=>x[0]===type),
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 flat=ts.reduce((x,y)=>x.concat(y));
-            /* if the resulting array has both an object and a motion, then:
-               remove the (modifier?motion:object)
-            */
+            // if the resulting array has both an object and a motion, remove the (modifier?motion:object)
             if(flat.includes('motion')&&flat.includes('object')){
                 ts=ts.filter(x=>x[0]!==(flat.includes('modifier')?'motion':'object'));
             }
@@ -103,13 +101,12 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             //        (test example sentence)(with some normal) // yanked: (2 groups of (3e))
             var stack=[];
             tokens.slice().reverse().forEach(x=>{
-                if(x[0]==='object'||x[0]==='motion'){stack.push(x);}// noun
-                if(x[0]==='modifier'||x[0]==='repeat'||x[0]==='operator'){
-                    stack.push(x.concat([stack.pop()]));
-                }// verb
+                if(/object|motion/.test(x[0])){stack.push(x);}// noun
+                if(/operator|modifier|repeat/.test(x[0])){stack.push(x.concat([stack.pop()]));}// verb
             });
             return stack;
         };
+
     return ({
         cmd:ParserCommand(),
         parse(t,dec){
@@ -124,8 +121,8 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
                         console.log(JSON.stringify(tokens,null,2));
-                        console.log(JSON.stringify(tree(tokens),null,2));
-                        //console.log(JSON.stringify(tokens.slice().reverse().reduce((x,y)=>y.concat([x])),null,2));
+                        //console.log(JSON.stringify(tree(tokens),null,2));
+                        console.log(JSON.stringify(tokens.slice().reverse().reduce((x,y)=>y.concat([x])),null,2));
 
                         // TODO: parse the command
                         // NOTE: once we have the tokens, we can apply rules, such as "rule: operator (motion|object)"
