@@ -67,6 +67,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
+        modifier={type:'modifier',reg:/a|i/}, // [count] operator [count] modifier object
+        motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/}, // [count] motion
+        count={type:'count',reg:/[1-9][0-9]*/},
+        object={type:'object',reg:/[wWps()<>{}\[\]"'`]/},// [count] object
+        operator={type:'operator',reg:/[cdy]/}, // [count] operator [count] (motion|object)
+        //double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
+
         tokenize=(cmd)=>{// assume cmd already contains a motion or object
             var token_types=[modifier,motion,count,object,operator],
                 rxmatch=(ro,s)=>{// (regex,string) -> [type, match, start, length]
@@ -87,15 +94,6 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
             return ts;// [['type','chars']]
         },
-
-        modifier={type:'modifier',reg:/a|i/}, // [count] operator [count] modifier object
-        motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/}, // [count] motion
-        count={type:'count',reg:/[1-9][0-9]*/},
-        object={type:'object',reg:/[wWps()<>{}\[\]"'`]/},// [count] object
-        operator={type:'operator',reg:/[cdy]/}, // [count] operator [count] (motion|object)
-        double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
-        repeated_motion={type:'repeated_motion',reg:RegExp('('+count.reg.source+')('+motion.reg.source+')')},
-        repeated_object={type:'repeated_object',reg:RegExp('('+count.reg.source+')('+object.reg.source+')')},
 
         lex=(raw_tokens)=>{
             var mult=1,cmd=[],tokens=raw_tokens.slice(),
@@ -155,15 +153,15 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 else{/* if the command contains a text object or motion, parse it */
                     if([motion,object].some(x=>x.reg.test(this.cmd.c))){
 
-                        // tokenize
-                        var tokens=tokenize(this.cmd.c);
-                        console.log(JSON.stringify(lex(tokens),null,0));
-
-                        // parse the command
-                        // NOTE: once we have the tokens, we can apply rules, such as "rule: operator (motion|object)"
-
-                        var times=parseInt(tokens[tokens.length-2][1]||1);
-                        for(var i=0;i<times;++i){exec_one(tokens[tokens.length-1][1]);}
+                        // tokenize, lex, parse
+                        var tokens=tokenize(this.cmd.c), lexed=lex(tokens);
+                        console.log(JSON.stringify(lexed,null,4));
+                        //if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
+                        //else{
+                        if(!lexed.error){
+                            var times=lexed.mult;
+                            for(var i=0;i<times;++i){exec_one(lexed.cmd[lexed.cmd.length-1]);}
+                        }
 
                         this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
                     }
