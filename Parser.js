@@ -1,9 +1,9 @@
 'use strict';
 /* examples
-   5d2e = (repeat-five-times (delete (repeat-two-times (from cursor to end of word))))
-   2de = (repeat-two-times (delete (from cursor to end of word)))
-   2e = (repeat-two-times (move-cursor (from cursor to end of word))) NB. implied "move" function
-   2ce = (repeat-two-times (delete (from cursor to end of word)));(enter-insert-mode)
+   5d2e = (count-five-times (delete (count-two-times (from cursor to end of word))))
+   2de = (count-two-times (delete (from cursor to end of word)))
+   2e = (count-two-times (move-cursor (from cursor to end of word))) NB. implied "move" function
+   2ce = (count-two-times (delete (from cursor to end of word)));(enter-insert-mode)
    ya) = (copy (from open-paren before cursor, to matching close paren after cursor, including the parens themselves))
  */
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
@@ -67,16 +67,10 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
-        modifier={type:'modifier',regex:/a|i/},
-        motion={type:'motion',regex:/[beGhjklw$^]|gg|([fFtT].)/},
-        repeat={type:'repeat',regex:/[1-9][0-9]*/},
-        object={type:'object',regex:/[wWps()<>{}\[\]"'`]/},
-        operator={type:'operator',regex:/[cdy]/},
-
-        tokenize=(cmd)=>{
-            var token_types=[modifier,motion,repeat,object,operator],
+        tokenize=(cmd)=>{// assume cmd already contains a motion or object
+            var token_types=[modifier,motion,count,object,operator],
                 rxmatch=(ro,s)=>{// (regex,string) -> [type, match, start, length]
-                    var x=ro.regex.exec(s),y=[ro.type];
+                    var x=ro.reg.exec(s),y=[ro.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
                 bycolumn=(i)=>(x,y)=>x[i]<y[i]?-1:((x[i]>y[i])?1:0),
@@ -87,24 +81,67 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 hastype=(arr,type)=>arr.filter(x=>x[0]===type),
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 flat=ts.reduce((x,y)=>x.concat(y));
-            // if the resulting array has both an object and a motion, remove the (modifier?motion:object)
+            // disambiguate between object-w and motion-w
             if(flat.includes('motion')&&flat.includes('object')){
                 ts=ts.filter(x=>x[0]!==(flat.includes('modifier')?'motion':'object'));
             }
-            return ts;
+            return ts;// [['type','chars']]
         },
 
-        tree=(tokens)=>{
-            // example:
-            // test example sentence  with some normal words and a a a a a a bunch of short ones
-            // 2y3e => test example sentence  with some normal
-            //        (test example sentence)(with some normal) // yanked: (2 groups of (3e))
-            var stack=[];
-            tokens.slice().reverse().forEach(x=>{
-                if(/object|motion/.test(x[0])){stack.push(x);}// noun
-                if(/operator|modifier|repeat/.test(x[0])){stack.push(x.concat([stack.pop()]));}// verb
-            });
-            return stack;
+        modifier={type:'modifier',reg:/a|i/}, // [count] operator [count] modifier object
+        motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/}, // [count] motion
+        count={type:'count',reg:/[1-9][0-9]*/},
+        object={type:'object',reg:/[wWps()<>{}\[\]"'`]/},// [count] object
+        operator={type:'operator',reg:/[cdy]/}, // [count] operator [count] (motion|object)
+        double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
+        repeated_motion={type:'repeated_motion',reg:RegExp('('+count.reg.source+')('+motion.reg.source+')')},
+        repeated_object={type:'repeated_object',reg:RegExp('('+count.reg.source+')('+object.reg.source+')')},
+
+        lex=(raw_tokens)=>{
+            var mult=1,cmd=[],tokens=raw_tokens.slice(),
+                original=raw_tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
+                err={original:original,error:'PARSE ERROR'},
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
+
+            // [count] operator [count] modifier object
+            if(has('modifier')){
+                var t=tokens.shift();
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='operator'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='modifier'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
+                if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+            }
+
+            // [count] operator [count] (motion|object)
+            else if(has('operator')){
+                var t=tokens.shift();
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='operator'){cmd.push(t[1]);t=tokens.shift();}else{return err;}
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='motion'){cmd.push(t[1]);if(t=tokens.shift()){return err;};}
+                else if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+            }
+
+            // [count] motion
+            else if(has('motion')){
+                var t=tokens.shift();
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='motion'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+            }
+
+            // [count] object
+            else if(has('object')){
+                var t=tokens.shift();
+                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
+            }
+
+            return{
+                original:original,
+                mult:mult,
+                cmd:cmd,
+            };
         };
 
     return ({
@@ -116,16 +153,15 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{/* if the command contains a text object or motion, parse it */
-                    if([motion,object].some(x=>x.regex.test(this.cmd.c))){
+                    if([motion,object].some(x=>x.reg.test(this.cmd.c))){
 
                         // tokenize
                         var tokens=tokenize(this.cmd.c);
-                        console.log(JSON.stringify(tokens,null,2));
-                        //console.log(JSON.stringify(tree(tokens),null,2));
-                        console.log(JSON.stringify(tokens.slice().reverse().reduce((x,y)=>y.concat([x])),null,2));
+                        console.log(JSON.stringify(lex(tokens),null,0));
 
-                        // TODO: parse the command
+                        // parse the command
                         // NOTE: once we have the tokens, we can apply rules, such as "rule: operator (motion|object)"
+
                         var times=parseInt(tokens[tokens.length-2][1]||1);
                         for(var i=0;i<times;++i){exec_one(tokens[tokens.length-1][1]);}
 
