@@ -74,32 +74,33 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         operator={type:'operator',reg:/[cdy]/}, // [count] operator [count] (motion|object)
         //double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
 
-        tokenize=(cmd)=>{// assume cmd already contains a motion or object
-            var token_types=[modifier,motion,count,object,operator],
-                rxmatch=(ro,s)=>{// (regex,string) -> [type, match, start, length]
-                    var x=ro.reg.exec(s),y=[ro.type];
+        tokenize=(cmd)=>{
+            var rxmatch=(typed_regex,str)=>{// (regex,string) -> [type, match, start, length]
+                    /* exec() wrapper, preserves the 'type' of the regex */
+                    var x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
-                bycolumn=(i)=>(x,y)=>x[i]<y[i]?-1:((x[i]>y[i])?1:0),
-                consume=(arr,str)=>{/* build array of tokens until no match */
+
+                /* build array of tokens until no match */
+                token_types=[modifier,motion,count,object,operator],
+                consume=(arr,str)=>{
                     var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);// first match
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
-                hastype=(arr,type)=>arr.filter(x=>x[0]===type),
+
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
-                flat=ts.reduce((x,y)=>x.concat(y));
+                has=(str)=ts.reduce((x,y)=>x.concat(y)).includes(str);
+
             // disambiguate between object-w and motion-w
-            if(flat.includes('motion')&&flat.includes('object')){
-                ts=ts.filter(x=>x[0]!==(flat.includes('modifier')?'motion':'object'));
-            }
-            return ts;// [['type','chars']]
+            if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
+            return ts;// [['tokentype','chars']], in order that they were typed
         },
 
         lex=(raw_tokens)=>{
             var mult=1,cmd=[],tokens=raw_tokens.slice(),
                 original=raw_tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
-                err={original:original,error:'PARSE ERROR'},
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
+                err={original:original,error:'PARSE ERROR'};
 
             // [count] operator [count] modifier object
             if(has('modifier')){
@@ -135,11 +136,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 if(t[0]==='object'){cmd.push(t[1]);if(t=tokens.shift()){return err;}}else{return err;}
             }
 
-            return{
-                original:original,
-                mult:mult,
-                cmd:cmd,
-            };
+            return{original:original, mult:mult, cmd:cmd,};
         };
 
     return ({
@@ -153,17 +150,19 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 else{/* if the command contains a text object or motion, parse it */
                     if([motion,object].some(x=>x.reg.test(this.cmd.c))){
 
-                        // tokenize, lex, parse
+                        // tokenize, lex
                         var tokens=tokenize(this.cmd.c), lexed=lex(tokens);
                         console.log(JSON.stringify(lexed,null,4));
-                        //if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
-                        //else{
-                        if(!lexed.error){
+                        if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
+                        else{//if(!lexed.error){
                             var times=lexed.mult;
                             for(var i=0;i<times;++i){exec_one(lexed.cmd[lexed.cmd.length-1]);}
                         }
 
-                        this.cmd={c:'',p:this.cmd.c};// keep last command in history, clear current one
+                        // TODO: parse
+
+                        // keep last command in history, clear current one
+                        this.cmd={c:'',p:this.cmd.c};
                     }
                 }
             }
