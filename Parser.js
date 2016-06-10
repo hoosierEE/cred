@@ -5,7 +5,7 @@
    2e = (count-two-times (move-cursor (from cursor to end of word))) NB. implied "move" function
    2ce = (count-two-times (delete (from cursor to end of word)));(enter-insert-mode)
    ya) = (copy (from open-paren before cursor, to matching close paren after cursor, including the parens themselves))
- */
+*/
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
     var ParserCommand=()=>({c:'',p:''}),
 
@@ -50,7 +50,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             case'{':cur.backward_paragraph();break;
             case'}':cur.forward_paragraph();break;
             case'gg':cur.to_bob();break;
-            //case'dd':cur.delete_line();break;
+                //case'dd':cur.delete_line();break;
             case'G':cur.to_eob();break;
             case'b':cur.backward_word();break;
             case'e':cur.forward_word();break;
@@ -68,39 +68,43 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
 
-        modifier={type:'modifier',reg:/a|i/}, // [count] operator [count] modifier object
-        motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/}, // [count] motion
+        modifier={type:'modifier',reg:/a|i/},
+        motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/},
         count={type:'count',reg:/[1-9][0-9]*/},
-        object={type:'object',reg:/[wWps()<>{}\[\]"'`]/},// [count] object
-        operator={type:'operator',reg:/[cdy]/}, // [count] operator [count] (motion|object)
+        object={type:'object',reg:/[wWps()<>{}\[\]"'`]/},
+        operator={type:'operator',reg:/[cdy]/},
         //double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
 
         /* Given a string (cmd), return an array of tokens (ts). */
-        tokenize=(cmd)=>{
-            var rxmatch=(typed_regex,str)=>{// (regex,string) -> [type, match, start, length]
+        tokenize=(raw_cmd)=>{
+            var cmd=raw_cmd.slice(),
+                token_types=[modifier,motion,count,object,operator],
+                rxmatch=(typed_regex,str)=>{// (regex,string) -> [type, match, start, length]
                     var x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
-                token_types=[modifier,motion,count,object,operator],
                 consume=(arr,str)=>{// ([],command) -> [[type, match, start, length]]
                     var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);// first match
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 has=(str)=>!ts.length?false:ts.reduce((x,y)=>x.concat(y)).includes(str);
+
             // is 'w' an object or a motion?  If it has a modifier, then it's an object.
             if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
+
+            // was tokenizing successful?
             if(ts.length>0){return ts;}// [['tokentype','chars']], in order that they were typed
-            else{return [['UNKNOWN TOKEN',cmd]];}// [['error message','offending token']]
+            else{return [['UNKNOWN TOKEN',raw_cmd]];}// [['error message','offending token']]
         },
 
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
            else return an error message and the original string that caused it. */
-        lex=(raw_tokens)=>{
-            var mult=1,cmd={},tokens=raw_tokens.slice(),
-                original=raw_tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
+        lex=(tokens)=>{
+            var mult=1,cmd={},
+                original=tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
                 has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                err={original:original,error:'PARSE ERROR'};// default error message
+                err={original:tokens,error:'PARSE ERROR'};// default error message
 
             // error
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
@@ -144,11 +148,15 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         /* Given an already-parsed expression, evaluate it. */
         evaluate=(tree)=>{
-            var verbs={c:'change',d:'delete',y:'copy',g:'move'},
-                verb=tree.cmd.verb||'g',
+            var verb=tree.cmd.verb||'g',// default
+                verbs={
+                    c:'change',
+                    d:'delete',
+                    y:'copy',
+                    g:'move'
+                },
                 range={mult:tree.mult,noun:tree.cmd.noun,mod:tree.cmd.mod};
-
-            return ({func:verbs[verb],range:range});
+            return ({verb:verbs[verb],args:range});
         };
 
     return ({
@@ -169,8 +177,10 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                         else{
                             console.log(JSON.stringify(lexed,null,0));
                             console.log(JSON.stringify(evaluate(lexed),null,4));
+
+                            // dumb eval
                             var times=lexed.mult;
-                            for(var i=0;i<times;++i){exec_one(lexed.cmd[lexed.cmd.length-1]);}
+                            for(var i=0;i<times;++i){exec_one(lexed.cmd.noun);}
                         }
 
                         // keep last command in history, clear current one
