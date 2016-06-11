@@ -76,15 +76,14 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         //double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
 
         /* Given a string (cmd), return an array of tokens (ts). */
-        tokenize=(raw_cmd)=>{
-            var cmd=raw_cmd.slice(),
-                token_types=[modifier,motion,count,object,operator],
+        tokenize=(cmd)=>{
+            var token_types=[modifier,motion,count,object,operator],
                 rxmatch=(typed_regex,str)=>{// (regex,string) -> [type, match, start, length]
                     var x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
                 consume=(arr,str)=>{// ([],command) -> [[type, match, start, length]]
-                    var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);// first match
+                    var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
@@ -95,16 +94,20 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
             // was tokenizing successful?
             if(ts.length>0){return ts;}// [['tokentype','chars']], in order that they were typed
-            else{return [['UNKNOWN TOKEN',raw_cmd]];}// [['error message','offending token']]
+            else{return [['UNKNOWN TOKEN',cmd]];}// [['error message','offending token']]
         },
 
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
-           else return an error message and the original string that caused it. */
+           else return an error message and the original string that caused it.
+           The order of the has('foo') calls determines what type of command gets processed.
+           So we have to check the optional prefixes first (e.g. [modifier] object)
+        */
         lex=(tokens)=>{
-            var mult=1,cmd={},
-                original=tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                err={original:tokens,error:'PARSE ERROR'};// default error message
+            var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),},
+                err={original:tokens,error:'PARSE ERROR'},// default error message
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
+
+            // NOTE: this function is sort of hideous
 
             // error
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
@@ -112,75 +115,85 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             // [count] operator [count] modifier object
             else if(has('modifier')){
                 var t=tokens.shift();
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
+                return cmd;
             }
 
             // [count] operator [count] (motion|object)
             else if(has('operator')){
                 var t=tokens.shift();
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;};}
                 else if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
+                return cmd;
             }
 
             // [count] motion
             else if(has('motion')){
                 var t=tokens.shift();
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
+                return cmd;
             }
 
             // [count] object
             else if(has('object')){
                 var t=tokens.shift();
-                if(t[0]==='count'){mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
+                return cmd;
             }
             else{return err;}
-            return{original:original, mult:mult, cmd:cmd,};
         },
 
-        /* Given an already-parsed expression, evaluate it. */
+        /* Turn a parsed expression into a function call with arguments. */
         evaluate=(tree)=>{
-            var verb=tree.cmd.verb||'g',// default
-                verbs={
-                    c:'change',
-                    d:'delete',
-                    y:'copy',
-                    g:'move'
+            var verbs={c:'change', d:'delete', y:'copy', g:cur.move},
+                nouns={
+                    'h':cur.left,
+                    'j':cur.down,
+                    'k':cur.up,
+                    'l':cur.right,
                 },
-                range={mult:tree.mult,noun:tree.cmd.noun,mod:tree.cmd.mod};
-            return ({verb:verbs[verb],args:range});
+                range={
+                    mult:tree.mult,
+                    noun:nouns[tree.noun],
+                    mod:tree.mod
+                };
+            if(tree.verb=='g'){
+                verbs[tree.verb].call(cur,range.noun,range.mult,1);
+            }
+            //console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
         };
 
     return ({
         cmd:ParserCommand(),
         parse(t,dec){
             if(dec.type==='arrow'){arrow(dec);}// parse arrows in any mode
-            if(cur.mode==='insert'){insert(t,dec);}
+            if(cur.mode==='insert'){insert(t,dec);}// ignoring '[count] insert [esc esc]' mode
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
                 if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
                 else{// if the command contains a text object or motion, parse it
                     if([motion,object].some(x=>x.reg.test(this.cmd.c))){
-                        var tokens=tokenize(this.cmd.c), lexed=lex(tokens);
-
-                        // TODO: parse
+                        var tokens=tokenize(this.cmd.c),
+                            lexed=lex(tokens);
 
                         if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
                         else{
-                            console.log(JSON.stringify(lexed,null,0));
-                            console.log(JSON.stringify(evaluate(lexed),null,4));
+                            //console.log(JSON.stringify(lexed,null,0));
+                            //console.log(JSON.stringify(evaluate(lexed),null,4));
+                            evaluate(lexed);
 
                             // dumb eval
-                            var times=lexed.mult;
-                            for(var i=0;i<times;++i){exec_one(lexed.cmd.noun);}
+                            //var times=lexed.mult;
+                            //for(var i=0;i<times;++i){exec_one(lexed.noun);}
                         }
 
                         // keep last command in history, clear current one

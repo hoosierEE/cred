@@ -1,12 +1,11 @@
+/* Cursor
+   Given a Buffer b:
+   - keep track of editing "mode" (normal, insert, etc.)
+   - modify b's point in response to motion commands
+   - provide a "row, column" view of the Buffer (which is really just a String)
+*/
 'use strict';
-var Cursor=(b)=>({// class
-    /* Cursor
-       Given a Buffer b:
-       - keep track of editing "mode" (normal, insert, etc.)
-       - modify b's point in response to motion commands
-       - provide a "row, column" view of the Buffer (which is really just a String)
-    */
-
+var Cursor=(b)=>({
     // STATE
     cl:0,// current line
     co:0,// current column
@@ -15,17 +14,8 @@ var Cursor=(b)=>({// class
 
     // METHODS
 
-    // where is the cursor?
-    curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
-    bol(){return b.s[b.pt-1]==='\n';},
-    eol(){return b.s[b.pt]==='\n';},
-    eob(){return b.pt>=b.s.length;},
-
-    // Search resulting in motion
-    to_bol(){this.left(this.co);},
-    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
-    to_bob(){b.pt=0;this.rowcol();},
-    to_eob(){b.pt=b.s.length-1;this.rowcol();},
+    // side-effect-free search resulting in a number (distance-from-cursor)
+    // otherwise -1 if the search fails
     forward_dist_to(nth,thing){
         var dist=0,pos=b.pt+1;
         for(var i=0;i<nth;++i){
@@ -36,6 +26,7 @@ var Cursor=(b)=>({// class
         return dist;
     },
     backward_dist_to(nth,thing){
+        // TODO - finish this fn
         // find all things, return pt-(index of start of nth thing from end)
         var m,start=0,things=[],end=b.pt-1;
         while((m=b.s.slice(start,end).match(thing))!==null){
@@ -46,6 +37,22 @@ var Cursor=(b)=>({// class
         }
         return JSON.stringify(things,null,1);
     },
+
+    // where is the cursor?
+    curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
+    bol(){return b.s[b.pt-1]==='\n';},
+    eol(){return b.s[b.pt]==='\n';},
+    eob(){return b.pt>=b.s.length;},
+
+    move(fn,arg,mult){
+        for(var i=0;i<mult;++i){fn.call(this,arg);}
+    },
+
+    // Effectful search, resulting in movement of the cursor
+    to_bol(){this.left(this.co);},
+    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
+    to_bob(){b.pt=0;this.rowcol();},
+    to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
         var reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
         if(reg>=0){b.pt+=reg+3;this.rowcol();}
@@ -108,7 +115,7 @@ var Cursor=(b)=>({// class
         else{b.pt=b.lines[target_line]+1+this.co;}
     },
 
-    // Editing actions
+    // Effectful editing actions -- change the text
     del_at_point(n=1){if(this.bol()&&this.eol()){return;}b.del(n);if(this.eol()){this.left(n);}},
     del_to_eol(){b.del(b.getline(this.cl).slice(this.co).length);this.left(1);},
     del_backward(n=1){b.del(-n);this.left(n,true);},
