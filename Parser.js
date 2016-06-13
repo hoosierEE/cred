@@ -160,16 +160,24 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                     'j':cur.down,
                     'k':cur.up,
                     'l':cur.right,
+                    'e':cur.forward_word,
+                    'b':cur.backward_word,
+                    '}':cur.forward_paragraph,
+                    '{':cur.backward_paragraph,
                 },
                 range={
                     mult:tree.mult,
                     noun:nouns[tree.noun],
                     mod:tree.mod
                 };
-            if(tree.verb=='g'){
-                verbs[tree.verb].call(cur,range.noun,range.mult,1);
+            if(tree.verb==='g'){verbs[tree.verb].call(cur,range.noun,1,range.mult);}
+            else{
+                // yank: copy range
+                // delete, change: then cur.del(range)
+                // change: goto insert mode
+                verbs[tree.verb].call(cur,range);
             }
-            //console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
+            console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
         };
 
     return ({
@@ -190,10 +198,6 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                             //console.log(JSON.stringify(lexed,null,0));
                             //console.log(JSON.stringify(evaluate(lexed),null,4));
                             evaluate(lexed);
-
-                            // dumb eval
-                            //var times=lexed.mult;
-                            //for(var i=0;i<times;++i){exec_one(lexed.noun);}
                         }
 
                         // keep last command in history, clear current one
