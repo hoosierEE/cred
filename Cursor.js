@@ -44,7 +44,7 @@ var Cursor=(b)=>({
     eol(){return b.s[b.pt]==='\n';},
     eob(){return b.pt>=b.s.length;},
 
-    move(fn,arg,mult){
+    move(fn,mult,arg){
         for(var i=0;i<mult;++i){fn.call(this,arg);}
     },
 

@@ -104,10 +104,13 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         */
         lex=(tokens)=>{
             var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),},
-                err={original:tokens,error:'PARSE ERROR'},// default error message
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
-
-            // NOTE: this function is sort of hideous
+                err={tokens:tokens,error:'PARSE ERROR'},// default error message
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
+                //next=(tkns)=>{return tkns.shift();},
+                optcount=(tok,c)=>{
+                    if(tok[0]==='count'){c.mult*=parseInt(tok[1],10); return tok.shift();}
+                    else{return tok;}
+                };
 
             // error
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
@@ -115,9 +118,11 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             // [count] operator [count] modifier object
             else if(has('modifier')){
                 var t=tokens.shift();
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
+                t=optcount(t,cmd);
+                //if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
+                t=optcount(t[0])
+                //if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
                 return cmd;
@@ -172,12 +177,12 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 };
             if(tree.verb==='g'){verbs[tree.verb].call(cur,range.noun,1,range.mult);}
             else{
-                // yank: copy range
-                // delete, change: then cur.del(range)
-                // change: goto insert mode
-                verbs[tree.verb].call(cur,range);
+                // (change|delete|yank) = copy range to clipboard
+                // (delete|change) = cur.del(range)
+                // change = goto insert mode
+                //verbs[tree.verb].call(cur,range);
             }
-            console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
+            //console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
         };
 
     return ({
