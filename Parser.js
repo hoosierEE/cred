@@ -37,36 +37,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             }
         },
 
-        exec_one=(code)=>{
-            var result=true;
-            switch(code){
-                // motions
-            case'j':cur.down(1);break;
-            case'k':cur.up(1);break;
-            case'l':cur.right(1);break;
-            case'h':cur.left(1);break;
-            case'$':cur.to_eol();break;
-            case'0':cur.to_bol();break;
-            case'{':cur.backward_paragraph();break;
-            case'}':cur.forward_paragraph();break;
-            case'gg':cur.to_bob();break;
-                //case'dd':cur.delete_line();break;
-            case'G':cur.to_eob();break;
-            case'b':cur.backward_word();break;
-            case'e':cur.forward_word();break;
-                // editing actions
-            case'i':cur.insert_mode();break;
-            case'a':cur.append_mode();break;
-            case'x':cur.del_at_point();break;
-            case'D':cur.del_to_eol();break;
-                // leader key
-            case' ':console.log('SPC-');break;// TODO SPC-prefixed functions a-la Spacemacs!
-            default:result=false;break;
-            }
-            return result;
-        },
-
-        append_char=(d,c)=>{if(!(d.mods[0]||d.mods[1]||d.mods[2])){c.c+=d.code;}},// append non-shifted code
+        append_char=(d,c)=>{if(d.mods.lastIndexOf(false)>1){c.c+=d.code;}},// append non-shifted code
 
         modifier={type:'modifier',reg:/a|i/},
         motion={type:'motion',reg:/[beGhjklw$^]|gg|``|(?:[fFtT].)/},
@@ -75,23 +46,23 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         operator={type:'operator',reg:/[cdy]/},
         //double_operator={type:'double_operator',reg:/yy|dd|>>|<</},
 
-        /* Given a string (cmd), return an array of tokens (ts). */
+        /* Given a string `cmd`, return an array of tokens `ts`. */
         tokenize=(cmd)=>{
             var token_types=[modifier,motion,count,object,operator],
-                rxmatch=(typed_regex,str)=>{// (regex,string) -> [type, match, start, length]
+                // (regex,string) -> [type, match, start, length]
+                rxmatch=(typed_regex,str)=>{
                     var x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
-                consume=(arr,str)=>{// ([],command) -> [[type, match, start, length]]
+                // ([],command) -> [[type, match, start, length]]
+                consume=(arr,str)=>{
                     var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 has=(str)=>!ts.length?false:ts.reduce((x,y)=>x.concat(y)).includes(str);
-
             // is 'w' an object or a motion?  If it has a modifier, then it's an object.
             if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
-
             // was tokenizing successful?
             if(ts.length>0){return ts;}// [['tokentype','chars']], in order that they were typed
             else{return [['UNKNOWN TOKEN',cmd]];}// [['error message','offending token']]
@@ -105,29 +76,19 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         lex=(tokens)=>{
             var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),},
                 err={tokens:tokens,error:'PARSE ERROR'},// default error message
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                //next=(tkns)=>{return tkns.shift();},
-                optcount=(tok,c)=>{
-                    if(tok[0]==='count'){c.mult*=parseInt(tok[1],10); return tok.shift();}
-                    else{return tok;}
-                };
-
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
             // error
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
-
             // [count] operator [count] modifier object
             else if(has('modifier')){
                 var t=tokens.shift();
-                t=optcount(t,cmd);
-                //if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){c.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                t=optcount(t[0])
-                //if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
+                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
                 return cmd;
             }
-
             // [count] operator [count] (motion|object)
             else if(has('operator')){
                 var t=tokens.shift();
@@ -138,7 +99,6 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 else if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
                 return cmd;
             }
-
             // [count] motion
             else if(has('motion')){
                 var t=tokens.shift();
@@ -146,7 +106,6 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
                 return cmd;
             }
-
             // [count] object
             else if(has('object')){
                 var t=tokens.shift();
@@ -169,20 +128,24 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                     'b':cur.backward_word,
                     '}':cur.forward_paragraph,
                     '{':cur.backward_paragraph,
+                    '$':cur.to_eol,
+                    '0':cur.to_bol,
+                    'gg':cur.to_bob,
+                    'G':cur.to_eob,
+                    //'yy':cur.yank_line,
+                    'D':cur.del_to_eol,
+                    'x':cur.del_at_point,
+                    'dd':cur.delete_line,
                 },
-                range={
-                    mult:tree.mult,
-                    noun:nouns[tree.noun],
-                    mod:tree.mod
-                };
+                range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
             if(tree.verb==='g'){verbs[tree.verb].call(cur,range.noun,1,range.mult);}
             else{
                 // (change|delete|yank) = copy range to clipboard
                 // (delete|change) = cur.del(range)
                 // change = goto insert mode
                 //verbs[tree.verb].call(cur,range);
+                //console.log(verbs[tree.verb]);
             }
-            //console.log(JSON.stringify({verb:verbs[tree.verb],args:range},null,3));
         };
 
     return ({
@@ -192,22 +155,20 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             if(cur.mode==='insert'){insert(t,dec);}// ignoring '[count] insert [esc esc]' mode
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
-                if(exec_one(this.cmd.c)){this.cmd.c='';}// short-circuit if possible
-                else{// if the command contains a text object or motion, parse it
-                    if([motion,object].some(x=>x.reg.test(this.cmd.c))){
-                        var tokens=tokenize(this.cmd.c),
-                            lexed=lex(tokens);
-
-                        if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
-                        else{
-                            //console.log(JSON.stringify(lexed,null,0));
-                            //console.log(JSON.stringify(evaluate(lexed),null,4));
-                            evaluate(lexed);
-                        }
-
-                        // keep last command in history, clear current one
-                        this.cmd={c:'',p:this.cmd.c};
-                    }
+                var mode_change={
+                    'i':cur.insert_mode,
+                    'I':cur.insert_bol,
+                    'a':cur.append_mode,
+                    'A':cur.append_eol,
+                };
+                if('aAiI'.split('').some(x=>x===this.cmd.c)){mode_change[this.cmd.c].call(cur);this.cmd.c='';}
+                // if the command contains a text object or motion, parse it
+                else if([motion,object].some(x=>x.reg.test(this.cmd.c))){
+                    var lexed=lex(tokenize(this.cmd.c));
+                    console.log(JSON.stringify(lexed,null,4));
+                    if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
+                    else{evaluate(lexed);}
+                    this.cmd={c:'',p:this.cmd.c};// keep last command in history; clear current one
                 }
             }
         }
