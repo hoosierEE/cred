@@ -74,7 +74,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
            So we have to check the optional prefixes first (e.g. [modifier] object)
         */
         lex=(tokens)=>{
-            var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y)),},
+            var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                 err={tokens:tokens,error:'PARSE ERROR'},// default error message
                 has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
             // error
@@ -82,6 +82,8 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             // [count] operator [count] modifier object
             else if(has('modifier')){
                 var t=tokens.shift();
+                // another way to look at this:
+                // f(tokens,str){var t=shift(),if(test(t)){(continue(t)|err)}}
                 if(t[0]==='count'){c.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
@@ -140,9 +142,9 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
             if(tree.verb==='g'){verbs[tree.verb].call(cur,range.noun,1,range.mult);}
             else{
-                // (change|delete|yank) = copy range to clipboard
-                // (delete|change) = cur.del(range)
-                // change = goto insert mode
+                // change: copy, delete, move, insert
+                // delete: copy, delete, move
+                // yank: copy
                 //verbs[tree.verb].call(cur,range);
                 //console.log(verbs[tree.verb]);
             }
@@ -161,8 +163,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                     'a':cur.append_mode,
                     'A':cur.append_eol,
                 };
-                if('aAiI'.split('').some(x=>x===this.cmd.c)){mode_change[this.cmd.c].call(cur);this.cmd.c='';}
-                // if the command contains a text object or motion, parse it
+                if(!this.cmd.c.search(/^(a|i)$/i)){mode_change[this.cmd.c].call(cur);this.cmd.c='';}
                 else if([motion,object].some(x=>x.reg.test(this.cmd.c))){
                     var lexed=lex(tokenize(this.cmd.c));
                     console.log(JSON.stringify(lexed,null,4));
