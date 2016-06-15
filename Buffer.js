@@ -1,5 +1,4 @@
-'use strict';
-var Buffer=()=>({// class
+var Buffer=()=>({
     /* Buffer
        A line-oriented view of a String, with an insertion point.
        Editing operations automatically update line numbers.

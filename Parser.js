@@ -1,11 +1,3 @@
-'use strict';
-/* examples
-   5d2e = (count-five-times (delete (count-two-times (from cursor to end of word))))
-   2de = (count-two-times (delete (from cursor to end of word)))
-   2e = (count-two-times (move-cursor (from cursor to end of word))) NB. implied "move" function
-   2ce = (count-two-times (delete (from cursor to end of word)));(enter-insert-mode)
-   ya) = (copy (from open-paren before cursor, to matching close paren after cursor, including the parens themselves))
-*/
 var Parser=(cur)=>{/* Convert keyboard events into Actions */
     var ParserCommand=()=>({c:'',p:''}),
 
@@ -76,15 +68,21 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         lex=(tokens)=>{
             var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                 err={tokens:tokens,error:'PARSE ERROR'},// default error message
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x);
+                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
+                proc=(ts,test)=>{var t=ts.shift();if(test.p(t))test.b(t);};
             // error
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
             // [count] operator [count] modifier object
             else if(has('modifier')){
+                proc(tokens,{
+                    p(t){return t[0]==='count';},
+                    b(t){c.mult*=parseInt(t[1],10);},
+                    f(){return;},
+                });
                 var t=tokens.shift();
                 // another way to look at this:
                 // f(tokens,str){var t=shift(),if(test(t)){(continue(t)|err)}}
-                if(t[0]==='count'){c.mult*=parseInt(t[1],10);t=tokens.shift();}
+                //if(t[0]==='count'){c.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
                 if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
                 if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
@@ -146,7 +144,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 // delete: copy, delete, move
                 // yank: copy
                 //verbs[tree.verb].call(cur,range);
-                //console.log(verbs[tree.verb]);
+                console.log(verbs[tree.verb]+' '+JSON.stringify(range,null,0));
             }
         };
 
@@ -166,7 +164,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 if(!this.cmd.c.search(/^(a|i)$/i)){mode_change[this.cmd.c].call(cur);this.cmd.c='';}
                 else if([motion,object].some(x=>x.reg.test(this.cmd.c))){
                     var lexed=lex(tokenize(this.cmd.c));
-                    console.log(JSON.stringify(lexed,null,4));
+                    //console.log(JSON.stringify(lexed,null,4));
                     if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
                     else{evaluate(lexed);}
                     this.cmd={c:'',p:this.cmd.c};// keep last command in history; clear current one
