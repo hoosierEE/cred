@@ -116,29 +116,43 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             else{return err;}
         },
 
+        mode_change={
+            'i':cur.insert_mode,
+            'I':cur.insert_bol,
+            'a':cur.append_mode,
+            'A':cur.append_eol,
+        },
+
+        verbs={
+            'c':'change',
+            'd':'delete',
+            'y':'copy',
+            'g':cur.move
+        },
+
+        nouns={
+            'h':cur.left,
+            'j':cur.down,
+            'k':cur.up,
+            'l':cur.right,
+            'e':cur.forward_word,
+            'b':cur.backward_word,
+            '}':cur.forward_paragraph,
+            '{':cur.backward_paragraph,
+            '$':cur.to_eol,
+            '0':cur.to_bol,
+            'gg':cur.to_bob,
+            'G':cur.to_eob,
+            //'yy':cur.yank_line,
+            'D':cur.del_to_eol,
+            'x':cur.del_at_point,
+            'dd':cur.delete_line,
+        },
+
         /* Turn a parsed expression into a function call with arguments. */
         evaluate=(tree)=>{
-            var verbs={c:'change', d:'delete', y:'copy', g:cur.move},
-                nouns={
-                    'h':cur.left,
-                    'j':cur.down,
-                    'k':cur.up,
-                    'l':cur.right,
-                    'e':cur.forward_word,
-                    'b':cur.backward_word,
-                    '}':cur.forward_paragraph,
-                    '{':cur.backward_paragraph,
-                    '$':cur.to_eol,
-                    '0':cur.to_bol,
-                    'gg':cur.to_bob,
-                    'G':cur.to_eob,
-                    //'yy':cur.yank_line,
-                    'D':cur.del_to_eol,
-                    'x':cur.del_at_point,
-                    'dd':cur.delete_line,
-                },
                 range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
-            if(tree.verb==='g'){verbs[tree.verb].call(cur,range.noun,1,range.mult);}
+            if(tree.verb==='g'){verbs[tree.verb].call(cur,nouns[tree.noun],tree.mult,1);}
             else{
                 // change: copy, delete, move, insert
                 // delete: copy, delete, move
@@ -152,16 +166,17 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         cmd:ParserCommand(),
         parse(t,dec){
             if(dec.type==='arrow'){arrow(dec);}// parse arrows in any mode
-            if(cur.mode==='insert'){insert(t,dec);}// ignoring '[count] insert [esc esc]' mode
+            else if(cur.mode==='insert'){insert(t,dec);}// ignoring '[count] insert [esc esc]' mode
             else{
                 append_char(dec,this.cmd);// build the command 1 char at a time
-                var mode_change={
-                    'i':cur.insert_mode,
-                    'I':cur.insert_bol,
-                    'a':cur.append_mode,
-                    'A':cur.append_eol,
-                };
-                if(!this.cmd.c.search(/^(a|i)$/i)){mode_change[this.cmd.c].call(cur);this.cmd.c='';}
+                if(nouns[this.cmd.c]){
+                    cur.move(nouns[this.cmd.c],1,1);
+                    this.cmd.c='';
+                }
+                else if(mode_change[this.cmd.c]!==undefined){
+                    mode_change[this.cmd.c].call(cur);
+                    this.cmd.c='';
+                }
                 else if([motion,object].some(x=>x.reg.test(this.cmd.c))){
                     var lexed=lex(tokenize(this.cmd.c));
                     //console.log(JSON.stringify(lexed,null,4));

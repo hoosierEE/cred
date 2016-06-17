@@ -67,15 +67,15 @@ var render_cursor=()=>{// {Buffer, Cursor, Canvas}=>Rectangle
 
     // statusbar background
     var status_line_y=win.v.y+win.v.h-1*win.line_height;
-    c.fillStyle='rgba(20,10,10,0.9)';
+    c.fillStyle=cfg.status_bg;
     c.fillRect(win.v.x,status_line_y,win.v.w,win.line_height);
 
     // statusbar
-    c.fillStyle='orange';
+    c.fillStyle=cfg.cursor_clr;
     c.fillText(cur.status(),win.v.x+win.bw,status_line_y+win.line_ascent);
 
     // cursor
-    c.globalCompositeOperation='difference';
+    c.globalCompositeOperation='multiply';
     c.fillRect(win.bw+cur_left_edge,win.ln_top(cur.cl)-win.line_ascent,wid,win.line_height);
     c.restore();
 };
