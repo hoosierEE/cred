@@ -57,9 +57,9 @@ var render_text=()=>{
 };
 
 var render_cursor=()=>{/* {Buffer, Cursor, Canvas}=>Rectangle */
-    /* 1. clear where cursor was previously (currently handled by render_text) */
-    /* 2. rewrite text at old cursor position (currently handled by render_text) */
-    /* 3. draw the cursor at the new position */
+    /* 1. clear where cursor was previously (currently handled by render_text)
+       2. rewrite text at old cursor position (currently handled by render_text)
+       3. draw the cursor at the new position */
     c.save();
     var l=buf.getline(cur.cl),/* current line */
         cur_left_edge=c.measureText(l.slice(0,cur.co)).width,

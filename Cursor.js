@@ -6,28 +6,28 @@
 */
 'use strict';
 var Cursor=(b)=>({
-    // STATE
-    cl:0,// current line
-    co:0,// current column
-    cx:0,// maximum column
-    mode:'normal',// insert, TODO visual, various "minor modes"
+    /* STATE */
+    cl:0,/* current line */
+    co:0,/* current column */
+    cx:0,/* maximum column */
+    mode:'normal',/* insert, TODO visual, various "minor modes" */
 
-    // METHODS
+    /* METHODS */
 
-    // side-effect-free search resulting in a number (distance-from-cursor)
-    // otherwise -1 if the search fails
+    /* side-effect-free search resulting in a number (distance-from-cursor) */
+    /* otherwise -1 if the search fails */
     forward_dist_to(nth,thing){
         var dist=0,pos=b.pt+1;
         for(var i=0;i<nth;++i){
             var reg=b.s.slice(pos).search(thing);
-            if(reg<0){return -1;}// none found
+            if(reg<0){return -1;}/* none found */
             else{dist+=reg+1;pos+=reg+1;}
         }
         return dist;
     },
     backward_dist_to(nth,thing){
-        // TODO - finish this fn
-        // find all things, return pt-(index of start of nth thing from end)
+        /* TODO - finish this fn */
+        /* find all things, return pt-(index of start of nth thing from end) */
         var m,start=0,things=[],end=b.pt-1;
         while((m=b.s.slice(start,end).match(thing))!==null){
             var [t,l]=[m[0],m[0].length];
@@ -38,7 +38,7 @@ var Cursor=(b)=>({
         return JSON.stringify(things,null,1);
     },
 
-    // where is the cursor?
+    /* where is the cursor? */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
     bol(){return b.s[b.pt-1]==='\n';},
     eol(){return b.s[b.pt]==='\n';},
@@ -48,7 +48,7 @@ var Cursor=(b)=>({
         for(var i=0;i<mult;++i){fn.call(this,arg);}
     },
 
-    // Effectful search, resulting in movement of the cursor
+    /* Effectful search, resulting in movement of the cursor */
     to_bol(){this.left(this.co);},
     to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
     to_bob(){b.pt=0;this.rowcol();},
@@ -84,7 +84,7 @@ var Cursor=(b)=>({
         if(ca>=0){this.left(ca+1);}
     },
 
-    // Motion primitives
+    /* Motion primitives */
     left(n=0,freely=false){
         b.pt-=n;if(b.pt<0){b.pt=0;}
         if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
@@ -106,7 +106,7 @@ var Cursor=(b)=>({
     up(n){this.up_down_helper(Math.max(this.cl-n,0));},
     down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
     up_down_helper(target_line){
-        target_line|=0;// remove floats
+        target_line|=0;/* remove floats */
         var target_line_length=Math.max(0,b.getline(target_line).length-1);
         if(this.cx<0){this.co=target_line_length;}
         else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
@@ -115,14 +115,14 @@ var Cursor=(b)=>({
         else{b.pt=b.lines[target_line]+1+this.co;}
     },
 
-    // Effectful editing actions -- change the text
+    /* Effectful editing actions -- change the text */
     del_at_point(n=1){if(this.bol()&&this.eol()){return;}b.del(n);if(this.eol()){this.left(n);}},
     del_to_eol(){b.del(b.getline(this.cl).slice(this.co).length);this.left(1);},
     del_backward(n=1){b.del(-n);this.left(n,true);},
     del_forward(n=1){b.del(n);},
-    ins(s){b.ins(s);},// pass it on
+    ins(s){b.ins(s);},/* pass it on */
 
-    // Mode changers
+    /* Mode changers */
     esc(n=0){
         this.del_backward(n);
         if(!this.bol()){this.left(1);}
@@ -134,6 +134,6 @@ var Cursor=(b)=>({
     normal_mode(){this.mode='normal';},
     visual_mode(){this.mode='visual';},
 
-    // status : () -> String // contains the modeline
+    /* status : () -> String contains the modeline */
     status(){return this.mode+'  '+this.cl+':'+this.co;},
 });
