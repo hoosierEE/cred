@@ -1,8 +1,7 @@
 var Window=(c,cur,cfg)=>({
     /* @param c: the target canvas
        @param cur: an already-instantiated Cursor
-       @param cfg: an already-instantiated Configuration
-    */
+       @param cfg: an already-instantiated Configuration */
 
     /* STATE */
     bw:20,/* border width */

@@ -62,46 +62,39 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
            else return an error message and the original string that caused it.
-           The order of the has('foo') calls determines what type of command gets processed.
+
+           NOTE: The order of the has('foo') calls determines what type of command gets processed.
            So we have to check the optional prefixes first (e.g. [modifier] object) */
         lex=(tokens)=>{
             var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                 err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
                 has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
                 mult=(x,y)=>{y.mult*=parseInt(x,10);},
-                proc=(name,act,override=false)=>{
+                fs={
+                    count(t){mult(t,cmd);},
+                    modifier(t){cmd.mod=t;},
+                    operator(t){cmd.verb=t;},
+                    motion(t){cmd.noun=t;},
+                    object(t){cmd.noun=t;},
+                },
+                p=(x,y=false)=>{
                     var t=tokens.shift();
-                    if(t[0]===name){act(t[1]); return true;}
-                    else{return override||false;}
+                    if(t[0]===x){fs[x](t[1]);return true;}
+                    else{return (y||false);}
                 };
-            /* error */
+            /* Tokenizer error, return early. */
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
             /* [count] operator [count] modifier object */
             else if(has('modifier')){
-                return (proc('count',t=>mult(t,cmd),true) &&
-                        proc('operator',t=>{cmd.verb=t;}) &&
-                        proc('count',t=>mult(t,cmd),true) &&
-                        proc('modifier',t=>{cmd.mod=t;}) &&
-                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
-            }
+                return(p('count',true)&&p('operator')&&p('count',true)&&p('modifier')&&p('object'))?cmd:err;}
             /* [count] operator [count] (motion|object) */
             else if(has('operator')){
-                return (proc('count',t=>mult(t,cmd),true) &&
-                        proc('operator',t=>{cmd.verb=t;}) &&
-                        proc('count',t=>mult(t,cmd),true) &&
-                        proc('motion',t=>{cmd.mod=t;}) ||
-                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
-            }
+                return(p('count',true)&&p('operator')&&p('count',true)&&p('motion')||p('object'))?cmd:err;}
             /* [count] motion */
-            else if(has('motion')){
-                return (proc('count',t=>mult(t,cmd),true) &&
-                        proc('motion',t=>{cmd.noun=t;}))?cmd:err;
-            }
+            else if(has('motion')){return(p('count',true)&&p('motion'))?cmd:err;}
             /* [count] object */
-            else if(has('object')){
-                return (proc('count',t=>mult(t,cmd),true) &&
-                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
-            }
+            else if(has('object')){return(p('count',true)&&p('object'))?cmd:err;}
+            /* No matching rule, return error. */
             else{return err;}
         },
 
@@ -147,7 +140,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
                 /* delete: copy, delete, move */
                 /* yank: copy */
                 /*verbs[tree.verb].call(cur,range); */
-                console.log(verbs[tree.verb]+' '+JSON.stringify(range,null,0));
+                console.log(JSON.stringify([verbs[tree.verb],range],null,0));
             }
         };
 
