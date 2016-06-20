@@ -42,39 +42,36 @@ var decode=({k, mods})=>{
 };
 
 var render_text=()=>{
-    c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);/* clear visible window */
-
-    /* determine what lines are visible */
+    c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);/* Clear visible window. */
+    /* Which lines are visible? */
     var from_line=cur.cl-win.num_visible_lines(),
         to_line=cur.cl+win.num_visible_lines();
     if(from_line<0){from_line=0;}
     if(to_line>=buf.lines.length){to_line=buf.lines.length-1;}
-
-    /* render just those lines */
-    for(var i=from_line;i<to_line+1;++i){
-        c.fillText(buf.getline(i),win.bw,win.ln_top(i));
-    }
+    /* Render just those lines. */
+    c.fillStyle=cfg.get('font');
+    for(var i=from_line;i<to_line+1;++i){c.fillText(buf.getline(i),win.bw,win.ln_top(i));}
 };
 
-var render_cursor=()=>{/* {Buffer, Cursor, Canvas}=>Rectangle */
+var render_cursor=()=>{/* {Buffer, Cursor, Canvas} => Rectangle */
     /* 1. clear where cursor was previously (currently handled by render_text)
        2. rewrite text at old cursor position (currently handled by render_text)
        3. draw the cursor at the new position */
-    c.save();
     var l=buf.getline(cur.cl),/* current line */
         cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
         wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10;
 
     /* statusbar background */
     var status_line_y=win.v.y+win.v.h-1*win.line_height;
-    c.fillStyle=cfg.status_bg;
+    c.fillStyle=cfg.get('status');
     c.fillRect(win.v.x,status_line_y,win.v.w,win.line_height);
 
     /* statusbar */
-    c.fillStyle=cfg.cursor_clr;
+    c.fillStyle=cfg.get('cursor');
     c.fillText(cur.status(),win.v.x+win.bw,status_line_y+win.line_ascent);
 
     /* cursor */
+    c.save();
     c.globalCompositeOperation='multiply';
     c.fillRect(win.bw+cur_left_edge,win.ln_top(cur.cl)-win.line_ascent,wid,win.line_height);
     c.restore();
@@ -82,7 +79,9 @@ var render_cursor=()=>{/* {Buffer, Cursor, Canvas}=>Rectangle */
 
 window.onload=()=>{
     /* background */
-    var bg=document.body.style.backgroundColor=cfg.app_bg;
+    if(!localStorage.theme){localStorage.theme=cfg.store();}
+
+    document.body.style.backgroundColor=cfg.get('base');
 
     var gameloop=(now)=>{
         while(Keyq.length){par.parse(now,decode(Keyq.shift()));}/* consume keyboard events */
@@ -94,8 +93,10 @@ window.onload=()=>{
         win.scroll();
         render_text();
         render_cursor();
+
         /* other ideas: render_minimap(); render_statusline(); render_popups(); */
     };
+
     var rsz=()=>{
         requestAnimationFrame(gameloop);
         c.canvas.width=c.canvas.clientWidth;

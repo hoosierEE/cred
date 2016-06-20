@@ -36,7 +36,7 @@ var Window=(c,cur,cfg)=>({
         if(prev_x!=this.v.x||prev_y!=this.v.y){c.setTransform(1,0,0,1,-this.v.x,-this.v.y);}
     },
     init(ctx){/* must be called before using other Window methods, but AFTER the HTML body loads */
-        var fm=FontMetric(cfg.font_name,cfg.font_size);
+        var fm=FontMetric(cfg.font.name,cfg.font.size);
         this.line_ascent=fm[0];/* top of text such as QMEW| */
         this.line_height=fm[1];/* total line height */
         this.line_descent=fm[2];/* lower bound of text such as: jgpq| */

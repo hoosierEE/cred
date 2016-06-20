@@ -1,8 +1,7 @@
 var Buffer=()=>({
     /* Buffer
        A line-oriented view of a String, with an insertion point.
-       Editing operations automatically update line numbers.
-    */
+       Editing operations automatically update line numbers. */
 
     /* STATE */
     s:'',
@@ -10,7 +9,7 @@ var Buffer=()=>({
     lines:[0],
 
     /* METHODS */
-    getline(n){/* getline : Int -> String /* the Nth line, not including any trailing newline */ */
+    getline(n){/* getline : Int -> String -- the Nth line, not including any trailing newline */
         var l=this.lines,len=l.length;
         if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}/* line in middle */
         else if(n===0){return this.s.slice(0,l[1]);}/* first */
@@ -18,7 +17,7 @@ var Buffer=()=>({
         else{return this.getline(Math.max(0,len+n));}/* negative n indexes backwards but doesn't wrap */
     },
 
-    /* gen_lines : () -> [Int] /* array of line start indexes */ */
+    /* gen_lines : () -> [Int] -- array of line start indexes */
     gen_lines(){return [...this.s].reduce((a,b,i)=>{b==='\n'&&a.push(i);return a;},[0]);},
 
     ins(ch){/* insert ch chars to right of p */

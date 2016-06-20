@@ -63,55 +63,44 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
            else return an error message and the original string that caused it.
            The order of the has('foo') calls determines what type of command gets processed.
-           So we have to check the optional prefixes first (e.g. [modifier] object)
-        */
+           So we have to check the optional prefixes first (e.g. [modifier] object) */
         lex=(tokens)=>{
             var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                 err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
                 has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                proc=(ts,test)=>{var t=ts.shift();if(test.p(t))test.b(t);};
+                mult=(x,y)=>{y.mult*=parseInt(x,10);},
+                proc=(name,act,override=false)=>{
+                    var t=tokens.shift();
+                    if(t[0]===name){act(t[1]); return true;}
+                    else{return override||false;}
+                };
             /* error */
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
             /* [count] operator [count] modifier object */
             else if(has('modifier')){
-                proc(tokens,{
-                    p(t){return t[0]==='count';},
-                    b(t){c.mult*=parseInt(t[1],10);},
-                    f(){return;},
-                });
-                var t=tokens.shift();
-                /* another way to look at this: */
-                /* f(tokens,str){var t=shift(),if(test(t)){(continue(t)|err)}} */
-                /*if(t[0]==='count'){c.mult*=parseInt(t[1],10);t=tokens.shift();} */
-                if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='modifier'){cmd.mod=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
-                return cmd;
+                return (proc('count',t=>mult(t,cmd),true) &&
+                        proc('operator',t=>{cmd.verb=t;}) &&
+                        proc('count',t=>mult(t,cmd),true) &&
+                        proc('modifier',t=>{cmd.mod=t;}) &&
+                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
             }
             /* [count] operator [count] (motion|object) */
             else if(has('operator')){
-                var t=tokens.shift();
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='operator'){cmd.verb=t[1];t=tokens.shift();}else{return err;}
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;};}
-                else if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
-                return cmd;
+                return (proc('count',t=>mult(t,cmd),true) &&
+                        proc('operator',t=>{cmd.verb=t;}) &&
+                        proc('count',t=>mult(t,cmd),true) &&
+                        proc('motion',t=>{cmd.mod=t;}) ||
+                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
             }
             /* [count] motion */
             else if(has('motion')){
-                var t=tokens.shift();
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='motion'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
-                return cmd;
+                return (proc('count',t=>mult(t,cmd),true) &&
+                        proc('motion',t=>{cmd.noun=t;}))?cmd:err;
             }
             /* [count] object */
             else if(has('object')){
-                var t=tokens.shift();
-                if(t[0]==='count'){cmd.mult*=parseInt(t[1],10);t=tokens.shift();}
-                if(t[0]==='object'){cmd.noun=t[1];if(t=tokens.shift()){return err;}}else{return err;}
-                return cmd;
+                return (proc('count',t=>mult(t,cmd),true) &&
+                        proc('object',t=>{cmd.noun=t;}))?cmd:err;
             }
             else{return err;}
         },
