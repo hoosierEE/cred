@@ -1,5 +1,5 @@
-var Parser=(cur)=>{/* Convert keyboard events into Actions */
-    var ParserCommand=()=>({c:'',p:''}),
+let Parser=(cur)=>{/* Convert keyboard events into Actions */
+    let ParserCommand=()=>({c:'',p:''}),
 
         arrow=(dec)=>{
             switch(dec.code){
@@ -12,7 +12,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         },
 
         insert=(t,dec)=>{
-            var fd=0;/* 'fd' escape sequence */
+            let fd=0;/* 'fd' escape sequence */
             switch(dec.type){
             case'print':
                 cur.ins(dec.code);cur.rowcol();
@@ -38,25 +38,30 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         operator={type:'operator',reg:/[cdy]/},
         /*double_operator={type:'double_operator',reg:/yy|dd|>>|<</}, */
 
-        /* Given a string `cmd`, return an array of tokens `ts`. */
+        /* (string) -> [['tokentype','chars']] */
         tokenize=(cmd)=>{
-            var token_types=[modifier,motion,count,object,operator],
+            let token_types=[modifier,motion,count,object,operator],
+
                 /* (regex,string) -> [type, match, start, length] */
                 rxmatch=(typed_regex,str)=>{
-                    var x=typed_regex.reg.exec(str), y=[typed_regex.type];
+                    let x=typed_regex.reg.exec(str), y=[typed_regex.type];
                     return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                 },
+
                 /* ([],command) -> [[type, match, start, length]] */
                 consume=(arr,str)=>{
-                    var tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);
+                    let tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);
                     return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                 },
+
                 ts=consume([],cmd).map(x=>[x[0],x[1]]),
                 has=(str)=>!ts.length?false:ts.reduce((x,y)=>x.concat(y)).includes(str);
+
             /* is 'w' an object or a motion?  If it has a modifier, then it's an object. */
             if(has('motion')&&has('object')){ts=ts.filter(x=>x[0]!==(has('modifier')?'motion':'object'));}
+
             /* was tokenizing successful? */
-            if(ts.length>0){return ts;}/* [['tokentype','chars']], in order that they were typed */
+            if(ts.length>0){return ts;}
             else{return [['UNKNOWN TOKEN',cmd]];}/* [['error message','offending token']] */
         },
 
@@ -66,36 +71,50 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
            NOTE: The order of the has('foo') calls determines what type of command gets processed.
            So we have to check the optional prefixes first (e.g. [modifier] object) */
         lex=(tokens)=>{
-            var cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
-                err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
-                has=(str)=>tokens.map(x=>x.includes(str)).some(x=>x),
-                mult=(x,y)=>{y.mult*=parseInt(x,10);},
+            let err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
+                cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
+                has=(str)=>{err.who=str;return(tokens.map(x=>x.includes(str)).some(x=>x));},
                 fs={
-                    count(t){mult(t,cmd);},
+                    count(t){cmd.mult*=parseInt(t,10);},
                     modifier(t){cmd.mod=t;},
                     operator(t){cmd.verb=t;},
                     motion(t){cmd.noun=t;},
                     object(t){cmd.noun=t;},
                 },
-                p=(x,y=false)=>{
-                    var t=tokens.shift();
-                    if(t[0]===x){fs[x](t[1]);return true;}
-                    else{return (y||false);}
+
+                p=(x,y)=>{
+                    let t=tokens[y.i], optional=x.endsWith('?'), z=optional?x.slice(0,-1):x;
+                    if(t&&t[0]===z){fs[z](t[1]);++y.i;return true;}
+                    else{return optional;}
+                },
+
+                q=(x)=>{
+                    let idx={i:0}, ans=true;
+                    x.split(' ').forEach(x=>{
+                        let or=x.split('|');
+                        if(or.length>1){ans&=or.map(x=>p(x,idx)).some(x=>x);}
+                        else{ans&=p(x,idx);}
+                    });
+                    return ans;
                 };
+
             /* Tokenizer error, return early. */
             if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
+
             /* [count] operator [count] modifier object */
-            else if(has('modifier')){
-                return(p('count',true)&&p('operator')&&p('count',true)&&p('modifier')&&p('object'))?cmd:err;}
+            else if(has('modifier')){return(q('count? operator count? modifier object')?cmd:err);}
+
             /* [count] operator [count] (motion|object) */
-            else if(has('operator')){
-                return(p('count',true)&&p('operator')&&p('count',true)&&p('motion')||p('object'))?cmd:err;}
+            else if(has('operator')){return q('count? operator count? motion|object')?cmd:err;}
+
             /* [count] motion */
-            else if(has('motion')){return(p('count',true)&&p('motion'))?cmd:err;}
+            else if(has('motion')){return q('count? motion')?cmd:err;}
+
             /* [count] object */
-            else if(has('object')){return(p('count',true)&&p('object'))?cmd:err;}
+            else if(has('object')){return q('count? object')?cmd:err;}
+
             /* No matching rule, return error. */
-            else{return err;}
+            else{err.who='NO MATCH';return err;}
         },
 
         mode_change={
@@ -113,6 +132,7 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
         },
 
         nouns={
+            /* move */
             'h':cur.left,
             'j':cur.down,
             'k':cur.up,
@@ -125,7 +145,8 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             '0':cur.to_bol,
             'gg':cur.to_bob,
             'G':cur.to_eob,
-            /*'yy':cur.yank_line, */
+            /* edit */
+            /* TODO 'yy':cur.yank_line, */
             'D':cur.del_to_eol,
             'x':cur.del_at_point,
             'dd':cur.delete_line,
@@ -133,12 +154,12 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
 
         /* Turn a parsed expression into a function call with arguments. */
         evaluate=(tree)=>{
-                range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
+            let range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
             if(tree.verb==='g'){verbs[tree.verb].call(cur,nouns[tree.noun],tree.mult,1);}
             else{
-                /* change: copy, delete, move, insert */
-                /* delete: copy, delete, move */
-                /* yank: copy */
+                /* change: copy, delete, move cursor, insert. */
+                /* delete: copy, delete, move cursor. */
+                /* yank:   copy. */
                 /*verbs[tree.verb].call(cur,range); */
                 console.log(JSON.stringify([verbs[tree.verb],range],null,0));
             }
@@ -151,17 +172,10 @@ var Parser=(cur)=>{/* Convert keyboard events into Actions */
             else if(cur.mode==='insert'){insert(t,dec);}/* ignoring '[count] insert [esc esc]' mode */
             else{
                 append_char(dec,this.cmd);/* build the command 1 char at a time */
-                if(nouns[this.cmd.c]){
-                    cur.move(nouns[this.cmd.c],1,1);
-                    this.cmd.c='';
-                }
-                else if(mode_change[this.cmd.c]!==undefined){
-                    mode_change[this.cmd.c].call(cur);
-                    this.cmd.c='';
-                }
+                if(nouns[this.cmd.c]){cur.move(nouns[this.cmd.c],1,1); this.cmd.c='';}
+                else if(mode_change[this.cmd.c]!==undefined){mode_change[this.cmd.c].call(cur); this.cmd.c='';}
                 else if([motion,object].some(x=>x.reg.test(this.cmd.c))){
-                    var lexed=lex(tokenize(this.cmd.c));
-                    /*console.log(JSON.stringify(lexed,null,4)); */
+                    let lexed=lex(tokenize(this.cmd.c));
                     if(lexed.error){console.log(JSON.stringify(lexed,null,4));}
                     else{evaluate(lexed);}
                     this.cmd={c:'',p:this.cmd.c};/* keep last command in history; clear current one */

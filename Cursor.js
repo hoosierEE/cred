@@ -4,22 +4,21 @@
    - modify b's point in response to motion commands
    - provide a "row, column" view of the Buffer (which is really just a String)
 */
-'use strict';
-var Cursor=(b)=>({
+let Cursor=(b)=>({
     /* STATE */
     cl:0,/* current line */
     co:0,/* current column */
     cx:0,/* maximum column */
-    mode:'normal',/* insert, TODO visual, various "minor modes" */
+    mode:'normal',/* insert, TODO visual, letious "minor modes" */
 
     /* METHODS */
 
     /* side-effect-free search resulting in a number (distance-from-cursor) */
     /* otherwise -1 if the search fails */
     forward_dist_to(nth,thing){
-        var dist=0,pos=b.pt+1;
-        for(var i=0;i<nth;++i){
-            var reg=b.s.slice(pos).search(thing);
+        let dist=0,pos=b.pt+1;
+        for(let i=0;i<nth;++i){
+            let reg=b.s.slice(pos).search(thing);
             if(reg<0){return -1;}/* none found */
             else{dist+=reg+1;pos+=reg+1;}
         }
@@ -28,9 +27,9 @@ var Cursor=(b)=>({
     backward_dist_to(nth,thing){
         /* TODO - finish this fn */
         /* find all things, return pt-(index of start of nth thing from end) */
-        var m,start=0,things=[],end=b.pt-1;
+        let m,start=0,things=[],end=b.pt-1;
         while((m=b.s.slice(start,end).match(thing))!==null){
-            var [t,l]=[m[0],m[0].length];
+            let [t,l]=[m[0],m[0].length];
             things.push([t,l]);
             start+=l+1;
             if(start>=end-1){break;}
@@ -45,7 +44,7 @@ var Cursor=(b)=>({
     eob(){return b.pt>=b.s.length;},
 
     move(fn,mult,arg){
-        for(var i=0;i<mult;++i){fn.call(this,arg);}
+        for(let i=0;i<mult;++i){fn.call(this,arg);}
     },
 
     /* Effectful search, resulting in movement of the cursor */
@@ -54,33 +53,33 @@ var Cursor=(b)=>({
     to_bob(){b.pt=0;this.rowcol();},
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
     forward_paragraph(){
-        var reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
+        let reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
         if(reg>=0){b.pt+=reg+3;this.rowcol();}
         else{this.to_eob();}
     },
     forward_word(){
-        var reg=b.s.slice(b.pt+1).search(/\w\W/);
+        let reg=b.s.slice(b.pt+1).search(/\w\W/);
         if(reg>=0){this.right(reg+1,true);}
         else{this.to_eol();}
     },
     forward_to_char(c){
         if(this.eol()){this.cx=-1;return;}
-        var ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
+        let ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
         if(ca>=0){this.right(ca+1);}
     },
     backward_paragraph(){
-        var reg=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
+        let reg=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
         if(reg>=0){b.pt-=reg+3;this.rowcol();}
         else{this.to_bob();}
     },
     backward_word(){
-        var reg=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
+        let reg=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
         if(reg>=0){this.left(reg+1,true);}
         else{this.to_bol();}
     },
     backward_to_char(c){
         if(this.bol()){return;}
-        var ca=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
+        let ca=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
         if(ca>=0){this.left(ca+1);}
     },
 
@@ -107,7 +106,7 @@ var Cursor=(b)=>({
     down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
     up_down_helper(target_line){
         target_line|=0;/* remove floats */
-        var target_line_length=Math.max(0,b.getline(target_line).length-1);
+        let target_line_length=Math.max(0,b.getline(target_line).length-1);
         if(this.cx<0){this.co=target_line_length;}
         else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}
         this.cl=target_line;

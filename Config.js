@@ -1,20 +1,19 @@
-var Configuration=()=>{
-    var color=
-        {
-            base:{hue:270,sat:100,lig:98},
-            font:{hue:270,sat:50,lig:5},
-            cursor:{hue:270,sat:50,lig:80},
-            status:{hue:270,sat:100,lig:20},
-        },
-        font=
-        {
-            size:'20px',
-            name:'courier new',
-        },
-        //set_global=(x,y)=>{for(var i in color){color[i][x]=y;}},
-        set=(x,y,z)=>{for(var i in color[z]){color[z][i][x]=y;}},
-        get=(x)=>`hsl(${color[x].hue},${color[x].sat}%,${color[x].lig}%)`,
-        store=()=>JSON.stringify({color:color,font:font},null,0);
+let Configuration=()=>{
+    let color=
+          {
+              base:{hue:270,sat:100,lig:98},
+              font:{hue:270,sat:50,lig:5},
+              cursor:{hue:270,sat:50,lig:80},
+              status:{hue:270,sat:100,lig:20},
+          },
+          font=
+          {
+              size:'20px',
+              name:'courier new',
+          },
+          set=(x,y,z)=>{color[x][y]=z;},/* (base|font|cursor|status),(hue|sat|lig),value -> () */
+          get=(x)=>`hsl(${color[x].hue},${color[x].sat}%,${color[x].lig}%)`,/* (base|font|cursor|status) -> 'hsl(...)' */
+          store=()=>JSON.stringify({color:color,font:font},null,0);
 
     return ({
         get:get,

@@ -1,4 +1,4 @@
-var Window=(c,cur,cfg)=>({
+let Window=(c,cur,cfg)=>({
     /* @param c: the target canvas
        @param cur: an already-instantiated Cursor
        @param cfg: an already-instantiated Configuration */
@@ -17,15 +17,15 @@ var Window=(c,cur,cfg)=>({
     scroll(line_offset=5){
         if(line_offset>this.num_visible_lines()){line_offset=this.num_visible_lines()/2|0;}
         else if(line_offset<1){line_offset=1;}/* smallest usable value - 0 is too small */
-        var prev_y=this.v.y, prev_x=this.v.x;/* grab current value of x and y */
+        let prev_y=this.v.y, prev_x=this.v.x;/* grab current value of x and y */
 
         /* up/down */
-        var ltop=this.ln_top(cur.cl+line_offset), lbot=this.ln_top(cur.cl-line_offset);
+        let ltop=this.ln_top(cur.cl+line_offset), lbot=this.ln_top(cur.cl-line_offset);
         if(ltop>this.v.y+this.v.h){this.v.y+=ltop-(this.v.y+this.v.h);}
         if(lbot<this.v.y){this.v.y-=this.v.y-lbot;}
 
         /* left/right */
-        var crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
+        let crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
         if(crt>this.v.x+this.v.w){this.v.x+=crt-this.v.w;}
         if(clt<this.v.x){this.v.x-=this.v.x-clt;}
         if(this.v.y<0){this.v.y=0;}
@@ -35,7 +35,7 @@ var Window=(c,cur,cfg)=>({
         if(prev_x!=this.v.x||prev_y!=this.v.y){c.setTransform(1,0,0,1,-this.v.x,-this.v.y);}
     },
     init(ctx){/* must be called before using other Window methods, but AFTER the HTML body loads */
-        var fm=FontMetric(cfg.font.name,cfg.font.size);
+        let fm=FontMetric(cfg.font.name,cfg.font.size);
         this.line_ascent=fm[0];/* top of text such as QMEW| */
         this.line_height=fm[1];/* total line height */
         this.line_descent=fm[2];/* lower bound of text such as: jgpq| */
