@@ -1,5 +1,5 @@
-let Configuration=()=>{
-    let color=
+const Configuration=()=>{
+    const color=
           {
               base:{hue:270,sat:100,lig:98},
               font:{hue:270,sat:50,lig:5},

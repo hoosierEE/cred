@@ -1,31 +1,31 @@
 /*TODO: file i/o */
-let c=document.getElementById('c').getContext('2d'),
-    Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
-    Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},
-    buf=Buffer(),
-    cur=Cursor(buf),
-    par=Parser(cur),
-    cfg=Configuration(),
-    win=Window(c,cur,cfg);
+const c=document.getElementById('c').getContext('2d'),
+      Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
+      Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},
+      buf=Buffer(),
+      cur=Cursor(buf),
+      par=Parser(cur),
+      cfg=Configuration(),
+      win=Window(c,cur,cfg);
 
 /* decode : RawKey -> DecodedKey */
-let decode=({k, mods})=>{
-    let dec={type:'',code:'',mods:mods};/* return type (modifiers pass through) */
+const decode=({k, mods})=>{
+    const dec={type:'',code:'',mods:mods};/* return type (modifiers pass through) */
     /* printable */
     if(k==='Space'){dec.code=' ';}
     else{
-        let shft=mods[3],
-            ma=k.slice(-1),/* maybe alphanumeric */
-            kd=k.slice(0,-1);
+        const shft=mods[3],
+              ma=k.slice(-1),/* maybe alphanumeric */
+              kd=k.slice(0,-1);
         if(kd==='Key'){dec.code=shft?ma:ma.toLowerCase();}
         else if(kd==='Digit'){dec.code=shft?")!@#$%^&*("[ma]:ma;}
         else if(k==='Tab'){dec.code='\t';}
         else if(k==='Enter'){dec.code='\n';}
         else{
-            let pun=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
-                     ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
-                     ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'],
-                pid=pun.indexOf(k);
+            const pun=['Comma',',','<','Quote',"'",'"','Equal','=','+','Minus','-','_'
+                       ,'Slash','/','?','Period','.','>','Semicolon',';',':','Backslash','\\','|'
+                       ,'Backquote','`','~','BracketLeft','[','{','BracketRight',']','}'],
+                  pid=pun.indexOf(k);
             if(pid>=0){dec.code=pun[pid+(shft?2:1)];}
         }
     }
@@ -41,7 +41,7 @@ let decode=({k, mods})=>{
     return dec;
 };
 
-let render_text=()=>{
+const render_text=()=>{
     c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);/* Clear visible window. */
     /* Which lines are visible? */
     let from_line=cur.cl-win.num_visible_lines(),
@@ -53,14 +53,14 @@ let render_text=()=>{
     for(let i=from_line;i<to_line+1;++i){c.fillText(buf.getline(i),win.bw,win.ln_top(i));}
 };
 
-let render_cursor=()=>{/* {Buffer, Cursor, Canvas} => Rectangle */
-    /* 1. clear where cursor was previously (currently handled by render_text)
+const render_cursor=()=>{/* {Buffer, Cursor, Canvas} => Rectangle */
+    /* 1. clear cursor's previous location (currently handled by render_text)
        2. rewrite text at old cursor position (currently handled by render_text)
        3. draw the cursor at the new position */
-    let l=buf.getline(cur.cl),/* current line */
-        cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
-        wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
-        status_line_y=win.v.y+win.v.h-1*win.line_height;
+    const l=buf.getline(cur.cl),/* current line */
+          cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
+          wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
+          status_line_y=win.v.y+win.v.h-1*win.line_height;
 
     /* statusbar background */
     c.fillStyle=cfg.get('status');
@@ -82,10 +82,10 @@ window.onload=()=>{
     if(!localStorage.theme){localStorage.theme=cfg.store();}
     document.body.style.backgroundColor=cfg.get('base');
 
-    let gameloop=(now)=>{
+    const gameloop=(now)=>{
         while(Keyq.length){par.parse(now,decode(Keyq.shift()));}/* consume keyboard events */
         while(Mouseq.wheel.length){
-            let wheel=Mouseq.wheel.shift();
+            const wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
             else{cur.down(wheel%win.line_height|0);}
         }
@@ -95,24 +95,24 @@ window.onload=()=>{
         /* other ideas: render_minimap(); render_statusline(); render_popups(); */
     };
 
-    let rsz=()=>{
-        requestAnimationFrame(gameloop);
+    const rsz=()=>{
         c.canvas.width=c.canvas.clientWidth;
         c.canvas.height=c.canvas.clientHeight;
         cfg.init(c);
         win.init(c);
+        requestAnimationFrame(gameloop);
     };
     /* events */
     window.onresize=rsz;
     c.canvas.onmousewheel=(ev)=>{
-        requestAnimationFrame(gameloop);
         Mouseq.wheel.push(ev.deltaY);
+        requestAnimationFrame(gameloop);
     };
     window.onkeydown=(k)=>{
-        requestAnimationFrame(gameloop);
         if(k.type==='keydown'){/* push incoming events to a queue as they occur */
             if(!k.metaKey){k.preventDefault();}/* allows CMD-I on OSX */
             Keyq.push({mods:[k.altKey,k.ctrlKey,k.metaKey,k.shiftKey], k:k.code});
+            requestAnimationFrame(gameloop);
         }
     };
     rsz();
