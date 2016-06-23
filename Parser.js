@@ -70,7 +70,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
              else return an error message and the original string that caused it.
 
              NOTE: The order of the has('foo') calls determines what type of command gets processed.
-             So we have to check the optional prefixes first (e.g. [modifier] object) */
+             So we have to check the opt prefixes first (e.g. [modifier] object) */
           lex=(tokens)=>{
               const err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
                     cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
@@ -84,14 +84,13 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
                     },
 
                     p=(x,y)=>{
-                        const t=tokens[y.i], optional=x.endsWith('?'), z=optional?x.slice(0,-1):x;
+                        const t=tokens[y.i], opt=x.endsWith('?'), z=opt?x.slice(0,-1):x;
                         if(t&&t[0]===z){fs[z](t[1]);++y.i;return true;}
-                        else{return optional;}
+                        else{return opt;}
                     },
 
                     q=(x)=>{
-                        const idx={i:0};
-                        let ans=true;
+                        let idx={i:0}, ans=true;
                         x.split(' ').forEach(x=>{
                             const or=x.split('|');
                             if(or.length>1){ans&=or.map(x=>p(x,idx)).some(x=>x);}
@@ -155,15 +154,15 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           /* Turn a parsed expression into a function call with arguments. */
-          evaluate=(tree)=>{
-              const range={mult:tree.mult, noun:nouns[tree.noun], mod:tree.mod};
-              if(tree.verb==='g'){verbs[tree.verb].call(cur,nouns[tree.noun],tree.mult,1);}
+          evaluate=({verb,noun,mod,mult})=>{
+              const range={mult:mult, noun:nouns[noun], mod:mod};
+              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult,1);}
               else{
                   /* change: copy, delete, move cursor, insert. */
                   /* delete: copy, delete, move cursor. */
                   /* yank:   copy. */
-                  /*verbs[tree.verb].call(cur,range); */
-                  console.log(JSON.stringify([verbs[tree.verb],range],null,0));
+                  /*verbs[verb].call(cur,range); */
+                  console.log(JSON.stringify([verbs[verb],range],null,0));
               }
           };
 
