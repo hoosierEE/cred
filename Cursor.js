@@ -5,7 +5,9 @@
    - provide a "row, column" view of the Buffer (which is really just a String)
 */
 const Cursor=(b)=>({
+
     /* STATE */
+
     cl:0,/* current line */
     co:0,/* current column */
     cx:0,/* maximum column */
@@ -44,6 +46,7 @@ const Cursor=(b)=>({
     eob(){return b.pt>=b.s.length;},
 
     move(fn,mult,arg){
+        console.log([fn.name,mult,arg]);
         while(mult-->0){fn.call(this,arg);}
     },
 
@@ -53,64 +56,32 @@ const Cursor=(b)=>({
     to_bob(){b.pt=0;this.rowcol();},
     to_eob(){b.pt=b.s.length-1;this.rowcol();},
 
-    pure_forward_paragraph(){
-        const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        return(reg>=0)?b.pt+reg+3:-1;
-    },
     forward_paragraph(){
         const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        if(reg>=0){b.pt+=reg+3;this.rowcol();}
-        else{this.to_eob();}
+        return{fn:this.move_point,mo:(reg>=0)?b.pt+reg+3:-1,alt:this.to_eob,};
+        //if(reg>=0){b.pt+=reg+3;this.rowcol();}
+        //else{this.to_eob();}
     },
 
-    pure_forward_word(){
-        const reg=b.s.slice(b.pt+1).search(/\w\W/);
-        return(reg>=0)?reg+1:-1;
-    },
     forward_word(){
         const reg=b.s.slice(b.pt+1).search(/\w\W/);
-        if(reg>=0){this.right(reg+1,true);}
-        else{this.to_eol();}
+        return{fn:this.right,mo:(reg>=0)?reg+1:-1,alt:this.to_eol};
+        //if(reg>=0){this.right(reg+1,true);}
+        //else{this.to_eol();}
     },
 
-    pure_forward_to_char(c){
-        const reg=b.getline(this.cl).slice(this.co+1).indexOf(c);
-        return(reg>=0)?reg+1:-1;
-    },
-    forward_to_char(c){
-        if(this.eol()){this.cx=-1;return;}
-        const ca=b.getline(this.cl).slice(this.co+1).indexOf(c);
-        if(ca>=0){this.right(ca+1);}
-    },
-
-    pure_backward_paragraph(){
-        const reg=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
-        return(reg>=0)?b.pt-(reg+3):-1;
-    },
     backward_paragraph(){
         const reg=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
-        if(reg>=0){b.pt-=reg+3;this.rowcol();}
-        else{this.to_bob();}
+        return{fn:this.move_point,mo:(reg>=0)?b.pt-(reg+3):-1,alt:this.to_bob};
+        //if(reg>=0){b.pt-=reg+3;this.rowcol();}
+        //else{this.to_bob();}
     },
 
-    pure_backward_word(){
-        const reg=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
-        return(reg>=0)?reg+1:-1;
-    },
     backward_word(){
         const reg=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
-        if(reg>=0){this.left(reg+1,true);}
-        else{this.to_bol();}
-    },
-
-    pure_backward_to_char(c){
-        const reg=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
-        return(reg>=0)?reg+1:-1;
-    },
-    backward_to_char(c){
-        if(this.bol()){return;}
-        const ca=[...b.getline(this.cl).slice(0,this.co)].reverse().indexOf(c);
-        if(ca>=0){this.left(ca+1);}
+        return{fn:this.left,mo:(reg>=0)?reg+1:-1,alt:this.to_bol};
+        //if(reg>=0){this.left(reg+1,true);}
+        //else{this.to_bol();}
     },
 
     /* Motion primitives */
@@ -144,7 +115,6 @@ const Cursor=(b)=>({
     down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
 
     up_down_helper(target_line){
-        target_line|=0;/* remove floats */
         const target_line_length=Math.max(0,b.getline(target_line).length-1);
         if(this.cx<0){this.co=target_line_length;}
         else{this.co=Math.min(Math.max(0,target_line_length),this.cx);}

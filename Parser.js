@@ -155,8 +155,9 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
 
           /* Turn a parsed expression into a function call with arguments. */
           evaluate=({verb,noun,mod,mult})=>{
-              const range={mult:mult, noun:nouns[noun], mod:mod};
-              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult,1);}
+              const range={mult, non:nouns[noun], mod};
+              console.log(range);
+              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult,0);}
               else{
                   /* change: copy, delete, move cursor, insert. */
                   /* delete: copy, delete, move cursor. */
