@@ -15,71 +15,64 @@ const Cursor=(b)=>({
 
     /* METHODS */
 
-    forward_dist_to(nth,thing){
-        let dist=0,pos=b.pt+1;
-        while(nth-->0){
-            const reg=b.s.slice(pos).search(thing);
-            if(reg<0){return -1;}/* none found */
-            else{dist+=reg+1;pos+=reg+1;}
-        }
-        return dist;
-    },
-
-    backward_dist_to(nth,thing){
-        /* TODO - finish this fn */
-        /* find all things, return pt-(index of start of nth thing from end) */
-        const things=[],end=b.pt-1;
-        let m,start=0;
-        while((m=b.s.slice(start,end).match(thing))!==null){
-            const [t,l]=[m[0],m[0].length];
-            things.push([t,l]);
-            start+=l+1;
-            if(start>=end-1){break;}
-        }
-        return JSON.stringify(things,null,1);
-    },
-
-    /* Where is the cursor? */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
-    bol(){return b.s[b.pt-1]==='\n';},
-    eol(){return b.s[b.pt]==='\n';},
-    eob(){return b.pt>=b.s.length;},
+
+    //bol(){return b.s[b.pt-1]==='\n';},
+    //eol(){return b.s[b.pt]==='\n';},
+    //eob(){return b.pt>=b.s.length;},
 
     move(fn,mult,arg=1){
         console.log([fn.name,mult,arg]);
         while(mult-->0){fn.call(this,arg);}
     },
 
-    /* Searches that move the cursor! */
-    to_bol(){this.left(this.co);},
-    to_eol(){this.right(b.getline(this.cl).length-this.co-(this.eol()?0:1));this.cx=-1;},
-    to_bob(){b.pt=0;this.rowcol();},
-    to_eob(){b.pt=b.s.length-1;this.rowcol();},
+    /* reversed substring */
+    rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
 
+    /* Terminal searches always succeed. */
+
+    /* beginning of buffer */
+    bob(){return b.pt;},
+
+    /* end of buffer */
+    eob(){
+        const dist=b.s.length-1-b.pt;
+        return Math.max(0,dist);
+    },
+
+    /* beginning of line */
+    bol(){
+        const reg=rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n)/);
+        return(reg>=0)?(b.pt-reg+1):(this.bob());
+    },
+
+    /* distance from cursor to (eol|eob) */
+    eol(){
+        const reg=b.s.slice(b.pt+1).search(/.(?:\n)/);
+        return(reg>=0)?(b.pt+reg):(this.eob());
+    },
+
+    /* distance from cursor to ((\n{2,})|eob) */
     forward_paragraph(){
         const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        return{fn:this.move_point,mo:(reg>=0)?b.pt+reg+3:-1,alt:this.to_eob,};
-        //if(reg>=0){b.pt+=reg+3;this.rowcol();}
-        //else{this.to_eob();}
+        return(reg>=0)?(b.pt+reg+3):(this.eob());
     },
 
     forward_word(){
         const reg=b.s.slice(b.pt+1).search(/\w\W/);
-        return{fn:this.right,mo:(reg>=0)?reg+1:-1,alt:this.to_eol};
-        //if(reg>=0){this.right(reg+1,true);}
-        //else{this.to_eol();}
+        return(reg>=0)?(reg+1):(this.eol());
     },
 
     backward_paragraph(){
-        const reg=[...b.s.slice(0,b.pt-(b.pt?1:0))].reverse().join('').search(/.(?:\n{2,})/);
-        return{fn:this.move_point,mo:(reg>=0)?b.pt-(reg+3):-1,alt:this.to_bob};
+        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);
+        return(reg>=0)?(b.pt-(reg+3)):(this.bob());
         //if(reg>=0){b.pt-=reg+3;this.rowcol();}
         //else{this.to_bob();}
     },
 
     backward_word(){
-        const reg=[...b.s.slice(0,b.pt)].reverse().join('').search(/\w\W/);
-        return{fn:this.left,mo:(reg>=0)?reg+1:-1,alt:this.to_bol};
+        const reg=rs(0,b.pt).search(/\w\W/);
+        return(reg>=0)?(reg+1):(this.bol());
         //if(reg>=0){this.left(reg+1,true);}
         //else{this.to_bol();}
     },
