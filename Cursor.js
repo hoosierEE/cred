@@ -45,7 +45,7 @@ const Cursor=(b)=>({
     eol(){return b.s[b.pt]==='\n';},
     eob(){return b.pt>=b.s.length;},
 
-    move(fn,mult,arg){
+    move(fn,mult,arg=1){
         console.log([fn.name,mult,arg]);
         while(mult-->0){fn.call(this,arg);}
     },

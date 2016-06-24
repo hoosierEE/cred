@@ -67,12 +67,9 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           /* Given an array of tokens, return a multiplier (mult) and the command to perform (cmd),
-             else return an error message and the original string that caused it.
-
-             NOTE: The order of the has('foo') calls determines what type of command gets processed.
-             So we have to check the opt prefixes first (e.g. [modifier] object) */
+             else return an error message and the original string that caused it. */
           lex=(tokens)=>{
-              const err={tokens:tokens,error:'PARSE ERROR'},/* default error message */
+              const err={tokens,error:'PARSE ERROR'},
                     cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                     has=(str)=>{err.who=str;return(tokens.map(x=>x.includes(str)).some(x=>x));},
                     fs={
@@ -98,6 +95,9 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
                         });
                         return ans;
                     };
+
+              /* NOTE: The order of the has('foo') calls determines what type of command gets processed.
+                 So we have to check the opt prefixes first (e.g. [modifier] object) */
 
               /* Tokenizer error, return early. */
               if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
@@ -155,15 +155,15 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
 
           /* Turn a parsed expression into a function call with arguments. */
           evaluate=({verb,noun,mod,mult})=>{
-              const range={mult, non:nouns[noun], mod};
+              const range={mult, noun:nouns[noun], mod};
               console.log(range);
-              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult,0);}
+              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult);}
               else{
                   /* change: copy, delete, move cursor, insert. */
                   /* delete: copy, delete, move cursor. */
                   /* yank:   copy. */
                   /*verbs[verb].call(cur,range); */
-                  console.log(JSON.stringify([verbs[verb],range],null,0));
+                  console.log(JSON.stringify([verbs[verb],range],null,1));
               }
           };
 
