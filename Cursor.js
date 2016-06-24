@@ -1,80 +1,71 @@
 /* Cursor
    Given a Buffer b:
    - keep track of editing "mode" (normal, insert, etc.)
+   - move, yank, change, or delete text (yank overwrites clipboard)
+   - paste (insert at point) from clipboard
    - modify b's point in response to motion commands
    - provide a "row, column" view of the Buffer (which is really just a String)
 */
 const Cursor=(b)=>({
-
-    /* STATE */
-
     cl:0,/* current line */
     co:0,/* current column */
     cx:0,/* maximum column */
     mode:'normal',/* insert, TODO visual, various "minor modes" */
 
-    /* METHODS */
+    /* METHODS
+       1. search for desired new cursor position
+       2. if search fails, try alternate which necessarily succeeds
+       3. apply verb, which is one of:
+       move: just update cursor position
+       yank: copy range of text, overwriting clipboard contents
+       delete: yank then call buf.del() on the range
+       change: yank, delete, then insert_mode()
+    */
 
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
-
-    //bol(){return b.s[b.pt-1]==='\n';},
-    //eol(){return b.s[b.pt]==='\n';},
-    //eob(){return b.pt>=b.s.length;},
 
     move(fn,mult,arg=1){
         console.log([fn.name,mult,arg]);
         while(mult-->0){fn.call(this,arg);}
     },
 
-    /* reversed substring */
+    /* SIGNED SEARCH (example usage: new=old+search)
+       0 target is at cursor
+       - target is left of cursor
+       + target is right of cursor */
+
+
+    /* helper: reversed substring */
     rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
 
-    /* Terminal searches always succeed. */
-
-    /* beginning of buffer */
-    bob(){return b.pt;},
-
-    /* end of buffer */
-    eob(){
-        const dist=b.s.length-1-b.pt;
-        return Math.max(0,dist);
-    },
-
-    /* beginning of line */
-    bol(){
-        const reg=rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n)/);
-        return(reg>=0)?(b.pt-reg+1):(this.bob());
-    },
-
-    /* distance from cursor to (eol|eob) */
-    eol(){
+    /* >=0 */
+    eob(){const dist=b.s.length-1-b.pt; return Math.max(0,dist);},
+    eol(){/* |eob */
         const reg=b.s.slice(b.pt+1).search(/.(?:\n)/);
-        return(reg>=0)?(b.pt+reg):(this.eob());
+        return(reg>=0)?(reg):(this.eob());
     },
-
-    /* distance from cursor to ((\n{2,})|eob) */
-    forward_paragraph(){
-        const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        return(reg>=0)?(b.pt+reg+3):(this.eob());
-    },
-
-    forward_word(){
+    end_of_word(){/* |eol */
         const reg=b.s.slice(b.pt+1).search(/\w\W/);
         return(reg>=0)?(reg+1):(this.eol());
     },
-
-    backward_paragraph(){
-        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);
-        return(reg>=0)?(b.pt-(reg+3)):(this.bob());
-        //if(reg>=0){b.pt-=reg+3;this.rowcol();}
-        //else{this.to_bob();}
+    end_of_paragraph(){/* |eob */
+        const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
+        return(reg>=0)?(reg+3):(this.eob());
     },
 
-    backward_word(){
-        const reg=rs(0,b.pt).search(/\w\W/);
-        return(reg>=0)?(reg+1):(this.bol());
-        //if(reg>=0){this.left(reg+1,true);}
-        //else{this.to_bol();}
+    /* <=0 */
+    bob(){return -b.pt;},
+    bol(){/* |bob */
+        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n)/);
+        return(reg>=0)?(-reg+1):(this.bob());
+    },
+    beginning_of_word(){/* |bol */
+        const reg=this.rs(0,b.pt).search(/\w\W/);
+        return(reg>=0)?(-(reg+1)):(this.bol());
+    },
+    beginning_of_paragraph(){/* |bob */
+        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);
+        return(reg>=0)?(-(reg+3)):(this.bob());
     },
 
     /* Motion primitives */
@@ -96,7 +87,7 @@ const Cursor=(b)=>({
 
     /* update cl,co,cx in response to a left or right motion */
     rowcol(){
-        let cl=this.curln(), co=b.pt-(!cl?0:1)-b.lines[cl];
+        const cl=this.curln(), co=b.pt-(!cl?0:1)-b.lines[cl];
         //return [cl,co,cx]
         this.cl=cl;
         this.cx=this.co=co;
@@ -117,6 +108,10 @@ const Cursor=(b)=>({
     },
 
     /* Change the text! */
+    // TODO - immutable methods
+    //bol(){return b.s[b.pt-1]==='\n';},
+    //eol(){return b.s[b.pt]==='\n';},
+    //eob(){return b.pt>=b.s.length;},
     del_at_point(n=1){if(this.bol()&&this.eol()){return;}b.del(n);if(this.eol()){this.left(n);}},
     del_to_eol(){b.del(b.getline(this.cl).slice(this.co).length);this.left(1);},
     del_backward(n=1){b.del(-n);this.left(n,true);},

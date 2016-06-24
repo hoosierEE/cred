@@ -28,5 +28,5 @@ const welcome=
 buf.ins(welcome);
 //buf.ins('\n'.repeat(30)+'and here is some text at the end');
 cur.rowcol();
-cur.to_bob();
+//cur.move(cur.bob());
 cur.right(3);
