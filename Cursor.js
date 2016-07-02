@@ -24,16 +24,15 @@ const Cursor=(b)=>({
 
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
 
-    move(fn,mult,arg=1){
-        console.log([fn.name,mult,arg]);
-        while(mult-->0){fn.call(this,arg);}
+    move(fn,mult){
+        console.log([fn.name,mult]);
+        while(mult-->0){fn.call(this);}
     },
 
     /* SIGNED SEARCH (example usage: new=old+search)
        0 target is at cursor
        - target is left of cursor
        + target is right of cursor */
-
 
     /* helper: reversed substring */
     rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
@@ -95,8 +94,8 @@ const Cursor=(b)=>({
         //this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
     },
 
-    up(n){this.up_down_helper(Math.max(this.cl-n,0));},
-    down(n){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
+    up(n=1){this.up_down_helper(Math.max(this.cl-n,0));},
+    down(n=1){this.up_down_helper(Math.min(Math.max(0,b.lines.length-1),this.cl+n));},
 
     up_down_helper(target_line){
         const target_line_length=Math.max(0,b.getline(target_line).length-1);

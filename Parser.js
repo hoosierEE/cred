@@ -175,7 +175,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
             else{
                 append_char(dec,this.cmd);/* build the command 1 char at a time */
                 if(nouns[this.cmd.c]){
-                    cur.move(nouns[this.cmd.c],1,1);
+                    cur.move(nouns[this.cmd.c],1);
                     this.cmd.c='';
                 }
                 else if(mode_change[this.cmd.c]!==undefined){

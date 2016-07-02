@@ -7,22 +7,14 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?
 
-The primary goal of Cred is to offer a Spacemacs-like UI in a web-native package.  This means it can run on an unmodified Chromebook, or even as a static web site.  This entails some trade-offs:
+The primary goal of Cred is to bring some of Spacemacs' UX to a single-page web application. This means it can run on Chrome OS without enabling developer mode, and can be "deployed" via static hosting, e.g. Amazon S3.
 
-- sandboxed app has no access to other programs (e.g. a shell)
-- no millions of developer-hours already invested in features and debugging
-
-...but also affords some interesting features not feasible (or awkward) for an app with terminal heritage:
-
-- fonts besides monospace
-- inline font styles
-- images, audio, video
-- mouse integration
+The major design choice (not yet finalized) is between more webpage-like filesystem access (i.e. very limited) or more native-app-like, unlimited local storage space (as a Chrome App).
   
 ** Completed Features
 
 - scrolling via keyboard or mouse
-- many normal-mode motions (forward-paragraph, backward-word, etc.)
+- several normal-mode motions (forward-paragraph, backward-word, etc.)
 - tokenize multi-part commands (e.g. =12ya)=)
 - draw text without perceptible lag
   
@@ -31,18 +23,17 @@ The primary goal of Cred is to offer a Spacemacs-like UI in a web-native package
 - =yip=, =d3x=, =caw= (operators besides the implicit "move")
 - undo/redo
 - File I/O
-
-** Todos
-
-- parse multi-part commands
 - visual mode
 - text object spans (e.g. =daw= should delete an entire word touching the cursor, even if the cursor is in the middle of the word)
+- syntax/semantic highlighting
+- assorted WYSIWYG features: inline images, font style and sizes, drag-and-drop, etc.
   
 * Contributing
 Fork/pull if you want to contribute.
 
 ** License
-License is [[http://unlicense.org/][the unlicense]], which is about as permissive as I've found while still looking official.
+
+MIT
 
 ** Code Style
 Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other (not very strict) conventions include:
