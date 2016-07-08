@@ -17,7 +17,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               case'print':
                   cur.ins(dec.code);cur.rowcol();
                   if(dec.code==='f'){this.fd=-t;}
-                  if(dec.code==='d'&&this.fd<0&&t+this.fd<500){cur.esc(2);}
+                  if(dec.code==='d'&&this.fd<0&&t+this.fd<200){cur.esc(2);}
                   if(dec.code==='['&&dec.mods[1]){cur.esc(1);}/* 'C-[' */
                   break;
               case'edit':
@@ -73,19 +73,17 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
                     cmd={verb:'g',mult:1,original:tokens.map(x=>x[1]).reduce((x,y)=>x.concat(y))},
                     has=(str)=>{err.who=str;return(tokens.map(x=>x.includes(str)).some(x=>x));},
                     fs={
-                        count(t){cmd.mult*=parseInt(t,10);},
+                        count(t){cmd.mult*=parseInt(t,10);},/* safe for ([1-9][0-9]+) */
                         modifier(t){cmd.mod=t;},
                         operator(t){cmd.verb=t;},
                         motion(t){cmd.noun=t;},
                         object(t){cmd.noun=t;},
                     },
-
                     p=(x,y)=>{
                         const t=tokens[y.i], opt=x.endsWith('?'), z=opt?x.slice(0,-1):x;
                         if(t&&t[0]===z){fs[z](t[1]);++y.i;return true;}
                         else{return opt;}
                     },
-
                     q=(x)=>{
                         let idx={i:0}, ans=true;
                         x.split(' ').forEach(x=>{
@@ -93,26 +91,26 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
                             if(or.length>1){ans&=or.map(x=>p(x,idx)).some(x=>x);}
                             else{ans&=p(x,idx);}
                         });
-                        return ans;
+                        return ans?cmd:err;
                     };
 
               /* NOTE: The order of the has('foo') calls determines what type of command gets processed.
                  So we have to check the opt prefixes first (e.g. [modifier] object) */
 
-              /* Tokenizer error, return early. */
+              /* Tokenizer error, bail out! */
               if(has('UNKNOWN TOKEN')){err.error='TOKENIZER ERROR';return err;}
 
               /* [count] operator [count] modifier object */
-              else if(has('modifier')){return(q('count? operator count? modifier object')?cmd:err);}
+              else if(has('modifier')){return q('count? operator count? modifier object');}
 
               /* [count] operator [count] (motion|object) */
-              else if(has('operator')){return q('count? operator count? motion|object')?cmd:err;}
+              else if(has('operator')){return q('count? operator count? motion|object');}
 
               /* [count] motion */
-              else if(has('motion')){return q('count? motion')?cmd:err;}
+              else if(has('motion')){return q('count? motion');}
 
               /* [count] object */
-              else if(has('object')){return q('count? object')?cmd:err;}
+              else if(has('object')){return q('count? object');}
 
               /* No matching rule, return error. */
               else{err.who='NO MATCH';return err;}
@@ -132,6 +130,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               'g':cur.move
           },
 
+          /* TODO these aren't really nouns */
           nouns={
               /* move */
               'h':cur.left,
@@ -156,7 +155,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           /* Turn a parsed expression into a function call with arguments. */
           evaluate=({verb,noun,mod,mult})=>{
               const range={mult, noun:nouns[noun], mod};
-              console.log(range);
+              //console.log(range);
               if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult);}
               else{
                   /* change: copy, delete, move cursor, insert. */

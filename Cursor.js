@@ -10,7 +10,7 @@ const Cursor=(b)=>({
     cl:0,/* current line */
     co:0,/* current column */
     cx:0,/* maximum column */
-    mode:'normal',/* insert, TODO visual, various "minor modes" */
+    mode:'normal',/*  TODO visual, various "minor modes" */
 
     /* METHODS
        1. search for desired new cursor position
@@ -20,16 +20,20 @@ const Cursor=(b)=>({
        yank: copy range of text, overwriting clipboard contents
        delete: yank then call buf.del() on the range
        change: yank, delete, then insert_mode()
-    */
 
+       If visual mode is on, then move either grows or shrinks the selected area according to line-wise,
+       block-wise, or normal visual selection; likewise yank/delete/change operate on the selection.
+    */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
 
     move(fn,mult){
+        if(!fn){console.log('nope nope nope');return;}
         console.log([fn.name,mult]);
         while(mult-->0){fn.call(this);}
     },
 
-    /* SIGNED SEARCH (example usage: new=old+search)
+    /* SIGNED SEARCH
+       Return the distance from the cursor (new = old + searchfunction()).
        0 target is at cursor
        - target is left of cursor
        + target is right of cursor */
@@ -68,29 +72,28 @@ const Cursor=(b)=>({
     },
 
     /* Motion primitives */
-    left(n=0,freely=false){
-        b.pt-=n;if(b.pt<0){b.pt=0;}
-        if(!freely&&n===1&&b.s[b.pt]==='\n'){b.pt+=1;}
+    /* TODO: right/left should only move the cursor */
+    left(n=1,freely=false){
+        if(!(n===1 && b.s[b.pt-1]==='\n' && !freely)){b.pt-=n;}
+        else if(b.pt-n<0){b.pt=0;}
+        //else{b.pt=b.pt;} // no change to b.pt
         this.rowcol();
     },
 
-    right(n=0,freely=false){
-        if(this.eob()){return;}
-        if(b.pt<b.s.length){
-            if(b.s[b.pt+1]==='\n'&&n===1){b.pt+=freely?1:0;}
-            else if(b.pt+n>b.s.length){b.pt=b.s.length-1;}
-            else{b.pt+=n;}
-        }
+    right(n=1,freely=false){
+        if(b.pt+n>b.s.length){return;}
+        else if(b.s[b.pt+1]==='\n' && n===1){b.pt+=freely?1:0;}
+        else if(b.pt+n>b.s.length){b.pt=b.s.length-1;}
+        else{b.pt+=n;}
         this.rowcol();
     },
 
     /* update cl,co,cx in response to a left or right motion */
     rowcol(){
-        const cl=this.curln(), co=b.pt-(!cl?0:1)-b.lines[cl];
-        //return [cl,co,cx]
+        const cl=this.curln(),
+              co=b.pt-(!cl?0:1)-b.lines[cl];
         this.cl=cl;
-        this.cx=this.co=co;
-        //this.cl=this.curln();
+        this.cx=this.co=co; // return [cl,co,cx]
         //this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
     },
 
@@ -107,10 +110,6 @@ const Cursor=(b)=>({
     },
 
     /* Change the text! */
-    // TODO - immutable methods
-    //bol(){return b.s[b.pt-1]==='\n';},
-    //eol(){return b.s[b.pt]==='\n';},
-    //eob(){return b.pt>=b.s.length;},
     del_at_point(n=1){if(this.bol()&&this.eol()){return;}b.del(n);if(this.eol()){this.left(n);}},
     del_to_eol(){b.del(b.getline(this.cl).slice(this.co).length);this.left(1);},
     del_backward(n=1){b.del(-n);this.left(n,true);},
@@ -125,7 +124,7 @@ const Cursor=(b)=>({
         this.rowcol();
     },
 
-    append_mode(){this.mode='insert';this.right(+!this.eol(),true);},
+    append_mode(){this.mode='insert';this.right(1,true);},
     insert_mode(){this.mode='insert';},
     normal_mode(){this.mode='normal';},
     visual_mode(){this.mode='visual';},

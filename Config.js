@@ -9,7 +9,7 @@ const Configuration=()=>{
           font=
           {
               size:'20px',
-              name:'courier new',
+              name:'serif',
           },
           set=(x,y,z)=>{color[x][y]=z;},/* (base|font|cursor|status),(hue|sat|lig),value -> () */
           get=(x)=>`hsl(${color[x].hue},${color[x].sat}%,${color[x].lig}%)`,/* (base|font|cursor|status) -> 'hsl(...)' */
