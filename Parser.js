@@ -12,7 +12,7 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           insert=(t,dec)=>{
-              const fd=0;/* 'fd' escape sequence */
+              let fd=0;/* 'fd' escape sequence */
               switch(dec.type){
               case'print':
                   cur.ins(dec.code);cur.rowcol();
@@ -116,23 +116,21 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               else{err.who='NO MATCH';return err;}
           },
 
-          mode_change={
+          mode_changer={
               'i':cur.insert_mode,
               'I':cur.insert_bol,
               'a':cur.append_mode,
               'A':cur.append_eol,
           },
 
-          verbs={
+          verb={
               'c':'change',
               'd':'delete',
               'y':'copy',
               'g':cur.move
           },
 
-          /* TODO these aren't really nouns */
-          nouns={
-              /* move */
+          movement={
               'h':cur.left,
               'j':cur.down,
               'k':cur.up,
@@ -141,11 +139,13 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               'b':cur.beginning_of_word,
               '}':cur.end_of_paragraph,
               '{':cur.beginning_of_paragraph,
-              '$':cur.to_eol,
-              '0':cur.to_bol,
-              'gg':cur.to_bob,
-              'G':cur.to_eob,
-              /* edit */
+              '$':cur.eol,
+              '0':cur.bol,
+              'G':cur.eob,
+              'gg':cur.bob,
+          },
+
+          editing_operation={
               /* TODO 'yy':cur.yank_line, */
               'D':cur.del_to_eol,
               'x':cur.del_at_point,
@@ -153,16 +153,15 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           /* Turn a parsed expression into a function call with arguments. */
-          evaluate=({verb,noun,mod,mult})=>{
-              const range={mult, noun:nouns[noun], mod};
-              //console.log(range);
-              if(verb==='g'){verbs[verb].call(cur,nouns[noun],mult);}
+          evaluate=({vb,noun,mod,mult})=>{
+              const range={mult, noun:movement[noun], mod};
+              if(vb==='g'){verb[vb].call(cur,movement[noun],mult);}
               else{
                   /* change: copy, delete, move cursor, insert. */
                   /* delete: copy, delete, move cursor. */
                   /* yank:   copy. */
-                  /*verbs[verb].call(cur,range); */
-                  console.log(JSON.stringify([verbs[verb],range],null,1));
+                  /*verb[vb].call(cur,range); */
+                  console.log(JSON.stringify([verb[vb],range],null,1));
               }
           };
 
@@ -173,12 +172,12 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
             else if(cur.mode==='insert'){insert(t,dec);}/* ignoring '[count] insert [esc esc]' mode */
             else{
                 append_char(dec,this.cmd);/* build the command 1 char at a time */
-                if(nouns[this.cmd.c]){
-                    cur.move(nouns[this.cmd.c],1);
+                if(movement[this.cmd.c]){
+                    cur.move(movement[this.cmd.c],1);
                     this.cmd.c='';
                 }
-                else if(mode_change[this.cmd.c]!==undefined){
-                    mode_change[this.cmd.c].call(cur);
+                else if(mode_changer[this.cmd.c]){
+                    mode_changer[this.cmd.c].call(cur);
                     this.cmd.c='';
                 }
                 else if([motion,object].some(x=>x.reg.test(this.cmd.c))){

@@ -26,12 +26,6 @@ const Cursor=(b)=>({
     */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
 
-    move(fn,mult){
-        if(!fn){console.log('nope nope nope');return;}
-        console.log([fn.name,mult]);
-        while(mult-->0){fn.call(this);}
-    },
-
     /* SIGNED SEARCH
        Return the distance from the cursor (new = old + searchfunction()).
        0 target is at cursor
@@ -42,7 +36,7 @@ const Cursor=(b)=>({
     rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
 
     /* >=0 */
-    eob(){const dist=b.s.length-1-b.pt; return Math.max(0,dist);},
+    eob(){return Math.max(0,b.s.length-1-b.pt);},
     eol(){/* |eob */
         const reg=b.s.slice(b.pt+1).search(/.(?:\n)/);
         return(reg>=0)?(reg):(this.eob());
@@ -59,8 +53,8 @@ const Cursor=(b)=>({
     /* <=0 */
     bob(){return -b.pt;},
     bol(){/* |bob */
-        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n)/);
-        return(reg>=0)?(-reg+1):(this.bob());
+        const reg=this.rs(0,b.pt+(b.pt?1:0)).search(/.(?:\n)/);
+        return(reg>=0)?(-(reg)):(this.bob());
     },
     beginning_of_word(){/* |bol */
         const reg=this.rs(0,b.pt).search(/\w\W/);
@@ -71,12 +65,19 @@ const Cursor=(b)=>({
         return(reg>=0)?(-(reg+3)):(this.bob());
     },
 
-    /* Motion primitives */
+    /* Motion API */
+    move(fn,mult){
+        if(!fn){console.log('nope nope nope');return;}
+        //console.log([fn.name,mult]);
+        // TODO if(this.mode==='visual'){/* update selection */}
+        while(mult-->0){console.log(fn.call(this));}
+    },
+
     /* TODO: right/left should only move the cursor */
     left(n=1,freely=false){
-        if(!(n===1 && b.s[b.pt-1]==='\n' && !freely)){b.pt-=n;}
+        if(n===1&&b.s[b.pt-1]==='\n'&&!freely){return;}
         else if(b.pt-n<0){b.pt=0;}
-        //else{b.pt=b.pt;} // no change to b.pt
+        else{b.pt-=n;}
         this.rowcol();
     },
 
