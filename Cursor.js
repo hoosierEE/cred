@@ -66,7 +66,7 @@ const Cursor=(b)=>({
     },
 
     /* Edit API */
-    /* Copy a span|motion|object into the clipboard. */
+    /* Copy a (span|motion|object) into the clipboard. */
     yank(arg){
         console.log(arg);
     },
@@ -96,7 +96,11 @@ const Cursor=(b)=>({
         if(b.pt+n>b.s.length){return;}
         let amt=0;
         if(ignore_newline){amt=(undefined===b.s[b.pt+n])?b.s.length-1:n;}
-        else{amt=(this.eol()<n)?this.eol():n;}
+        else{
+            if(n>this.eob()){amt=this.eob();}
+            else if(n>this.eol()){amt=this.eol();}
+            else{amt=n;}
+        }
         b.pt+=amt;
         this.rowcol();
     },

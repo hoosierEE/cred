@@ -5,16 +5,16 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               switch(dec.code){
               case'D':cur.down(1);break;
               case'U':cur.up(1);break;
-              case'R':cur.right(1,true);break;
-              case'L':cur.left(1,true);break;
+              case'R':dec.mods[1]?(cur.move(cur.end_of_word,1)):(cur.right(1));break;
+              case'L':dec.mods[1]?(cur.move(cur.beginning_of_word,1)):(cur.left(1));break;
               default:break;
               }
           },
 
           insert=(t,dec)=>{
               /* FIXME: the 'fd' sequence is stupidly implemented.  It'd be better to keep track of the
-                 previous N characters and if they occur within the timeout, then <ESC>.
-                 For now this works okay though.  Fix later. */
+                 previous N characters and, if they occur within the timeout do the <ESC> routine.
+                 The current method is alright most of the time, but inflexible.  Fix later. */
               let fd=0;/* 'fd' escape sequence */
               switch(dec.type){
               case'print':
@@ -44,21 +44,17 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           /* (string) -> [['tokentype','chars']] */
           tokenize=(cmd)=>{
               const token_types=[modifier,motion,count,object,operator],
-
                     /* (regex,string) -> [type, match, start, length] */
                     rxmatch=(typed_regex,str)=>{
                         const x=typed_regex.reg.exec(str), y=[typed_regex.type];
                         return y.concat(x?[x[0],x.index,x[0].length]:['',-1,0]);
                     },
-
                     /* ([],command) -> [[type, match, start, length]] */
                     consume=(arr,str)=>{
                         const tok=token_types.map(x=>rxmatch(x,str)).filter(x=>!x[2]);
                         return(tok.length)?consume(arr.concat(tok),str.slice(tok[0][3])):arr;
                     },
-
                     has=(str)=>!ts.length?false:ts.reduce((x,y)=>x.concat(y)).includes(str);
-
               let ts=consume([],cmd).map(x=>[x[0],x[1]]);
 
               /* is 'w' an object or a motion?  If it has a modifier, then it's an object. */
