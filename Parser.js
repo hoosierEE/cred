@@ -12,6 +12,9 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           insert=(t,dec)=>{
+              /* FIXME: the 'fd' sequence is stupidly implemented.  It'd be better to keep track of the
+                 previous N characters and if they occur within the timeout, then <ESC>.
+                 For now this works okay though.  Fix later. */
               let fd=0;/* 'fd' escape sequence */
               switch(dec.type){
               case'print':
@@ -124,10 +127,10 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           verb={
-              'c':'change',
-              'd':'delete',
-              'y':'copy',
-              'g':cur.move
+              'c':cur.change,
+              'd':cur.del,
+              'g':cur.move,
+              'y':cur.yank,
           },
 
           movement={
@@ -146,23 +149,16 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
           },
 
           editing_operation={
-              /* TODO 'yy':cur.yank_line, */
+              // TODO 'yy':cur.yank_line,
               'D':cur.del_to_eol,
               'x':cur.del_at_point,
               'dd':cur.delete_line,
           },
 
           /* Turn a parsed expression into a function call with arguments. */
-          evaluate=({vb,noun,mod,mult})=>{
-              const range={mult, noun:movement[noun], mod};
-              if(vb==='g'){verb[vb].call(cur,movement[noun],mult);}
-              else{
-                  /* change: copy, delete, move cursor, insert. */
-                  /* delete: copy, delete, move cursor. */
-                  /* yank:   copy. */
-                  /*verb[vb].call(cur,range); */
-                  console.log(JSON.stringify([verb[vb],range],null,1));
-              }
+          evaluate=(lx)=>{
+              if(lx.verb==='g'){verb[lx.verb].call(cur,movement[lx.noun],lx.mult);}
+              else{verb[lx.verb].call(cur,lx);}
           };
 
     return ({

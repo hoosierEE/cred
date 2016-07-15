@@ -38,7 +38,7 @@ const Cursor=(b)=>({
     /* >=0 */
     eob(){return Math.max(0,b.s.length-1-b.pt);},
     eol(){/* |eob */
-        const reg=b.s.slice(b.pt+1).search(/.(?:\n)/);
+        const reg=b.s.slice(b.pt).search(/.(?:\n)/);
         return(reg>=0)?(reg):(this.eob());
     },
     end_of_word(){/* |eol */
@@ -65,27 +65,39 @@ const Cursor=(b)=>({
         return(reg>=0)?(-(reg+3)):(this.bob());
     },
 
+    /* Edit API */
+    /* Copy a span|motion|object into the clipboard. */
+    yank(arg){
+        console.log(arg);
+    },
+
+    /* yank, delete */
+    del(){},
+
+    /* yank, del, insert_mode() */
+    change(){},
+
     /* Motion API */
     move(fn,mult){
-        if(!fn){console.log('nope nope nope');return;}
-        //console.log([fn.name,mult]);
+        if(!fn){console.log(`fn is falsy`);return;}
         // TODO if(this.mode==='visual'){/* update selection */}
-        while(mult-->0){console.log(fn.call(this));}
+        while(mult-->0){const amt=fn.call(this);if(amt){b.pt+=amt;this.rowcol();}}
     },
 
     /* TODO: right/left should only move the cursor */
-    left(n=1,freely=false){
-        if(n===1&&b.s[b.pt-1]==='\n'&&!freely){return;}
+    left(n=1,ignore_newline=false){
+        if(n===1&&b.s[b.pt-1]==='\n'&&!ignore_newline){return;}
         else if(b.pt-n<0){b.pt=0;}
         else{b.pt-=n;}
         this.rowcol();
     },
 
-    right(n=1,freely=false){
+    right(n=1,ignore_newline=false){
         if(b.pt+n>b.s.length){return;}
-        else if(b.s[b.pt+1]==='\n' && n===1){b.pt+=freely?1:0;}
-        else if(b.pt+n>b.s.length){b.pt=b.s.length-1;}
-        else{b.pt+=n;}
+        let amt=0;
+        if(ignore_newline){amt=(undefined===b.s[b.pt+n])?b.s.length-1:n;}
+        else{amt=(this.eol()<n)?this.eol():n;}
+        b.pt+=amt;
         this.rowcol();
     },
 
@@ -95,7 +107,6 @@ const Cursor=(b)=>({
               co=b.pt-(!cl?0:1)-b.lines[cl];
         this.cl=cl;
         this.cx=this.co=co; // return [cl,co,cx]
-        //this.cx=this.co=b.pt-(!this.cl?0:1)-b.lines[this.cl];
     },
 
     up(n=1){this.up_down_helper(Math.max(this.cl-n,0));},
@@ -113,14 +124,14 @@ const Cursor=(b)=>({
     /* Change the text! */
     del_at_point(n=1){if(this.bol()&&this.eol()){return;}b.del(n);if(this.eol()){this.left(n);}},
     del_to_eol(){b.del(b.getline(this.cl).slice(this.co).length);this.left(1);},
-    del_backward(n=1){b.del(-n);this.left(n,true);},
+    del_backward(n=1){b.del(-n);this.left(n);},
     del_forward(n=1){b.del(n);},
     ins(s){b.ins(s);},/* pass it on */
 
     /* Mode changers! */
     esc(n=0){
         this.del_backward(n);
-        if(!this.bol()){this.left(1);}
+        this.left(1);
         this.normal_mode();
         this.rowcol();
     },
