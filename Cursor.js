@@ -36,34 +36,16 @@ const Cursor=(b)=>({
     rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
 
     /* >=0 */
-    eob(){return Math.max(0,b.s.length-1-b.pt);},
-    eol(){/* |eob */
-        const reg=b.s.slice(b.pt).search(/.(?:\n)/);
-        return(reg>=0)?(reg):(this.eob());
-    },
-    end_of_word(){/* |eol */
-        const reg=b.s.slice(b.pt+1).search(/\w\W/);
-        return(reg>=0)?(reg+1):(this.eol());
-    },
-    end_of_paragraph(){/* |eob */
-        const reg=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);
-        return(reg>=0)?(reg+3):(this.eob());
-    },
+    eob(){/* end buffer */return Math.max(0,b.s.length-1-b.pt);},
+    eol(){/* line */const r=b.s.slice(b.pt).search(/.(?:\n)/);return(r>=0)?(r):(this.eob());},
+    eow(){/* word */const r=b.s.slice(b.pt+1).search(/\w\W/);return(r>=0)?(r+1):(this.eol());},
+    eop(){/* para */const r=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);return(r>=0)?(r+3):(this.eob());},
 
     /* <=0 */
-    bob(){return -b.pt;},
-    bol(){/* |bob */
-        const reg=this.rs(0,b.pt+(b.pt?1:0)).search(/.(?:\n)/);
-        return(reg>=0)?(-(reg)):(this.bob());
-    },
-    beginning_of_word(){/* |bol */
-        const reg=this.rs(0,b.pt).search(/\w\W/);
-        return(reg>=0)?(-(reg+1)):(this.bol());
-    },
-    beginning_of_paragraph(){/* |bob */
-        const reg=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);
-        return(reg>=0)?(-(reg+3)):(this.bob());
-    },
+    bob(){/* begin buffer */return -b.pt;},
+    bol(){/* line */const r=this.rs(0,b.pt+(b.pt?1:0)).search(/.(?:\n)/);return(r>=0)?(-(r)):(this.bob());},
+    bow(){/* word */const r=this.rs(0,b.pt).search(/\w\W/);return(r>=0)?(-(r+1)):(this.bol());},
+    bop(){/* para */const r=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);return(r>=0)?(-(r+3)):(this.bob());},
 
     /* Edit API */
     /* Copy a (span|motion|object) into the clipboard. */
@@ -71,10 +53,10 @@ const Cursor=(b)=>({
         console.log(arg);
     },
 
-    /* yank, delete */
+    /* yank; delete */
     del(){},
 
-    /* yank, del, insert_mode() */
+    /* yank; del; insert_mode() */
     change(){},
 
     /* Motion API */

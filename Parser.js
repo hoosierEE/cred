@@ -5,8 +5,8 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               switch(dec.code){
               case'D':cur.down(1);break;
               case'U':cur.up(1);break;
-              case'R':dec.mods[1]?(cur.move(cur.end_of_word,1)):(cur.right(1));break;
-              case'L':dec.mods[1]?(cur.move(cur.beginning_of_word,1)):(cur.left(1));break;
+              case'R':dec.mods[1]?(cur.move(cur.eow,1)):(cur.right(1));break;
+              case'L':dec.mods[1]?(cur.move(cur.bow,1)):(cur.left(1));break;
               default:break;
               }
           },
@@ -134,10 +134,10 @@ const Parser=(cur)=>{/* Convert keyboard events into Actions */
               'j':cur.down,
               'k':cur.up,
               'l':cur.right,
-              'e':cur.end_of_word,
-              'b':cur.beginning_of_word,
-              '}':cur.end_of_paragraph,
-              '{':cur.beginning_of_paragraph,
+              'e':cur.eow,
+              'b':cur.bow,
+              '}':cur.eop,
+              '{':cur.bop,
               '$':cur.eol,
               '0':cur.bol,
               'G':cur.eob,
