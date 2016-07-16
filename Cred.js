@@ -83,7 +83,9 @@ window.onload=()=>{
     document.body.style.backgroundColor=cfg.get('base');
 
     const gameloop=(now)=>{
-        while(Keyq.length){par.parse(now,decode(Keyq.shift()));}/* consume keyboard events */
+        /* keyboard */
+        while(Keyq.length){par.parse(now,decode(Keyq.shift()));}
+        /* mouse */
         while(Mouseq.wheel.length){
             const wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}

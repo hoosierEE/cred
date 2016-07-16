@@ -12,40 +12,23 @@ const Cursor=(b)=>({
     cx:0,/* maximum column */
     mode:'normal',/*  TODO visual, various "minor modes" */
 
-    /* METHODS
-       1. search for desired new cursor position
-       2. if search fails, try alternate which necessarily succeeds
-       3. apply verb, which is one of:
-       move: just update cursor position
-       yank: copy range of text, overwriting clipboard contents
-       delete: yank then call buf.del() on the range
-       change: yank, delete, then insert_mode()
-
-       If visual mode is on, then move either grows or shrinks the selected area according to line-wise,
-       block-wise, or normal visual selection; likewise yank/delete/change operate on the selection.
-    */
+    /* What (0-indexed) line contains the point? */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
 
-    /* SIGNED SEARCH
-       Return the distance from the cursor (new = old + searchfunction()).
-       0 target is at cursor
-       - target is left of cursor
-       + target is right of cursor */
-
-    /* helper: reversed substring */
-    rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
-
-    /* >=0 */
+    /* Search API */
+    /* Search for end-of-something, to right of point.  (result>=0) */
     eob(){/* end buffer */return Math.max(0,b.s.length-1-b.pt);},
     eol(){/* line */const r=b.s.slice(b.pt).search(/.(?:\n)/);return(r>=0)?(r):(this.eob());},
-    eow(){/* word */const r=b.s.slice(b.pt+1).search(/\w\W/);return(r>=0)?(r+1):(this.eol());},
     eop(){/* para */const r=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);return(r>=0)?(r+3):(this.eob());},
+    eow(){/* word */const r=b.s.slice(b.pt+1).search(/\w\W/);return(r>=0)?(r+1):(this.eol());},
 
-    /* <=0 */
+    /* Search for beginning-of-something, to left of point. (result<=0) */
+    /* helper: reverse the text in order to regex "backwards" */
+    rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
     bob(){/* begin buffer */return -b.pt;},
     bol(){/* line */const r=this.rs(0,b.pt+(b.pt?1:0)).search(/.(?:\n)/);return(r>=0)?(-(r)):(this.bob());},
-    bow(){/* word */const r=this.rs(0,b.pt).search(/\w\W/);return(r>=0)?(-(r+1)):(this.bol());},
     bop(){/* para */const r=this.rs(0,b.pt-(b.pt?1:0)).search(/.(?:\n{2,})/);return(r>=0)?(-(r+3)):(this.bob());},
+    bow(){/* word */const r=this.rs(0,b.pt).search(/\w\W/);return(r>=0)?(-(r+1)):(this.bol());},
 
     /* Edit API */
     /* Copy a (span|motion|object) into the clipboard. */
@@ -74,7 +57,7 @@ const Cursor=(b)=>({
         this.rowcol();
     },
 
-    right(n=1,ignore_newline=false){
+    right(n=1,ignore_newline=false){// FIXME: only appending should move cursor past last character
         if(b.pt+n>b.s.length){return;}
         let amt=0;
         if(ignore_newline){amt=(undefined===b.s[b.pt+n])?b.s.length-1:n;}
