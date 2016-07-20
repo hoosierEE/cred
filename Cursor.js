@@ -10,8 +10,10 @@ const Cursor=(b)=>({
     cl:0,/* current line */
     co:0,/* current column */
     cx:0,/* maximum column */
+    clipboard:'',
     mode:'normal',/*  TODO visual, various "minor modes" */
 
+    get_point(){return b.pt;},
     /* What (0-indexed) line contains the point? */
     curln(){return Math.max(0,b.lines.filter(x=>b.pt>x).length-1);},
 
@@ -21,7 +23,6 @@ const Cursor=(b)=>({
     eol(){/* line */const r=b.s.slice(b.pt).search(/.(?:\n)/);return(r>=0)?(r):(this.eob());},
     eop(){/* para */const r=b.s.slice(b.pt+1).search(/.(?:\n{2,})/);return(r>=0)?(r+3):(this.eob());},
     eow(){/* word */const r=b.s.slice(b.pt+1).search(/\w\W/);return(r>=0)?(r+1):(this.eol());},
-
     /* Search for beginning-of-something, to left of point. (result<=0) */
     /* helper: reverse the text in order to regex "backwards" */
     rs(x,y){return([...b.s.slice(x,y)].reverse().join(''));},
@@ -32,19 +33,24 @@ const Cursor=(b)=>({
 
     /* Edit API */
     /* Copy a (span|motion|object) into the clipboard. */
-    yank(arg){
-        console.log(arg);
+    yank(start,end){
+        return b.s.slice(start,end);
+    },
+    /* yank; delete */
+    del(start,end){
+        this.yank(start,end);
+        b.pt=start;
+        if(end-start>0){this.del_at_point(end-start);}
+    },
+    /* yank; del; insert_mode() */
+    change(start,end){
+        this.del(start,end);
+        this.insert_mode();
     },
 
-    /* yank; delete */
-    del(){},
-
-    /* yank; del; insert_mode() */
-    change(){},
-
     /* Motion API */
-    move(fn,mult){
-        if(!fn){console.log(`fn is falsy`);return;}
+    move(fn,mult=1){
+        if(!fn){console.log(`${fn} is falsy`);return;}
         // TODO if(this.mode==='visual'){/* update selection */}
         while(mult-->0){const amt=fn.call(this);if(amt){b.pt+=amt;this.rowcol();}}
     },

@@ -5,7 +5,7 @@ const c=document.getElementById('c').getContext('2d'),
       buf=Buffer(),
       cur=Cursor(buf),
       par=Parser(cur),
-      cfg=Configuration(),
+      cfg=Config(),
       win=Window(c,cur,cfg);
 
 /* decode : RawKey -> DecodedKey */
@@ -42,21 +42,17 @@ const decode=({k, mods})=>{
 };
 
 const render_text=()=>{
-    c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);/* Clear visible window. */
     /* Which lines are visible? */
-    let from_line=cur.cl-win.num_visible_lines(),
-        to_line=cur.cl+win.num_visible_lines();
-    if(from_line<0){from_line=0;}
-    if(to_line>=buf.lines.length){to_line=buf.lines.length-1;}
+    let from_line=Math.max(0,cur.cl-win.num_visible_lines()),
+        to_line=Math.min(buf.lines.length-1,cur.cl+win.num_visible_lines());
+
     /* Render just those lines. */
     c.fillStyle=cfg.get('font');
     for(let i=from_line;i<to_line+1;++i){c.fillText(buf.getline(i),win.bw,win.ln_top(i));}
 };
 
-const render_cursor=()=>{/* {Buffer, Cursor, Canvas} => Rectangle */
-    /* 1. clear cursor's previous location (currently handled by render_text)
-       2. rewrite text at old cursor position (currently handled by render_text)
-       3. draw the cursor at the new position */
+const render_cursor=()=>{
+    /* Draw the cursor at the new position. */
     const l=buf.getline(cur.cl),/* current line */
           cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
           wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
@@ -78,19 +74,18 @@ const render_cursor=()=>{/* {Buffer, Cursor, Canvas} => Rectangle */
 };
 
 window.onload=()=>{
-    /* background */
-    if(!localStorage.theme){localStorage.theme=cfg.store();}
-    document.body.style.backgroundColor=cfg.get('base');
 
     const gameloop=(now)=>{
-        /* keyboard */
+        /* Consume input events. */
         while(Keyq.length){par.parse(now,decode(Keyq.shift()));}
-        /* mouse */
         while(Mouseq.wheel.length){
             const wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
             else{cur.down(wheel%win.line_height|0);}
         }
+
+        /* Repaint. */
+        c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);
         win.scroll();
         render_text();
         render_cursor();
@@ -104,6 +99,7 @@ window.onload=()=>{
         win.init(c);
         requestAnimationFrame(gameloop);
     };
+
     /* events */
     window.onresize=rsz;
     c.canvas.onmousewheel=(ev)=>{
@@ -117,5 +113,19 @@ window.onload=()=>{
             requestAnimationFrame(gameloop);
         }
     };
+
+    /* theme */
+    if(localStorage.user_config){
+        console.log('using stored theme');
+        let thm=JSON.parse(localStorage.getItem('user_config'));
+        thm.theme.cursor.hue=20;
+        cfg.theme=thm.theme;
+        for(let i in thm.theme){if(cfg.theme.hasOwnProperty(i)){cfg.theme[i]=thm.theme[i];}}
+        for(let i in thm.font){if(cfg.font.hasOwnProperty(i)){cfg.font[i]=thm.font[i];}}
+    }
+    else{
+        localStorage.setItem('user_config',cfg.store());
+    }
+    document.body.style.backgroundColor=cfg.get('base');
     rsz();
 };
