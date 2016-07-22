@@ -28,10 +28,11 @@ MIT
 ** Code Style
 Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other conventions include:
 - complete thoughts which are /short enough/ (about 100 chars) should go on one line
-- =/* long-lived documentation comment */=
-- =// short-lived, TODO, or debugging comment=
-- always wrap blocks in braces ={}=
+- =/* permanent documentation comment */=
+- =// temporary, TODO, or debugging comment=
+- ={= always wrap blocks in braces =}=
 - always terminate statements with a semicolon =;=
+- =const prefer=(fat_arrow,notation)=>{/* when possible */};=
 - avoid =var=, prefer =const=, then =let=
 - =cu /* commonly used name with a comment explaining its purpose */=
 - =self_documenting_name=
