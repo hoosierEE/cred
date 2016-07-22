@@ -7,7 +7,7 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 
 - desire to experiment with immediate-mode rendering in a text editor
 - something Spacemacs-like - but "native" for Chromebooks - doesn't exist yet
-- writing single-browser ES6 is pleasant enough
+- writing single-browser ES6 is quite pleasant (but I'm coming from embedded C++ so YMMV)
 
 ** Some TODOs
 - full rewrite of normal-mode command parser
@@ -25,15 +25,17 @@ Fork/pull if you want to contribute.
 ** License
 MIT
 
-** Code Style
+** Style Conventions
 Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other conventions include:
 - complete thoughts which are /short enough/ (about 100 chars) should go on one line
 - =/* permanent documentation comment */=
 - =// temporary, TODO, or debugging comment=
 - ={= always wrap blocks in braces =}=
 - always terminate statements with a semicolon =;=
-- =const prefer=(fat_arrow,notation)=>{/* when possible */};=
-- avoid =var=, prefer =const=, then =let=
+- =const use=(fat_arrow_notation)=>{/* whenever possible */};=
+- =const use(alternative_syntax){/* for functions declared inside of objects */};=
+- avoid =var=
+- prefer =const= over =let=
 - =cu /* commonly used name with a comment explaining its purpose */=
 - =self_documenting_name=
 - =ClassName /* with documentation comments */=
