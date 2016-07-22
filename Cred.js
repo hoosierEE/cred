@@ -4,11 +4,9 @@ const c=document.getElementById('c').getContext('2d'),
       Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
       Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]};
 
+/* Buffer -- A line-oriented view of a String, with an insertion point.
+   Editing operations (such as insert and delete) automatically update line numbers. */
 const Buffer=()=>({
-    /* Buffer
-       A line-oriented view of a String, with an insertion point.
-       Editing operations automatically update line numbers. */
-
     /* STATE */
     s:'',
     pt:0,
@@ -95,7 +93,6 @@ const Config=()=>({
 });
 
 
-
 const Window=(c,cur,cfg)=>({
     /* @param c: the target canvas
        @param cur: an already-instantiated Cursor
@@ -143,12 +140,12 @@ const Window=(c,cur,cfg)=>({
 });
 
 
-
 const buf=Buffer(),
       cur=Cursor(buf),
       par=Parser(cur),
       cfg=Config(),
       win=Window(c,cur,cfg);
+
 
 /* decode : RawKey -> DecodedKey */
 const decode=({k, mods})=>{
@@ -224,7 +221,6 @@ window.onload=()=>{
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
             else{cur.down(wheel%win.line_height|0);}
         }
-
         /* Repaint. */
         c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);
         win.scroll();
@@ -242,10 +238,7 @@ window.onload=()=>{
 
     /* events */
     window.onresize=rsz;
-    c.canvas.onmousewheel=(ev)=>{
-        Mouseq.wheel.push(ev.deltaY);
-        requestAnimationFrame(gameloop);
-    };
+    c.canvas.onmousewheel=(ev)=>{Mouseq.wheel.push(ev.deltaY); requestAnimationFrame(gameloop);};
     window.onkeydown=(k)=>{
         if(k.type==='keydown'){/* push incoming events to a queue as they occur */
             if(!k.metaKey){k.preventDefault();}/* allows CMD-I on OSX */
@@ -263,9 +256,7 @@ window.onload=()=>{
         for(let i in thm.theme){if(cfg.theme.hasOwnProperty(i)){cfg.theme[i]=thm.theme[i];}}
         for(let i in thm.font){if(cfg.font.hasOwnProperty(i)){cfg.font[i]=thm.font[i];}}
     }
-    else{
-        localStorage.setItem('user_config',cfg.store());
-    }
+    else{localStorage.setItem('user_config',cfg.store());}
     document.body.style.backgroundColor=cfg.get('base');
     rsz();
 };
