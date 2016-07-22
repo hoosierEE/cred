@@ -1,7 +1,5 @@
 * cred ([[http://alexshroyer.com/cred][demo]])
-
 [[file:img/with-cursors.png]]
-
 /Canvas Rendered EDitor/
 
 * Why
@@ -12,14 +10,12 @@ The primary goal of Cred is to bring some of Spacemacs' UX to a single-page web 
 The major design choice (not yet finalized) is between more webpage-like filesystem access (i.e. very limited) or more native-app-like, unlimited local storage space (as a Chrome App).
   
 ** Completed Features
-
 - scrolling via keyboard or mouse
 - several normal-mode motions (forward-paragraph, backward-word, etc.)
 - tokenize multi-part commands (e.g. =12ya)=)
 - draw text without perceptible lag
   
 ** Some TODOs
-
 - =yip=, =d3x=, =caw= (operators besides the implicit "move")
 - undo/redo
 - File I/O
@@ -32,12 +28,10 @@ The major design choice (not yet finalized) is between more webpage-like filesys
 Fork/pull if you want to contribute.
 
 ** License
-
 MIT
 
 ** Code Style
 Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guide]]. Other (not very strict) conventions include:
-
 - always wrap blocks in braces ={}=
 - always terminate statements with a semicolon =;=
 - prefer (in order) =const=, then =let=, then =var=
@@ -48,7 +42,6 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 
 * Links
 ** general
-
 - [[https://github.com/creationix/tedit][tedit - IDE that directly edits Git repos (really impressive concepts here!)]]
 - [[https://github.com/martanne/vis#operators][vis feature set]]
 - [[http://vimsheet.com/][vim command cheatsheet]]
@@ -56,11 +49,11 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 - [[http://cryto.net/~joepie91/blog/2015/05/04/functional-programming-in-javascript-map-filter-reduce/][functional javascript]]
 
 ** specific
-
 - [[https://takac.github.io/][vim grammar]]
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]
 - [[https://www.common-lisp.net/project/flexichain/download/StrandhVilleneuveMoore.pdf][circular gap buffer 'flexichain']]
 - [[https://github.com/jaz303/gapbuffer/blob/master/index.js][gap buffer in Node.js]]
 - [[https://news.ycombinator.com/item?id=11244103][yc on this subject]]
+  
   
