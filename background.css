@@ -1,5 +1,5 @@
 /* these 2 lines ensure that the canvas takes up the whole screen */
-html,body,#c{width:100%;height:100%;}
+html,body,#c{width:100%;height:100%;} 
 html,body{padding:0px;margin:0px;overflow:hidden;}
 
 /* feel free to modify below here to suit your taste */
