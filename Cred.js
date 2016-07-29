@@ -1,9 +1,5 @@
 "use strict";
 /*TODO: file i/o */
-const c=document.getElementById('c').getContext('2d'),
-      Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
-      Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]};
-
 /* Buffer -- A line-oriented view of a String, with an insertion point.
    Editing operations (such as insert and delete) automatically update line numbers. */
 const Buffer=()=>({
@@ -26,17 +22,19 @@ const Buffer=()=>({
 
     /* insert ch chars to right of p */
     ins(ch){
-        if(this.pt===this.s.length){this.s=this.s+ch;}
+        if(this.pt===this.s.length){this.s=this.s+ch;} /* optimized append */
         else{const fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
-        this.lines=this.gen_lines();
         this.pt+=ch.length;
+        this.lines=this.gen_lines();
     },
 
     /* delete n chars to right (n>0) or left (n<0) of point */
     del(n){
         if(n===0||n+this.pt<0){return;}
-        const leftd=n<0?n:0,rightd=n<0?0:n;
-        const fst=this.s.slice(0,this.pt+leftd),snd=this.s.slice(this.pt+rightd);this.s=fst+snd;
+        const leftd=n<0?n:0,rightd=n<0?0:n,
+              fst=this.s.slice(0,this.pt+leftd),
+              snd=this.s.slice(this.pt+rightd);
+        this.s=fst+snd;
         this.lines=this.gen_lines();
     },
 });
@@ -53,42 +51,28 @@ const Cursor=(b)=>({
 });
 
 
-/* Parser -- Convert keyboard events into cursor-based Actions */
-const Parser=(cur)=>{
-    const Command=({p:'',c:''}),
-          /* arrow : DecodedKey -> Action Move */
-          arrow=(dec)=>{
-              switch(dec.code){
-              case'D':cur.down();break;
-              case'U':cur.up();break;
-              case'R':dec.mods[1]?(cur.move(cur.eow)):(cur.right());break;
-              case'L':dec.mods[1]?(cur.move(cur.bow)):(cur.left());break;
-              }
-          };
-    return({
-        /* parse : timestamp -> DecodedKey -> Action */
-        parse(t,dec){
-            if(dec.type==='arrow'){arrow(dec);}
-            else if(cur.mode==='insert'){insert(t,dec);}
-            else{if(dec.mods.lastIndexOf(true)>1){cmd.c+=dec.code}}
-            // TODO return something
-        },
-    });
-};
+const Command=()=>({
+    p:'', /* previous command string */
+    c:'', /* current command string */
+    dt:0, /* time delta between current and previous commands */
+});
 
 
 const Config=()=>({
-    theme:{
-        base:{hue:270,sat:100,lig:98},
-        font:{hue:270,sat:50,lig:5},
-        cursor:{hue:270,sat:50,lig:80},
-        status:{hue:270,sat:100,lig:20},
+    /* hue, saturation, lightness */
+    color:{
+        'base':[270,100,98],
+        'font':[270,50,5],
+        'cursor':[270,50,80],
+        'status':[270,100,20],
     },
     font:{size:'20px', name:'serif',},
+
     /*(base|font|cursor|status)->'hsl(...)' */
-    get(x){return `hsl(${this.theme[x].hue},${this.theme[x].sat}%,${this.theme[x].lig}%)`},
+    get(x){return `hsl(${(this.color[x])[0]},${(this.color[x])[1]}%,${(this.color[x])[2]}%)`},
+
     /* for use by localStorage */
-    store(){return JSON.stringify({theme:this.theme,font:this.font},null,0)},
+    store(){return JSON.stringify({color:this.color,font:this.font},null,0)},
     init(ctx){ctx.font=this.font.size+' '+this.font.name;},
 });
 
@@ -140,12 +124,24 @@ const Window=(c,cur,cfg)=>({
 });
 
 
-const buf=Buffer(),
+/* UX */
+const c=document.getElementById('c').getContext('2d'),
+      Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
+      Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]};
+
+/* Core */
+const cfg=Config(),
+      buf=Buffer(),
       cur=Cursor(buf),
-      par=Parser(cur),
-      cfg=Config(),
       win=Window(c,cur,cfg);
 
+/* parse : timestamp -> DecodedKey -> Command -> Action */
+const parse=(t,dec,cmd)=>{
+    if(dec.type==='arrow'){arrow(dec);}
+    else if(cur.mode==='insert'){insert(t,dec);}
+    else{if(dec.mods.lastIndexOf(true)>1){cmd.c+=dec.code}}
+    // TODO return Action to be consumed by gameloop
+};
 
 /* decode : RawKey -> DecodedKey */
 const decode=({k, mods})=>{
@@ -194,7 +190,6 @@ const render_cursor=()=>{
     /* Draw the cursor at the new position. */
     const l=buf.getline(cur.cl),/* current line */
           cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
-          wid=cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
           status_line_y=win.v.y+win.v.h-1*win.line_height;
 
     /* statusbar background */
@@ -208,14 +203,19 @@ const render_cursor=()=>{
     /* cursor */
     c.save();
     c.globalCompositeOperation='multiply';
-    c.fillRect(win.bw+cur_left_edge,win.ln_top(cur.cl)-win.line_ascent,wid,win.line_height);
+    c.fillRect(
+        win.bw+cur_left_edge,
+        win.ln_top(cur.cl)-win.line_ascent,
+        cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
+        win.line_height
+    );
     c.restore();
 };
 
 window.onload=()=>{
     const gameloop=(now)=>{
         /* Consume input events. */
-        while(Keyq.length){par.parse(now,decode(Keyq.shift()));}
+        while(Keyq.length){parse(now,decode(Keyq.shift()));}
         while(Mouseq.wheel.length){
             const wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
@@ -251,9 +251,9 @@ window.onload=()=>{
     if(localStorage.user_config){
         console.log('using stored theme');
         let thm=JSON.parse(localStorage.getItem('user_config'));
-        thm.theme.cursor.hue=20;
-        cfg.theme=thm.theme;
-        for(let i in thm.theme){if(cfg.theme.hasOwnProperty(i)){cfg.theme[i]=thm.theme[i];}}
+        thm.color['cursor'][0]=20;
+        cfg.color=thm.color;
+        for(let i in thm.color){if(cfg.color.hasOwnProperty(i)){cfg.color[i]=thm.color[i];}}
         for(let i in thm.font){if(cfg.font.hasOwnProperty(i)){cfg.font[i]=thm.font[i];}}
     }
     else{localStorage.setItem('user_config',cfg.store());}

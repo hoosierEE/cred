@@ -5,9 +5,9 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?  And why JavaScript for #@^%'s sake?
 
-- desire to experiment with immediate-mode rendering in a text editor
-- something Spacemacs-like - but "native" for Chromebooks - doesn't exist yet
-- writing single-browser ES6 is quite pleasant (but I'm coming from embedded C++ so YMMV)
+- experiment with immediate-mode rendering in a text editor
+- something Spacemacs-like (but "native" for Chromebooks) doesn't exist yet
+- writing single-browser ES6 is quite pleasant (but I'm used to embedded C++ so YMMV)
 
 ** Some TODOs
 - full rewrite of normal-mode command parser
@@ -20,7 +20,7 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 - assorted WYSIWYG features: inline images, font style and sizes, drag-and-drop, etc.
   
 * Contributing
-Fork/pull if you want to contribute.
+Fork, pull request.
 
 ** License
 MIT
@@ -42,7 +42,7 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 
 * Links
 ** general
-- [[https://github.com/creationix/tedit][tedit - IDE that directly edits Git repos (really impressive concepts here!)]]
+- [[https://github.com/creationix/tedit][tedit - IDE that directly edits Git repos (would love this as a backend)]]
 - [[https://github.com/martanne/vis#operators][vis feature set]]
 - [[http://vimsheet.com/][vim command cheatsheet]]
 - [[http://www.isaacsukin.com/news/2015/01/detailed-explanation-javascript-game-loops-and-timing][robust game loops]]

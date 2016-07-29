@@ -14,5 +14,3 @@ const welcome=
       "* [WYSIWYG] different font styling in the same document\n"+
       "* [WYSIWYG] inline images";
 buf.ins(welcome);
-cur.left();
-cur.rowcol();
