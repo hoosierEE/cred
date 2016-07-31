@@ -5,11 +5,12 @@
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?  And why JavaScript for #@^%'s sake?
 
-- experiment with immediate-mode rendering in a text editor
+- experiment with immediate-mode rendering in a text editor *[update: no longer using Canvas for text]* 
 - something Spacemacs-like (but "native" for Chromebooks) doesn't exist yet
 - writing single-browser ES6 is quite pleasant (but I'm used to embedded C++ so YMMV)
 
 ** Some TODOs
+- ditch Canvas because its text is fuzzy on devices with lots of pixels
 - full rewrite of normal-mode command parser
 - =yip=, =d3x=, =caw= (operators besides the implicit "move")
 - undo/redo
