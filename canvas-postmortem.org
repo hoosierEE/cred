@@ -1,0 +1,10 @@
+* Canvas implementation Post-Mortem
+/Lessons learned from the Canvas implementation (now deprecated)/
+
+** (bad) tightly-coupled modules
+The =cursor= and =parser= modules were super tightly coupled, primarily because =parse= did all the work, and should instead have returned a value.  This would have forced the modules to have better-defined interfaces and have the side benefit of being easier to test in isolation.
+
+** (good) well-defined modules
+Surprisingly, =Buffer= required almost no modification.  Its jobs were to update an array containing line-start-indexes and the position of the (only) cursor.  Supporting multiple cursors would possibly not require any new methods, just a change to the calling conventions.
+
+=Window= also proved robust.  It handles scrolling (based on the position of the only cursor), and potentially improves performance by only rendering visible lines.  Might be a little trickier to make this work with multiple cursors, images, and/or multiple font styles.

@@ -11,12 +11,13 @@ There are [[https://github.com/showcases/text-editors][text editors]] already, [
 
 ** Some TODOs
 - ditch Canvas because its text is fuzzy on devices with lots of pixels
-- full rewrite of normal-mode command parser
-- =yip=, =d3x=, =caw= (operators besides the implicit "move")
+- full rewrite of normal-mode command parser:
+  - =yip=, =d3x=, =caw= (operators besides the implicit "move")
+  - figure out how generic API should be (do we need specific functions for "word" or "paragraph" finding?)
+  - visual mode
+  - text object spans (e.g. =daw= should delete an entire word touching the cursor, even if the cursor is in the middle of the word)
 - undo/redo
 - File I/O
-- visual mode
-- text object spans (e.g. =daw= should delete an entire word touching the cursor, even if the cursor is in the middle of the word)
 - syntax/semantic highlighting
 - assorted WYSIWYG features: inline images, font style and sizes, drag-and-drop, etc.
   

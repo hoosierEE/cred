@@ -103,25 +103,6 @@ const Window=(c,cur,cfg)=>({
 });
 
 /* Globals (includes UX) */
-const HiResCanvas=()=>{
-    let ctx=document.getElementById('c').getContext('2d'),
-        dpr=window.devicePixelRatio||1,
-        bsr=ctx.webkitBackingStorePixelRatio||
-        ctx.mozBackingStorePixelRatio||
-        ctx.msBackingStorePixelRatio||
-        ctx.oBackingStorePixelRatio||
-        ctx.backingStorePixelRatio||1,
-        ratio=dpr/bsr;
-    ctx.canvas.width=ctx.canvas.clientWidth*ratio;
-    ctx.canvas.height=ctx.canvas.clientHeight*ratio;
-    ctx.canvas.style.width=ctx.width+'px';
-    ctx.canvas.style.height=ctx.height+'px';
-    ctx.setTransform(ratio,0,0,ratio,0,0);
-    return {ctx,ratio};
-},
-      c=HiResCanvas().ctx,
-      rat=HiResCanvas().ratio;
-
 const Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
       Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},
       Command=()=>({
