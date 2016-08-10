@@ -2,6 +2,9 @@
 [[file:img/with-cursors.png]]
 /Canvas Rendered EDitor/
 
+* What
+Cred is a text editor implemented in JavaScript and targeting Google Chrome Browser 52 or later.  A Chrome App version with enhanced capabilities (especially regarding local files) is planned, but for now this is a web page with a Spacemacs-like UI/UX.
+
 * Why
 There are [[https://github.com/showcases/text-editors][text editors]] already, [[http://thomaswilburn.net/caret/][even for Chrome OS]].  Why another?  And why JavaScript for #@^%'s sake?
 
@@ -51,6 +54,7 @@ Some inspiration comes from this [[http://nsl.com/papers/style.pdf][K style guid
 - [[http://cryto.net/~joepie91/blog/2015/05/04/functional-programming-in-javascript-map-filter-reduce/][functional javascript]]
 
 ** specific
+- [[https://github.com/jakub-m/vim-in-textarea][vim-in-textarea]] achieves a good portion of my goals
 - [[https://takac.github.io/][vim grammar]]
 - [[http://www.catch22.net/tuts/piece-chains][piece tables in windows text editors]]
 - [[http://www.codeproject.com/Articles/20910/Generic-Gap-Buffer][gap buffer in C#]]

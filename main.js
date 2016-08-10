@@ -3,35 +3,35 @@
 
 /* Buffer -- A line-oriented view of a String, with an insertion point.
    Editing operations (such as insert and delete) automatically update line numbers. */
-const Buffer=()=>({
+
+const Buffer=(s='')=>({/* s refers to a mutable string, such as textarea.value */
     /* STATE */
-    s:'',
     pt:0,
     lines:[0],
     /* METHODS */
     getline(n){/* getline : Int -> String -- the Nth line, not including any trailing newline */
         const l=this.lines,len=l.length;
-        if(0<n&&n<len){return this.s.slice(l[n]+1,l[n+1]);}/* line in middle */
-        else if(n===0){return this.s.slice(0,l[1]);}/* first */
-        else if(n>=len){return this.s.slice(1+l[len-1]);}/* last */
+        if(0<n&&n<len){return s.slice(l[n]+1,l[n+1]);}/* line in middle */
+        else if(n===0){return s.slice(0,l[1]);}/* first */
+        else if(n>=len){return s.slice(1+l[len-1]);}/* last */
         else{return this.getline(Math.max(0,len+n));}/* negative n indexes backwards but doesn't wrap */
     },
     /* gen_lines : () -> [Int] -- array of line start indexes */
-    gen_lines(){return[...this.s].reduce((x,y,i)=>{y==='\n'&&x.push(i);return x;},[0]);},
+    gen_lines(){return[...s].reduce((x,y,i)=>{y==='\n'&&x.push(i);return x;},[0]);},
     /* insert ch chars to right of p */
     ins(ch){
-        if(this.pt===this.s.length){this.s=this.s+ch;} /* optimized append */
-        else{const fst=this.s.slice(0,this.pt),snd=this.s.slice(this.pt);this.s=fst+ch+snd;}
+        if(this.pt===s.length){s=s+ch;} /* optimized append */
+        else{const fst=s.slice(0,this.pt), snd=s.slice(this.pt); s=fst+ch+snd;}
         this.pt+=ch.length;
         this.lines=this.gen_lines();
     },
     /* delete n chars to right (n>0) or left (n<0) of point */
     del(n){
-        if(n===0||n+this.pt<0){return;}
-        const leftd=n<0?n:0,rightd=n<0?0:n,
-              fst=this.s.slice(0,this.pt+leftd),
-              snd=this.s.slice(this.pt+rightd);
-        this.s=fst+snd;
+        if(n===0||n+this.pt<0){return;} /* no op */
+        const leftd=n<0?n:0, rightd=n<0?0:n,
+              fst=s.slice(0,this.pt+leftd),
+              snd=s.slice(this.pt+rightd);
+        s=fst+snd;
         this.lines=this.gen_lines();
     },
 });
@@ -55,119 +55,37 @@ const Config=()=>({
         status:[270,100,20],
     },
     // font size
-    font:{size:'16px', name:'Source Code Pro for Powerline',},
-    /*(base|font|cursor|status)->'hsl(...)' */
+    font:{size:'16px', name:'serif',},
     get(x){return `hsl(${(this.color[x])[0]},${(this.color[x])[1]}%,${(this.color[x])[2]}%)`},
-    /* for use by localStorage */
-    store(){return JSON.stringify({color:this.color,font:this.font},null,0)},
+    store(){return JSON.stringify({color:this.color,font:this.font},null,0)},/* localStorage */
     init(c){c.font=this.font.size+' '+this.font.name;},
 });
 
-const Window=(c,cur,cfg)=>({
-    /* STATE */
-    bw:20,/* border width */
-    //line_ascent:5,line_descent:5,line_height:10,
-    line_ascent:0,line_descent:0,line_height:0,
-    v:{},/* viewport position and size */
-    /* METHODS */
-    ln_top(n){return this.bw+this.line_height*(n+1);},/* top pixel of line n */
-    co_left(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(0,n)).width;},/* left edge of column n */
-    co_right(n){return this.bw+c.measureText(buf.getline(cur.cl).slice(0,n+1)).width;},/* right edge of column n */
-    num_visible_lines(){return (c.canvas.height-2*this.bw)/this.line_height|0;},
-    scroll(line_offset=5){
-        if(line_offset>this.num_visible_lines()){line_offset=this.num_visible_lines()/2|0;}
-        else if(line_offset<1){line_offset=1;}/* smallest usable value - 0 is too small */
-        let prev_y=this.v.y, prev_x=this.v.x;/* grab current value of x and y */
-        /* up/down */
-        let ltop=this.ln_top(cur.cl+line_offset), lbot=this.ln_top(cur.cl-line_offset);
-        if(ltop>this.v.y+this.v.h){this.v.y+=ltop-(this.v.y+this.v.h);}
-        if(lbot<this.v.y){this.v.y-=this.v.y-lbot;}
-        /* left/right */
-        let crt=this.co_right(cur.co)+this.bw, clt=this.co_left(cur.co)-this.bw;
-        if(crt>this.v.x+this.v.w){this.v.x+=crt-this.v.w;}
-        if(clt<this.v.x){this.v.x-=this.v.x-clt;}
-        if(this.v.y<0){this.v.y=0;}
-        if(this.v.x<0){this.v.x=0;}
-        /* translate canvas if necessary */
-        if(prev_x!=this.v.x||prev_y!=this.v.y){c.setTransform(1,0,0,1,-this.v.x,-this.v.y);}
-        else{c.setTransform(1,0,0,1,0,0);}
-    },
-    init(){/* must be called before using other Window methods, but AFTER the HTML body loads */
-        let fm=FontMetric(cfg.font.name,cfg.font.size);
-        this.line_ascent=fm[0];/* top of text such as QMEW| */
-        this.line_height=fm[1];/* total line height */
-        this.line_descent=fm[2];/* lower bound of text such as: jgpq| */
-        this.v={x:0,y:0,w:rat*c.canvas.width,h:rat*c.canvas.height};
-        this.scroll();
-    },
-});
-
 /* Globals (includes UX) */
-const Keyq=[{mods:[false,false,false,false],k:''}],/* lightens duties for key event handler */
+const Keyq=[{k:'',mods:{all:'0000',code:0}}],/* lightens duties for key event handler */
       Mouseq={wheel:[],dtxy:[{dt:0,dx:0,dy:0}]},
-      Command=()=>({
+      Command={
           p:'', /* previous command string */
           c:'', /* current command string */
           dt:0, /* time delta between current and previous commands */
           valid:false, /* when true, this Command can become an Action */
           macro:'',
-      });
+      };
 
 /* Instance variables for core program. */
 const cfg=Config(),
       buf=Buffer(),
-      cur=Cursor(buf),
-      win=Window(c,cur,cfg),
-      cmd=Command();
+      cur=Cursor(buf);
 
-/* parse : timestamp -> DecodedKey -> Command -> Action */
-const parse=(t,dec,cmd)=>{
-    if(dec.type==='arrow'){console.log('arrow');}
-    else if(cur.mode==='insert'){insert(t,dec);}
-    else{if(!(dec.mods.alt||dec.mods.ctrl||dec.mods.meta)){cmd.c+=dec.code}}
-    // TODO return Action to be consumed by gameloop
-};
 
 window.onload=()=>{
-    const render_text=()=>{
-        /* Which lines are visible? */
-        let from_line=Math.max(0,cur.cl-win.num_visible_lines()),
-            to_line=Math.min(buf.lines.length-1,cur.cl+win.num_visible_lines());
-        /* Render just those lines. */
-        c.fillStyle=cfg.get('font');
-        for(let i=from_line;i<to_line+1;++i){c.fillText(buf.getline(i),win.bw,win.ln_top(i));}
-    };
-
-    const render_cursor=()=>{
-        /* Draw the cursor at the new position. */
-        const l=buf.getline(cur.cl),/* current line */
-              cur_left_edge=c.measureText(l.slice(0,cur.co)).width,
-              status_line_y=win.v.y+win.v.h-1*win.line_height;
-        /* statusbar background */
-        c.fillStyle=cfg.get('status');
-        c.fillRect(win.v.x,status_line_y,win.v.w,win.line_height);
-        /* statusbar */
-        c.fillStyle=cfg.get('cursor');
-        c.fillText(cur.status(),win.v.x+win.bw,status_line_y+win.line_ascent);
-        /* cursor */
-        c.save();
-        c.globalCompositeOperation='multiply';
-        c.fillRect(
-            win.bw+cur_left_edge,
-            win.ln_top(cur.cl)-win.line_ascent,
-            cur.mode==='insert'?1:c.measureText(l.slice(0,cur.co+1)).width-cur_left_edge||10,
-            win.line_height
-        );
-        c.restore();
-    };
-
     /* decode : RawKey -> DecodedKey */
     const decode=({k, mods})=>{
         const dec={type:'',code:'',mods:mods};/* return type (modifiers pass through) */
         /* printable */
         if(k==='Space'){dec.code=' ';}
         else{
-            const shft=mods[3],
+            const shft=mods.code===1,
                   ma=k.slice(-1),/* maybe alphanumeric */
                   kd=k.slice(0,-1);
             if(kd==='Key'){dec.code=shft?ma:ma.toLowerCase();}
@@ -196,61 +114,45 @@ window.onload=()=>{
     };
 
     const gameloop=(now)=>{
-        /* Consume input events. */
+        /* consume inputs */
         while(Keyq.length){
-            parse(now,decode(Keyq.shift()),cmd);
+            /* preventDefault for everything except Cmd+Option+i (Mac) or Ctrl+I (Chrome OS) */
+            console.log(Keyq.length);
+            console.log(JSON.stringify(Keyq.shift(),null,2));
+            /* parse : timestamp -> DecodedKey -> Command -> Action */
+            //parse(now,decode(Keyq.shift()),Command);
         }
         while(Mouseq.wheel.length){
             const wheel=Mouseq.wheel.shift();
             if(wheel<0){cur.up(-wheel%win.line_height|0);}
             else{cur.down(wheel%win.line_height|0);}
         }
-        /* Repaint. */
-        //c.fillStyle=cfg.get('base');
-        //c.fillRect(win.v.x,win.v.y,win.v.w,win.v.h);
-        c.clearRect(win.v.x,win.v.y,win.v.w,win.v.h);
-        win.scroll();
-        render_text();
-        render_cursor();
+        /* painting -- render_text(), render_cursor(), etc. */
         /* other ideas: render_minimap(); render_statusline(); render_popups(); */
     };
+
     const rsz=()=>{
-        c.canvas.width=c.canvas.clientWidth;
-        c.canvas.height=c.canvas.clientHeight;
         cfg.init(c);
-        win.init(c);
         requestAnimationFrame(gameloop);
     };
 
     /* events */
     window.onresize=rsz;
-    c.canvas.onmousewheel=(ev)=>{Mouseq.wheel.push(ev.deltaY); requestAnimationFrame(gameloop);};
-    window.onkeydown=(k)=>{
-        if(k.type==='keydown'){/* push incoming events to a queue as they occur */
-            if(!k.metaKey){k.preventDefault();}/* allows CMD-I on OSX */
-            Keyq.push({
-                k:k.code,
-                mods:{
-                    alt:k.altKey,
-                    ctrl:k.ctrlKey,
-                    meta:k.metaKey,
-                    shift:k.shiftKey
-                },
-            });
-            requestAnimationFrame(gameloop);
-        }
+    window.onmousewheel=(ev)=>{
+        Mouseq.wheel.push(ev.deltaY);
+        requestAnimationFrame(gameloop);
+    };
+    window.onkeyup=(key)=>{};
+    window.onkeydown=(key)=>{
+        const all_modifiers=[key.altKey,key.ctrlKey,key.metaKey,key.shiftKey].map(x=>~~x).join(''), /* '0010' === Meta */
+              hex_mod_code=parseInt(all_modifiers,2);
+        Keyq.push({
+            k:key.code,
+            mods:{all:all_modifiers,code:hex_mod_code},
+        });
+        requestAnimationFrame(gameloop);
     };
 
-    /* Theme and UX setup */
-    //if(localStorage.user_config){
-    //    console.log('using stored theme');
-    //    let thm=JSON.parse(localStorage.getItem('user_config'));
-    //    thm.color['cursor'][0]=20;
-    //    cfg.color=thm.color;
-    //    for(let i in thm.color){if(cfg.color.hasOwnProperty(i)){cfg.color[i]=thm.color[i];}}
-    //    for(let i in thm.font){if(cfg.font.hasOwnProperty(i)){cfg.font[i]=thm.font[i];}}
-    //}
-    //else{localStorage.setItem('user_config',cfg.store());}
     document.body.style.backgroundColor=cfg.get('base');
     rsz();
 };
